@@ -349,40 +349,43 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (map && userGps && hotelLocation) {
+    if (map) {
       map.eachLayer((layer) => {
         if (layer instanceof L.Marker || layer instanceof L.Circle || layer instanceof L.Polyline || !layer._url) { // Keep tile layer
           map.removeLayer(layer);
         }
       });
 
-      if (verifiedPhoneNumber && userGps && !mapUpdateThrottle.current) {
+      if (userGps && !mapUpdateThrottle.current) {
         mapUpdateThrottle.current = setTimeout(() => {
           mapUpdateThrottle.current = null;
         }, 1000); // Shorter throttle for smoother updates
 
         const updateMapView = () => {
-          const distance = getDistance(userGps, hotelLocation);
-          const ZOOM_START_RADIUS = 2000; // Start zooming within 4km
-          const MIN_ZOOM = 12;
-          const MAX_ZOOM = 18;
+          if (hotelLocation) {
+            const distance = getDistance(userGps, hotelLocation);
+            const ZOOM_START_RADIUS = 2000; // Start zooming within 4km
+            const MIN_ZOOM = 12;
+            const MAX_ZOOM = 18;
 
-          let newZoom;
-          if (distance >= ZOOM_START_RADIUS) {
-            newZoom = MIN_ZOOM;
+            let newZoom;
+            if (distance >= ZOOM_START_RADIUS) {
+              newZoom = MIN_ZOOM;
+            } else {
+              const zoomProgress = 1 - (distance / ZOOM_START_RADIUS);
+              newZoom = MIN_ZOOM + (MAX_ZOOM - MIN_ZOOM) * zoomProgress;
+            }
+
+            const midLat = (userGps.lat + hotelLocation.lat) / 2;
+            const midLng = (userGps.lng + hotelLocation.lng) / 2;
+
+            map.setView([midLat, midLng], newZoom, { animate: true, pan: { duration: 2.5 } });
           } else {
-            const zoomProgress = 1 - (distance / ZOOM_START_RADIUS);
-            newZoom = MIN_ZOOM + (MAX_ZOOM - MIN_ZOOM) * zoomProgress;
+            // If no hotel location, just center on user
+            map.setView([userGps.lat, userGps.lng], 15, { animate: true, pan: { duration: 1.0 } });
           }
-
-          const midLat = (userGps.lat + hotelLocation.lat) / 2;
-          const midLng = (userGps.lng + hotelLocation.lng) / 2;
-
-          map.setView([midLat, midLng], newZoom, { animate: true, pan: { duration: 2.5 } });
         }
-        if (verifiedPhoneNumber) {
-          updateMapView();
-        }
+        updateMapView();
       }
 
       if (hotelLocation && hotelLocation.lat && hotelLocation.lng) {
@@ -396,7 +399,7 @@ function App() {
         }).addTo(map).bindPopup('Hotel Check-in Area');
       }
 
-      if (userGps && verifiedPhoneNumber) {
+      if (userGps) {
         const userIcon = L.divIcon({
           html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#1E90FF" width="32px" height="32px"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/><path d="M0 0h24v24H0z" fill="none"/></svg>`,
           className: 'user-location-icon',
