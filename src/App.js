@@ -77,6 +77,8 @@ function App() {
   const [userGps, setUserGps] = useState(null);
   const [initialUserLocation, setInitialUserLocation] = useState(null);
   const [lastIntegrityCheckTime, setLastIntegrityCheckTime] = useState(null);
+  const [bleStatus, setBleStatus] = useState('Idle');
+  const [secondUserGps, setSecondUserGps] = useState(null);
 
   const [messages, setMessages] = useState([]);
   const addMessage = (message) => {
@@ -199,8 +201,73 @@ function App() {
     }
   };
 
-  const handleAccessSequence = async () => {
+  const scanForBeacon = async () => {
+    if (!navigator.bluetooth) {
+      addMessage("Web Bluetooth API is not available in this browser.");
+      return;
+    }
+    try {
+      addMessage("Requesting Bluetooth Device...");
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: ['battery_service']
+      });
+
+      addMessage(`Beacon detected: ${device.name || 'Unknown Device'}`);
+      
+      // Simulate location-based logic
+      setBleStatus('Connected');
+      addMessage("Verifying location credentials via BLE...");
+      
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      addMessage(`Location Verified: MWC Hall 3 - ${device.name || 'Beacon'}`);
+      addMessage("Push Notification: Welcome to the MWC VIP Lounge! Drinks are on us.");
+      
+    } catch (error) {
+      addMessage(`BLE Scan failed: ${error.message}`);
+      setBleStatus('Failed');
+    }
+  };
+
+  const enableRealLocation = () => {
+    if (!navigator.geolocation) {
+      addMessage("Geolocation is not supported by your browser");
+      return;
+    }
+    addMessage("Getting real device location...");
+    navigator.geolocation.getCurrentPosition((position) => {
+        const { latitude, longitude } = position.coords;
+        setUserGps({ lat: latitude, lng: longitude });
+        addMessage(`Device Location updated: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+    }, (error) => {
+        addMessage(`Unable to retrieve location: ${error.message}`);
+    });
+  };
+
+  const toggleSecondUser = () => {
+    if (secondUserGps) {
+      setSecondUserGps(null);
+      addMessage("Removed mock second user.");
+    } else {
+      const baseLat = userGps ? userGps.lat : (hotelLocation ? hotelLocation.lat : -33.8688);
+      const baseLng = userGps ? userGps.lng : (hotelLocation ? hotelLocation.lng : 151.2093);
+      setSecondUserGps({ lat: baseLat + 0.0005, lng: baseLng + 0.0005 });
+      addMessage("Added mock second user nearby.");
+    }
+  };
+
+  const handleAccessSequence = async (passedLocation) => {
+    // Use passed location if available (from API callback), otherwise fallback to state
+    const currentLocation = (passedLocation && passedLocation.lat) ? passedLocation : hotelLocation;
+
     addMessage("Starting Elevator and Room Access sequence...");
+    
+    if (currentLocation) {
+      const elevatorLocation = { lat: currentLocation.lat + 0.0001, lng: currentLocation.lng + 0.0001 };
+      setUserGps(elevatorLocation);
+      addMessage("Location updated: Elevator Lobby");
+    }
 
     // 1. Call Identity
     addMessage("Verifying identity for elevator access...");
@@ -217,6 +284,13 @@ function App() {
 
     // 3. Simulate room access attempt
     await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    if (currentLocation) {
+      const roomLocation = { lat: currentLocation.lat + 0.0002, lng: currentLocation.lng + 0.0002 };
+      setUserGps(roomLocation);
+      addMessage("Location updated: Room 1337 Entrance");
+    }
+
     addMessage("Tap phone on room door lock to re-verify...");
     setRfidStatus('Verified');
 
@@ -333,8 +407,19 @@ function App() {
 
         L.marker([userGps.lat, userGps.lng], { icon: userIcon }).addTo(map).bindPopup('User Location');
       }
+
+      if (secondUserGps) {
+        const secondUserIcon = L.divIcon({
+          html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FF4500" width="32px" height="32px"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/><path d="M0 0h24v24H0z" fill="none"/></svg>`,
+          className: 'user-location-icon',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32]
+        });
+        L.marker([secondUserGps.lat, secondUserGps.lng], { icon: secondUserIcon }).addTo(map).bindPopup('Second User (Mock)');
+      }
     }
-  }, [map, location, userGps, verifiedPhoneNumber, hotelLocation]);
+  }, [map, location, userGps, verifiedPhoneNumber, hotelLocation, secondUserGps]);
 
   const validatePhone = async (e) => { // Made async to await api.locationRetrieval
     e.preventDefault();
@@ -577,6 +662,21 @@ function App() {
                 </ul>
               </div>
 
+              {/* MWC BLE Section */}
+              <div id="mwcSection" className="card">
+                <h2 className="card-header">MWC Location Access (BLE)</h2>
+                <div className="p-3">
+                  <p>Scan for local beacons to verify location and receive messages.</p>
+                  <button className="btn btn-primary" onClick={scanForBeacon}>Scan for Beacon</button>
+                  <div className="mt-2">
+                    <strong>Status: </strong>
+                    <span style={{ color: bleStatus === 'Connected' ? 'green' : (bleStatus === 'Failed' ? 'red' : 'black') }}>
+                      {bleStatus}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* User Profile Section (Full-width) */}
               <div id="userDetails" className="card" ref={userProfileRef}>
                 <h2 className="card-header">3. User Profile Details</h2>
@@ -640,6 +740,12 @@ function App() {
               {/* Location Tracker */}
               <div id="locationTracker" className="card">
                 <h2 className="card-header">Location Tracker</h2>
+                <div className="p-2">
+                  <button className="btn btn-sm btn-info" style={{ marginRight: '10px' }} onClick={enableRealLocation}>Use Device GPS</button>
+                  <button className="btn btn-sm btn-warning" onClick={toggleSecondUser}>
+                    {secondUserGps ? 'Remove 2nd User' : 'Mock 2nd User'}
+                  </button>
+                </div>
                 <div id="map" style={{ height: '700px', width: '100%' }}></div>
               </div>
             </div>
