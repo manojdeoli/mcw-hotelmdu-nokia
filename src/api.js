@@ -18,7 +18,11 @@ async function post(url, body) {
 }
 
 export function verifyPhoneNumber(phoneNumber) {
-    return post(`${API_BASE_URL}/number-verification/number-verification/v0/verify`, { phoneNumber });
+    //return post(`${API_BASE_URL}/number-verification/number-verification/v0/verify`, { phoneNumber });
+    //Mock For Test
+    return Promise.resolve({
+        devicePhoneNumberVerified: true
+    })
 }
 
 export function kycMatch(data) {
@@ -232,6 +236,10 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
 
     addMessage("User has arrived within the vicinity.");
 
+    // Update location to Hotel Entrance
+    setUserGps(hotelLocation);
+    addMessage("Location updated: Hotel Entrance");
+
     await new Promise(resolve => setTimeout(resolve, 5000));
     addMessage("Calling Location Verification...");
     await new Promise(resolve => setTimeout(resolve, 5000));
@@ -251,6 +259,12 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
 
         // (ii) Check in (involves RFID scan)
         setCheckInStatus("Checked In");
+        
+        // Update location to Check-in Desk
+        const checkInLocation = { lat: hotelLocation.lat + 0.0001, lng: hotelLocation.lng };
+        setUserGps(checkInLocation);
+        addMessage("Location updated: Hotel Lobby / Check-in Desk");
+
         addMessage("Check-in process: RFID scan at kiosk...");
         setRfidStatus("Verified");
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -258,7 +272,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
         addMessage("Check-in complete. RFID status reset.");
 
         // Now, trigger the shared access sequence for steps (iii) and (iv)
-        await handleAccessSequence();
+        await handleAccessSequence(hotelLocation);
     } else {
         addMessage("Location verification failed.");
     }
