@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://telstra-hackathon-apis.p-eu.rapidapi.com/passthrough/camara/v1';
+// const API_BASE_URL = 'https://telstra-hackathon-apis.p-eu.rapidapi.com/passthrough/camara/v1';
 const API_KEY = '15cc20cd08msh7054d8a2a3ed868p146283jsn43ebc1478fe7';
 
 

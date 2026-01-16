@@ -88,6 +88,17 @@ const useSyncedState = (key, initialValue) => {
 };
 // --- End of Custom Hook ---
 
+function getDistance(coords1, coords2) {
+  const R = 6371e3; // metres
+  const φ1 = coords1.lat * Math.PI / 180;
+  const φ2 = coords2.lat * Math.PI / 180;
+  const Δφ = (coords2.lat - coords1.lat) * Math.PI / 180;
+  const Δλ = (coords2.lng - coords1.lng) * Math.PI / 180;
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 function App() {
   const mapUpdateThrottle = useRef(null);
   
@@ -147,16 +158,6 @@ function App() {
       setKycMatchResponse(null);
     }
   };
-  function getDistance(coords1, coords2) {
-    const R = 6371e3; // metres
-    const φ1 = coords1.lat * Math.PI / 180;
-    const φ2 = coords2.lat * Math.PI / 180;
-    const Δφ = (coords2.lat - coords1.lat) * Math.PI / 180;
-    const Δλ = (coords2.lng - coords1.lng) * Math.PI / 180;
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
 
   useEffect(() => {
     if (responseContainerRef.current) {
@@ -524,7 +525,7 @@ function App() {
         L.marker([secondUserGps.lat, secondUserGps.lng], { icon: secondUserIcon }).addTo(map).bindPopup('Second User (Mock)');
       }
     }
-  }, [map, location, userGps, verifiedPhoneNumber, hotelLocation, secondUserGps]);
+  }, [map, userGps, hotelLocation, secondUserGps]);
 
   const validatePhone = async (e) => { // Made async to await api.locationRetrieval
     e.preventDefault();
@@ -587,7 +588,7 @@ function App() {
     }
   };
 
-  const renderMatchStatus = (status, fieldName) => {
+  const renderMatchStatus = (status) => {
     if (status === null || status === undefined || status === 'true') {
       return null;
     }
