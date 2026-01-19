@@ -166,6 +166,7 @@ function App() {
   useEffect(() => { hotelLocationRef.current = hotelLocation; }, [hotelLocation]);
   useEffect(() => { verifiedPhoneNumberRef.current = verifiedPhoneNumber; }, [verifiedPhoneNumber]);
   const activeListenerRef = useRef(null);
+  const lastProcessedDeviceRef = useRef({ id: null, time: 0 });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -366,8 +367,7 @@ function App() {
     try {
       addMessage("Requesting Bluetooth Device...");
       const device = await navigator.bluetooth.requestDevice({
-        // filters: [{ namePrefix: 'MWC' }],
-        acceptAllDevices: true
+        filters: [{ namePrefix: 'MWC' }]
       });
 
       const deviceName = device.name || 'Unknown Device';
@@ -391,8 +391,16 @@ function App() {
     
     // Use event.name (advertised name) as priority, fallback to device.name
     const deviceName = event.name || event.device.name;
+    const deviceId = event.device.id;
+    const now = Date.now();
+    
+    // Debounce: If same device seen within 5 seconds, ignore to prevent rapid state jumping
+    if (lastProcessedDeviceRef.current.id === deviceId && (now - lastProcessedDeviceRef.current.time) < 5000) {
+        return;
+    }
     
     if (deviceName && deviceName.startsWith('MWC')) {
+       lastProcessedDeviceRef.current = { id: deviceId, time: now };
        processBeaconDetection(deviceName, event.rssi);
     }
   }, [processBeaconDetection]);
