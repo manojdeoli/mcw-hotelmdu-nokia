@@ -367,7 +367,8 @@ function App() {
     try {
       addMessage("Requesting Bluetooth Device...");
       const device = await navigator.bluetooth.requestDevice({
-        filters: [{ namePrefix: 'MWC' }]
+        // filters: [{ namePrefix: 'MWC' }],
+        acceptAllDevices: true
       });
 
       const deviceName = device.name || 'Unknown Device';
@@ -390,19 +391,22 @@ function App() {
     if (event.rssi < -80) return; 
     
     // Use event.name (advertised name) as priority, fallback to device.name
-    const deviceName = event.name || event.device.name;
+    const deviceName = event.name || event.device.name || 'Unknown';
     const deviceId = event.device.id;
     const now = Date.now();
     
+    addMessage(`Debug: Scanned ${deviceName} (${event.rssi})`); // Uncomment to see all raw scans
+
     // Debounce: If same device seen within 5 seconds, ignore to prevent rapid state jumping
     if (lastProcessedDeviceRef.current.id === deviceId && (now - lastProcessedDeviceRef.current.time) < 5000) {
         return;
     }
     
-    if (deviceName && deviceName.startsWith('MWC')) {
+    // Filter disabled to ensure we catch the device even if name is cached/wrong
+    // if (deviceName && deviceName.startsWith('MWC')) {
        lastProcessedDeviceRef.current = { id: deviceId, time: now };
        processBeaconDetection(deviceName, event.rssi);
-    }
+    // }
   }, [processBeaconDetection]);
 
   const toggleAutoScan = async () => {
