@@ -407,7 +407,7 @@ function App() {
        lastProcessedDeviceRef.current = { id: deviceId, time: now };
        processBeaconDetection(deviceName, event.rssi);
     // }
-  }, [processBeaconDetection]);
+  }, [processBeaconDetection, addMessage]);
 
   const toggleAutoScan = async () => {
     if (isAutoScanning) {
