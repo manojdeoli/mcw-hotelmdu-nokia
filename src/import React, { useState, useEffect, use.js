@@ -105,7 +105,6 @@ function App() {
   // --- Shared State (Synced across windows) ---
   const [verifiedPhoneNumber, setVerifiedPhoneNumber] = useSyncedState('verifiedPhoneNumber', null);
   const [kycMatchResponse, setKycMatchResponse] = useSyncedState('kycMatchResponse', null);
-  // Skip the unused 'location' variable to avoid ESLint errors
   const [, setLocation] = useSyncedState('location', null);
   const [simulationMode, setSimulationMode] = useSyncedState('simulationMode', 'arrival');
   const [registrationStatus, setRegistrationStatus] = useSyncedState('registrationStatus', 'Not Registered');
@@ -135,7 +134,6 @@ function App() {
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [isAutoScanning, setIsAutoScanning] = useState(false);
 
   const addMessage = useCallback((message) => {
     setMessages(prevMessages => {
@@ -152,19 +150,6 @@ function App() {
 
   const responseContainerRef = useRef(null);
   const userProfileRef = useRef(null);
-
-  // --- Refs for Event Listeners (to avoid stale closures in Auto-Scan) ---
-  const checkInStatusRef = useRef(checkInStatus);
-  const elevatorAccessRef = useRef(elevatorAccess);
-  const roomAccessRef = useRef(roomAccess);
-  const hotelLocationRef = useRef(hotelLocation);
-  const verifiedPhoneNumberRef = useRef(verifiedPhoneNumber);
-
-  useEffect(() => { checkInStatusRef.current = checkInStatus; }, [checkInStatus]);
-  useEffect(() => { elevatorAccessRef.current = elevatorAccess; }, [elevatorAccess]);
-  useEffect(() => { roomAccessRef.current = roomAccess; }, [roomAccess]);
-  useEffect(() => { hotelLocationRef.current = hotelLocation; }, [hotelLocation]);
-  useEffect(() => { verifiedPhoneNumberRef.current = verifiedPhoneNumber; }, [verifiedPhoneNumber]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -256,13 +241,29 @@ function App() {
     }
   };
 
-  // --- Centralized Beacon Logic (Used by Manual & Auto Scan) ---
-  const processBeaconDetection = async (deviceName, rssi = null) => {
-      const currentHotelLoc = hotelLocationRef.current || { lat: -33.8688, lng: 151.2093 };
-      const baseLat = currentHotelLoc.lat;
-      const baseLng = currentHotelLoc.lng;
-      if (!hotelLocationRef.current) setHotelLocation(currentHotelLoc);
+  const scanForBeacon = async () => {
+    if (!navigator.bluetooth) {
+      addMessage("Web Bluetooth API is not available in this browser.");
+      return;
+    }
+    try {
+      addMessage("Requesting Bluetooth Device...");
+      const device = await navigator.bluetooth.requestDevice({
+        // To "register" your physical beacon, use filters instead of acceptAllDevices:
+        filters: [{ namePrefix: 'MWC' }],
+        // acceptAllDevices: true, // Currently accepts any device for testing
+        optionalServices: ['battery_service']
+      });
+
+      const deviceName = device.name || 'Unknown Device';
+      addMessage(`Beacon detected: ${deviceName}`);
+      setBleStatus('Connected');
       
+      // Define base location (MWC Venue / Hotel)
+      const baseLat = hotelLocation ? hotelLocation.lat : -33.8688;
+      const baseLng = hotelLocation ? hotelLocation.lng : 151.2093;
+      if (!hotelLocation) setHotelLocation({ lat: baseLat, lng: baseLng });
+
       let newLocation = null;
       let locationLabel = "Unknown Area";
 
@@ -277,7 +278,7 @@ function App() {
         newLocation = { lat: baseLat + 0.0001, lng: baseLng };
         addMessage("Context: User is at the Check-in Kiosk.");
         
-        if (checkInStatusRef.current !== 'Checked In') {
+        if (checkInStatus !== 'Checked In') {
             addMessage("Beacon Trigger: Initiating Check-in...");
             setCheckInStatus("Checked In");
             setRfidStatus("Verified");
@@ -290,7 +291,7 @@ function App() {
         addMessage("Context: User is at the Elevator.");
         
         // Auto-trigger Elevator Access
-        if (elevatorAccessRef.current !== 'Yes, Floor 13') {
+        if (elevatorAccess !== 'Yes, Floor 13') {
             addMessage("Beacon Trigger: Verifying Identity for Elevator...");
             const identityResult = await checkIdentityIntegrity(false, 'Checked In', false);
             if (identityResult) {
@@ -305,7 +306,7 @@ function App() {
         addMessage("Context: User is at the Room Door.");
         
         // Auto-trigger Room Access
-        if (roomAccessRef.current !== 'Granted') {
+        if (roomAccess !== 'Granted') {
              addMessage("Beacon Trigger: Verifying Identity for Room...");
              const identityResult = await checkIdentityIntegrity(false, 'Checked In', false);
              if (identityResult) {
@@ -318,80 +319,11 @@ function App() {
       }
       
       if (newLocation) setUserGps(newLocation);
-      if (rssi) {
-        addMessage(`Auto-Tracked: ${locationLabel} (RSSI: ${rssi})`);
-      } else {
-        addMessage(`Location Verified via BLE: ${locationLabel}`);
-      }
-  };
-
-  // --- Manual Scan (Chooser) ---
-  const scanForBeacon = async () => {
-    if (!navigator.bluetooth) {
-      addMessage("Web Bluetooth API is not available in this browser.");
-      return;
-    }
-    try {
-      addMessage("Requesting Bluetooth Device...");
-      const device = await navigator.bluetooth.requestDevice({
-        // filters: [{ namePrefix: 'MWC' }],
-        acceptAllDevices: true, 
-        optionalServices: ['battery_service']
-      });
-
-      const deviceName = device.name || 'Unknown Device';
-      addMessage(`Beacon detected: ${deviceName}`);
-      setBleStatus('Connected');
-      
-      await processBeaconDetection(deviceName);
+      addMessage(`Location Verified via BLE: ${locationLabel}`);
       
     } catch (error) {
       addMessage(`BLE Scan failed: ${error.message}`);
       setBleStatus('Failed');
-    }
-  };
-
-  // --- Auto Scan (Experimental API) ---
-  const scanRef = useRef(null);
-
-  const toggleAutoScan = async () => {
-    if (isAutoScanning) {
-      // Stop Scanning
-      if (scanRef.current) {
-        scanRef.current.stop();
-        scanRef.current = null;
-      }
-      if (navigator.bluetooth && navigator.bluetooth.removeEventListener) {
-          navigator.bluetooth.removeEventListener('advertisementreceived', handleAdvertisement);
-      }
-      setIsAutoScanning(false);
-      addMessage("Auto-Tracking Stopped.");
-    } else {
-      // Start Scanning
-      if (!navigator.bluetooth || !navigator.bluetooth.requestLEScan) {
-        alert("Auto-Scan requires 'Experimental Web Platform features' enabled in chrome://flags");
-        return;
-      }
-      try {
-        addMessage("Starting Auto-Tracking (Passive Scan)...");
-        const scan = await navigator.bluetooth.requestLEScan({ acceptAllAdvertisements: true });
-        scanRef.current = scan;
-        navigator.bluetooth.addEventListener('advertisementreceived', handleAdvertisement);
-        setIsAutoScanning(true);
-      } catch (error) {
-        addMessage(`Auto-Scan Error: ${error.message}`);
-      }
-    }
-  };
-
-  const handleAdvertisement = (event) => {
-    // Filter weak signals to avoid jumping around
-    if (event.rssi < -80) return; 
-    
-    const deviceName = event.device.name || event.name;
-    if (deviceName && deviceName.startsWith('MWC')) {
-       // Throttle or Debounce could be added here if needed
-       processBeaconDetection(deviceName, event.rssi);
     }
   };
 
@@ -626,15 +558,15 @@ function App() {
   };
 
   const checkIdentityIntegrity = async (loader, checkInStatus, autoGrant = true) => {
-    if (!verifiedPhoneNumberRef.current) {
+    if (!verifiedPhoneNumber) {
       alert('Please verify phone number first.');
       return false;
     }
-    if (loader) setIsLoading(true);
+    setIsLoading(loader);
     setIdentityIntegrity('Checking...');
     try {
-      const simSwapResult = await api.simSwap(verifiedPhoneNumberRef.current);
-      const deviceSwapResult = await api.deviceSwap(verifiedPhoneNumberRef.current);
+      const simSwapResult = await api.simSwap(verifiedPhoneNumber);
+      const deviceSwapResult = await api.deviceSwap(verifiedPhoneNumber);
 
       if (simSwapResult.swapped === true || deviceSwapResult.swapped === true) {
         setIdentityIntegrity('Good');
@@ -849,13 +781,8 @@ function App() {
               <div id="mwcSection" className="card">
                 <h2 className="card-header">MWC Location Access (BLE)</h2>
                 <div className="p-3">
-                  <p>Scan for local beacons to verify location.</p>
-                  <div className="btn-group">
-                    <button className="btn btn-primary" onClick={scanForBeacon}>Manual Scan</button>
-                    <button className={`btn ${isAutoScanning ? 'btn-danger' : 'btn-success'}`} onClick={toggleAutoScan} style={{marginLeft: '10px'}}>
-                      {isAutoScanning ? 'Stop Auto-Tracking' : 'Start Auto-Tracking'}
-                    </button>
-                  </div>
+                  <p>Scan for local beacons to verify location and receive messages.</p>
+                  <button className="btn btn-primary" onClick={scanForBeacon}>Scan for Beacon</button>
                   <div className="mt-2">
                     <strong>Status: </strong>
                     <span style={{ color: bleStatus === 'Connected' ? 'green' : (bleStatus === 'Failed' ? 'red' : 'black') }}>
