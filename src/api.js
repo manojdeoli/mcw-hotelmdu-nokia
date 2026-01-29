@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// const API_BASE_URL = 'https://telstra-hackathon-apis.p-eu.rapidapi.com/passthrough/camara/v1';
+const API_BASE_URL = 'https://telstra-hackathon-apis.p-eu.rapidapi.com/passthrough/camara/v1';
 const API_KEY = '15cc20cd08msh7054d8a2a3ed868p146283jsn43ebc1478fe7';
 
 
@@ -12,41 +12,55 @@ const defaultHeaders = {
     'x-rapidapi-key': API_KEY
 };
 
-// async function post(url, body) {
-//     const response = await axios.post(url, body, { headers: defaultHeaders });
-//     return response.data;
-// }
-
-export function verifyPhoneNumber(phoneNumber) {
-    //return post(`${API_BASE_URL}/number-verification/number-verification/v0/verify`, { phoneNumber });
-    //Mock For Test
-    return Promise.resolve({
-        devicePhoneNumberVerified: true
-    })
+async function post(url, body) {
+    const response = await axios.post(url, body, { headers: defaultHeaders });
+    return response.data;
 }
 
-export function kycMatch(data) {
+export function verifyPhoneNumber(phoneNumber, logApiInteraction) {
+    // return post(`${API_BASE_URL}/number-verification/number-verification/v0/verify`, { phoneNumber });
+    const requestPayload = { phoneNumber };
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const response = {
+                devicePhoneNumberVerified: true
+            };
+            if (logApiInteraction) {
+                logApiInteraction('Verify Phone Number', 'POST', '/number-verification/verify', requestPayload, response);
+            }
+            resolve(response);
+        }, 500);
+    });
+}
+
+export function kycMatch(data, logApiInteraction) {
     //return post(`${API_BASE_URL}/kyc-match/kyc-match/v0.2/match`, data);
-    return Promise.resolve({
+    const response = {
         nameMatch: 'true',
         addressMatch: 'true',
         emailMatch: 'true',
         birthdateMatch: 'true'
-    });
+    };
+    if (logApiInteraction) {
+        logApiInteraction('KYC Match', 'POST', '/kyc-match/match', data, response);
+    }
+    return Promise.resolve(response);
 }
 
-export function simSwap(phoneNumber) {
+export function simSwap(phoneNumber, logApiInteraction) {
     //return post(`${API_BASE_URL}/sim-swap/sim-swap/v0/check`, { phoneNumber, maxAge: 240 });
-    return Promise.resolve({
-        swapped: false
-    });
+    const requestPayload = { phoneNumber, maxAge: 240 };
+    const response = { swapped: false };
+    if (logApiInteraction) logApiInteraction('SIM Swap', 'POST', '/sim-swap/check', requestPayload, response);
+    return Promise.resolve(response);
 }
 
-export function deviceSwap(phoneNumber) {
+export function deviceSwap(phoneNumber, logApiInteraction) {
     //return post(`${API_BASE_URL}/device-swap/device-swap/v0.1/check`, { phoneNumber, maxAge: 240 });
-    return Promise.resolve({
-        swapped: false
-    });
+    const requestPayload = { phoneNumber, maxAge: 240 };
+    const response = { swapped: false };
+    if (logApiInteraction) logApiInteraction('Device Swap', 'POST', '/device-swap/check', requestPayload, response);
+    return Promise.resolve(response);
 }
 
 
@@ -161,41 +175,99 @@ const defaultKycData = {
     birthdate: '1958-08-29'
 };
 
-export function kycFill(phoneNumber) {
+export function kycFill(phoneNumber, logApiInteraction) {
+    const requestPayload = { phoneNumber };
     return new Promise(resolve => {
         setTimeout(() => {
             const phone = phoneNumber ? phoneNumber.replace('+', '') : '';
-            const userData = mockKycData[phone]; // Attempt to find user data
+            let userData = mockKycData[phone]; // Attempt to find user data
 
-            if (userData) {
-                resolve(userData);
-            } else {
+            if (!userData) {
                 // Fallback to default data if no match
-                resolve(defaultKycData);
+                userData = defaultKycData;
             }
+            if (logApiInteraction) {
+                logApiInteraction('KYC Fill', 'GET', '/kyc-fill/fill', requestPayload, userData);
+            }
+            resolve(userData);
         }, 1000); // Simulate network delay
     });
 }
 
-export function locationRetrieval(phoneNumber) {
-    // This endpoint seems to be outside the CAMARA passthrough and requires its own headers
-    return axios.post('https://telstra-hackathon-apis.p-eu.rapidapi.com/location-retrieval/v0/retrieve', {
-        device: {
-            phoneNumber
+export function locationRetrieval(phoneNumber, logApiInteraction, mockCoordinates) {
+    const requestPayload = { device: { phoneNumber } };
+    return new Promise(resolve => {
+        setTimeout(() => {
+            let center;
+            if (mockCoordinates) {
+                center = {
+                    latitude: mockCoordinates.lat || mockCoordinates.latitude,
+                    longitude: mockCoordinates.lng || mockCoordinates.longitude
+                };
+            } else {
+                // Default Hotel Location (Melbourne)
+                center = {
+                    latitude: -37.8136,
+                    longitude: 144.9631
+                };
+            }
+            const response = {
+                lastLocationTime: new Date().toISOString(),
+                area: {
+                    areaType: "CIRCLE",
+                    center: center,
+                    radius: 100
+                }
+            };
+            if (logApiInteraction) {
+                logApiInteraction('Location Retrieval', 'POST', '/location-retrieval/retrieve', requestPayload, response);
+            }
+            resolve(response);
+        }, 500);
+    });
+}
+
+export function locationVerification(data, logApiInteraction) {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const response = {
+                verificationResult: "TRUE"
+            };
+            if (logApiInteraction) {
+                logApiInteraction('Location Verification', 'POST', '/location-verification/verify', data, response);
+            }
+            resolve(response);
+        }, 500);
+    });
+}
+
+export function carrierBilling(phoneNumber, logApiInteraction) {
+    const requestPayload = { 
+        amountTransaction: {
+            phoneNumber: phoneNumber,
+            paymentAmount: {
+                chargingInformation: {
+                    amount: 299.00,
+                    currency: "AUD"
+                }
+            }
         }
-    }, {
-        headers: defaultHeaders
-    }).then(response => response.data);
+    };
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const response = {
+                paymentId: "tx-" + Math.floor(Math.random() * 100000),
+                paymentStatus: "succeeded"
+            };
+            if (logApiInteraction) {
+                logApiInteraction('Carrier Billing', 'POST', '/carrier-billing/payment/v1/charge', requestPayload, response);
+            }
+            resolve(response);
+        }, 1000);
+    });
 }
 
-export function locationVerification(data) {
-    return axios.post('https://telstra-hackathon-apis.p-eu.rapidapi.com/location-verification/v1/verify', data, {
-        headers: defaultHeaders
-    }).then(response => response.data);
-}
-
-
-export async function startBookingAndArrivalSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, setRfidStatus, setPaymentStatus, setElevatorAccess, setRoomAccess, generateRoute, setArtificialTime, handleAccessSequence) {
+export async function startBookingAndArrivalSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, setRfidStatus, setPaymentStatus, setElevatorAccess, setRoomAccess, generateRoute, setArtificialTime, handleAccessSequence, logApiInteraction) {
     addMessage("Starting Booking and Arrival sequence...");
 
     await new Promise(resolve => setTimeout(resolve, 5000));
@@ -233,16 +305,11 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
         const currentLocation = route[i];
         setArtificialTime(new Date(step.time));
         addMessage(`Calling Location Retrieval at ${new Date(step.time).toLocaleTimeString()}`);
-        setLocation({
-            lastLocationTime: new Date().toISOString(),
-            area: {
-                areaType: "CIRCLE",
-                center: { latitude: currentLocation.lat, longitude: currentLocation.lng },
-                radius: 50 // Mock radius
-            }
-        });
+        
+        const locRes = await locationRetrieval(phoneNumber, logApiInteraction, currentLocation);
+        setLocation(locRes);
         setUserGps(currentLocation);
-        addMessage(`User is at lat: ${currentLocation.lat}, lng: ${currentLocation.lng}`);
+        addMessage(`User is at lat: ${currentLocation.lat.toFixed(4)}, lng: ${currentLocation.lng.toFixed(4)}`);
         await new Promise(resolve => setTimeout(resolve, step.delay));
     }
 
@@ -264,7 +331,8 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
             radius: 100 // As per Telstra's vicinity radius
         }
     };
-    const verification = await locationVerification(locationVerificationData);
+    const verification = await locationVerification(locationVerificationData, logApiInteraction);
+
     if (verification.verificationResult === "TRUE") {
         addMessage("Location verification successful...");
         addMessage("Welcome to Telstra Towers!");
@@ -290,11 +358,17 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     }
 }
 
-export async function startCheckOutSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, generateRoute, setArtificialTime, setPaymentStatus, setElevatorAccess, setRoomAccess, guestName) {
+export async function startCheckOutSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, generateRoute, setArtificialTime, setPaymentStatus, setElevatorAccess, setRoomAccess, guestName, logApiInteraction) {
     addMessage("Starting Check-out sequence...");
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     addMessage("Calling Carrier Billing API to finalise payment...");
+    const billingRes = await carrierBilling(phoneNumber, logApiInteraction);
+    if (billingRes.paymentStatus === 'succeeded') {
+        addMessage("Carrier Billing Successful. Amount: 299.00 AUD");
+    } else {
+        addMessage("Carrier Billing Failed.");
+    }
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     const checkoutTime = new Date("2026-01-17T10:45:00");
@@ -314,16 +388,11 @@ export async function startCheckOutSequence(phoneNumber, initialUserLocation, ho
         const currentLocation = route[step.routeIndex];
         setArtificialTime(new Date(step.time));
         addMessage(`Calling Location Retrieval at ${new Date(step.time).toLocaleTimeString()}`);
-        setLocation({
-            lastLocationTime: new Date().toISOString(),
-            area: {
-                areaType: "CIRCLE",
-                center: { latitude: currentLocation.lat, longitude: currentLocation.lng },
-                radius: 50 // Mock radius
-            }
-        });
+        
+        const locRes = await locationRetrieval(phoneNumber, logApiInteraction, currentLocation);
+        setLocation(locRes);
         setUserGps(currentLocation);
-        addMessage(`User is at lat: ${currentLocation.lat}, lng: ${currentLocation.lng}`);
+        addMessage(`User is at lat: ${currentLocation.lat.toFixed(4)}, lng: ${currentLocation.lng.toFixed(4)}`);
         await new Promise(resolve => setTimeout(resolve, step.delay));
     }
 

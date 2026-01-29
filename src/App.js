@@ -8,6 +8,7 @@ import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
 import { format } from 'date-fns';
 import * as api from './api';
 import { formFields } from './formFields';
+import gatewayClient from './gatewayClient';
 
 
 // --- Fix for Leaflet's default icon ---
@@ -59,27 +60,34 @@ const generateRoute = (start, end, sections = 10) => {
 // --- Custom Hook for State Synchronization ---
 const useSyncedState = (key, initialValue) => {
   const [state, setState] = useState(initialValue);
+  const channelRef = useRef(null);
 
   useEffect(() => {
-    const channel = new BroadcastChannel('hotel_mdu_sync');
+    if (!channelRef.current) {
+      channelRef.current = new BroadcastChannel('hotel_mdu_sync');
+    }
+    const channel = channelRef.current;
+
     const handler = (event) => {
       if (event.data.key === key) {
         setState(event.data.value);
       }
     };
     channel.addEventListener('message', handler);
+
     return () => {
       channel.removeEventListener('message', handler);
-      channel.close();
+      // Channel is not closed here to prevent issues with other hooks.
+      // It will be closed when the page/tab is closed.
     };
   }, [key]);
 
   const setSyncedState = useCallback((newValue) => {
     setState((prev) => {
       const value = newValue instanceof Function ? newValue(prev) : newValue;
-      const ch = new BroadcastChannel('hotel_mdu_sync');
-      ch.postMessage({ key, value });
-      ch.close();
+      if (channelRef.current) {
+        channelRef.current.postMessage({ key, value });
+      }
       return value;
     });
   }, [key]);
@@ -120,9 +128,11 @@ function App() {
   const [userGps, setUserGps] = useSyncedState('userGps', null);
   const [initialUserLocation, setInitialUserLocation] = useSyncedState('initialUserLocation', null);
   const [lastIntegrityCheckTime, setLastIntegrityCheckTime] = useSyncedState('lastIntegrityCheckTime', null);
-  const [bleStatus, setBleStatus] = useSyncedState('bleStatus', 'Idle');
+  const [bleStatus, setBleStatus] = useSyncedState('bleStatus', 'Disconnected');
+  const [gatewayConnected, setGatewayConnected] = useSyncedState('gatewayConnected', false);
   const [secondUserGps, setSecondUserGps] = useSyncedState('secondUserGps', null);
   const [messages, setMessages] = useSyncedState('messages', []);
+  const [apiLogs, setApiLogs] = useSyncedState('apiLogs', []);
   const [formState, setFormState] = useSyncedState('formState',
     formFields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
   );
@@ -130,12 +140,25 @@ function App() {
   // --- Local State (Specific to this window/monitor) ---
   const [isLoading, setIsLoading] = useState(false);
   const [map, setMap] = useState(null);
-  const [activeTab, setActiveTab] = useState('status');
+  const [activeTab, setActiveTab] = useState('api');
   const [isSequenceRunning, setIsSequenceRunning] = useState(false); // Only the driver window runs the sequence logic
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isAutoScanning, setIsAutoScanning] = useState(false);
+
+  const logApiInteraction = useCallback((title, method, url, request, response) => {
+    const logEntry = {
+      id: Date.now() + Math.random(),
+      timestamp: new Date().toISOString(),
+      title,
+      method,
+      url,
+      request,
+      response
+    };
+    setApiLogs(prev => [logEntry, ...prev]);
+  }, [setApiLogs]);
 
   const addMessage = useCallback((message) => {
     setMessages(prevMessages => {
@@ -165,8 +188,30 @@ function App() {
   useEffect(() => { roomAccessRef.current = roomAccess; }, [roomAccess]);
   useEffect(() => { hotelLocationRef.current = hotelLocation; }, [hotelLocation]);
   useEffect(() => { verifiedPhoneNumberRef.current = verifiedPhoneNumber; }, [verifiedPhoneNumber]);
-  const activeListenerRef = useRef(null);
-  const lastProcessedDeviceRef = useRef({ id: null, time: 0 });
+  const bleUnsubscribeRef = useRef(null);
+
+  // Connect to Gateway Server when phone is verified
+  useEffect(() => {
+    if (verifiedPhoneNumber) {
+      addMessage(`Connecting to Gateway Server...`);
+      gatewayClient.connect(verifiedPhoneNumber);
+      setGatewayConnected(true);
+      setBleStatus('Connected');
+      addMessage(`Connected to Gateway: ${gatewayClient.getGatewayUrl()}`);
+    } else {
+      if (gatewayClient.isConnected()) {
+        gatewayClient.disconnect();
+        setGatewayConnected(false);
+        setBleStatus('Disconnected');
+      }
+    }
+    
+    return () => {
+      if (gatewayClient.isConnected()) {
+        gatewayClient.disconnect();
+      }
+    };
+  }, [verifiedPhoneNumber, addMessage, setGatewayConnected, setBleStatus]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -197,19 +242,20 @@ function App() {
 
     // 1. Use KYC Fill to partially populate
     addMessage("Partially populating form with KYC Fill...");
-    const kycData = await api.kycFill(verifiedPhoneNumber);
+    const kycData = await api.kycFill(verifiedPhoneNumber, logApiInteraction);
     setFormState(kycData);
 
     // 3. Wait and call KYC Match
     await new Promise(resolve => setTimeout(resolve, 5000));
     addMessage("Calling KYC Match...");
-    const kycMatchData = await api.kycMatch({ // Use kycData directly
+    const kycMatchReq = { // Use kycData directly
       phoneNumber: verifiedPhoneNumber,
       email: kycData.email,
       address: kycData.address,
       birthdate: kycData.birthdate,
       name: kycData.name
-    });
+    };
+    const kycMatchData = await api.kycMatch(kycMatchReq, logApiInteraction);
     setKycMatchResponse(kycMatchData);
 
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -233,13 +279,14 @@ function App() {
 
     setIsLoading(true);
     try {
-      const kycData = await api.kycMatch({
+      const kycMatchReq = {
         phoneNumber: verifiedPhoneNumber,
         email: formState.email,
         address: formState.address,
         birthdate: formState.birthdate,
         name: formState.name
-      });
+      };
+      const kycData = await api.kycMatch(kycMatchReq, logApiInteraction);
 
       setKycMatchResponse(kycData);
 
@@ -266,8 +313,8 @@ function App() {
     if (loader) setIsLoading(true);
     setIdentityIntegrity('Checking...');
     try {
-      const simSwapResult = await api.simSwap(verifiedPhoneNumberRef.current);
-      const deviceSwapResult = await api.deviceSwap(verifiedPhoneNumberRef.current);
+      const simSwapResult = await api.simSwap(verifiedPhoneNumberRef.current, logApiInteraction);
+      const deviceSwapResult = await api.deviceSwap(verifiedPhoneNumberRef.current, logApiInteraction);
 
       if (simSwapResult.swapped === true || deviceSwapResult.swapped === true) {
         setIdentityIntegrity('Good');
@@ -291,8 +338,7 @@ function App() {
 
   // --- Centralized Beacon Logic (Used by Manual & Auto Scan) ---
   const processBeaconDetection = useCallback(async (deviceName, rssi = null) => {
-      //const currentHotelLoc = hotelLocationRef.current || { lat: -33.8688, lng: 151.2093 };
-      const currentHotelLoc = hotelLocationRef.current || { lat: 28.51026, lng: 77.08842 };
+      const currentHotelLoc = hotelLocationRef.current || { lat: -33.8688, lng: 151.2093 };
       const baseLat = currentHotelLoc.lat;
       const baseLng = currentHotelLoc.lng;
       if (!hotelLocationRef.current) setHotelLocation(currentHotelLoc);
@@ -359,84 +405,47 @@ function App() {
       }
   }, [addMessage, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity]);
 
-  // --- Manual Scan (Chooser) ---
+  // --- Manual Scan (Not needed with Gateway) ---
   const scanForBeacon = async () => {
-    if (!navigator.bluetooth) {
-      addMessage("Web Bluetooth API is not available in this browser.");
-      return;
-    }
-    try {
-      addMessage("Requesting Bluetooth Device...");
-      const device = await navigator.bluetooth.requestDevice({
-        // filters: [{ namePrefix: 'MWC' }],
-        acceptAllDevices: true
-      });
+    addMessage("Manual scan not available - using Gateway auto-tracking");
+  };
 
-      const deviceName = device.name || 'Unknown Device';
-      addMessage(`Beacon detected: ${deviceName}`);
-      setBleStatus('Connected');
-      
-      await processBeaconDetection(deviceName);
-      
-    } catch (error) {
-      addMessage(`BLE Scan failed: ${error.message}`);
-      setBleStatus('Failed');
+  // --- Test Gateway Connection ---
+  const testAndroidBridge = async () => {
+    if (gatewayClient.isConnected()) {
+      addMessage(`Gateway connected: ${gatewayClient.getGatewayUrl()}`);
+    } else {
+      addMessage("Gateway not connected. Verify phone number first.");
     }
   };
 
-  // --- Auto Scan (Experimental API) ---
-  const scanRef = useRef(null);
-
-  const handleAdvertisement = useCallback((event) => {
-    // Filter weak signals to avoid jumping around
-    if (event.rssi < -80) return; 
-    
-    // Use event.name (advertised name) as priority, fallback to device.name
-    const deviceName = event.name || event.device.name || 'Unknown';
-    const deviceId = event.device.id;
-    const now = Date.now();
-    
-    addMessage(`Debug: Scanned ${deviceName} (${event.rssi})`); // Uncomment to see all raw scans
-
-    // Debounce: If same device seen within 5 seconds, ignore to prevent rapid state jumping
-    if (lastProcessedDeviceRef.current.id === deviceId && (now - lastProcessedDeviceRef.current.time) < 5000) {
-        return;
-    }
-    
-    // Filter disabled to ensure we catch the device even if name is cached/wrong
-    // if (deviceName && deviceName.startsWith('MWC')) {
-       lastProcessedDeviceRef.current = { id: deviceId, time: now };
-       processBeaconDetection(deviceName, event.rssi);
-    // }
-  }, [processBeaconDetection, addMessage]);
-
+  // --- Auto Scan (Gateway WebSocket) ---
   const toggleAutoScan = async () => {
     if (isAutoScanning) {
       // Stop Scanning
-      if (scanRef.current) {
-        scanRef.current.stop();
-        scanRef.current = null;
-      }
-      if (activeListenerRef.current) {
-          navigator.bluetooth.removeEventListener('advertisementreceived', activeListenerRef.current);
-          activeListenerRef.current = null;
+      if (bleUnsubscribeRef.current) {
+        bleUnsubscribeRef.current();
+        bleUnsubscribeRef.current = null;
       }
       setIsAutoScanning(false);
       addMessage("Auto-Tracking Stopped.");
     } else {
       // Start Scanning
-      if (!navigator.bluetooth || !navigator.bluetooth.requestLEScan) {
-        alert("Auto-Scan requires 'Experimental Web Platform features' enabled in chrome://flags");
+      if (!gatewayClient.isConnected()) {
+        addMessage("Gateway not connected. Please verify phone number first.");
         return;
       }
+      
       try {
-        addMessage("Starting Auto-Tracking (Passive Scan)...");
-        const scan = await navigator.bluetooth.requestLEScan({ acceptAllAdvertisements: true });
-        scanRef.current = scan;
+        addMessage("Starting Auto-Tracking (Gateway WebSocket)...");
         
-        // Store the stable function reference
-        activeListenerRef.current = handleAdvertisement;
-        navigator.bluetooth.addEventListener('advertisementreceived', activeListenerRef.current);
+        // Subscribe to Gateway BLE events
+        bleUnsubscribeRef.current = gatewayClient.subscribe((data) => {
+          const { beaconName, rssi, zone } = data;
+          addMessage(`BLE Event: ${zone} (RSSI: ${rssi})`);
+          // Use zone from Gateway instead of parsing beaconName
+          processBeaconDetection(zone, rssi);
+        });
         
         setIsAutoScanning(true);
       } catch (error) {
@@ -562,7 +571,7 @@ function App() {
 
   // Fix map rendering issues when switching tabs
   useEffect(() => {
-    if (activeTab === 'logs' && map) {
+    if (activeTab === 'details' && map) {
       setTimeout(() => {
         map.invalidateSize();
       }, 200);
@@ -659,7 +668,7 @@ function App() {
 
     setIsLoading(true);
     try {
-      const verificationData = await api.verifyPhoneNumber(fullPhoneNumber);
+      const verificationData = await api.verifyPhoneNumber(fullPhoneNumber, logApiInteraction);
       if (verificationData.devicePhoneNumberVerified === true) {
         addMessage("Phone number is verified...");
         setSuccess('Phone number is verified.');
@@ -734,7 +743,7 @@ function App() {
       if (mode === 'arrival') {
         setIsLoading(true);
         // Fetch actual hotel location
-        const hotelLocationData = await api.locationRetrieval(verifiedPhoneNumber);
+        const hotelLocationData = await api.locationRetrieval(verifiedPhoneNumber, logApiInteraction);
         const actualHotelCoords = {
           lat: hotelLocationData.area.center.latitude,
           lng: hotelLocationData.area.center.longitude
@@ -764,7 +773,8 @@ function App() {
           setRoomAccess,
           generateRoute,
           setArtificialTime,
-          handleAccessSequence // Pass the access handler to the arrival sequence
+          handleAccessSequence, // Pass the access handler to the arrival sequence
+          logApiInteraction // Pass logger
         );
       } else if (mode === 'departure') {
         const guestName = formState.name ? `${formState.name}` : 'Guest';
@@ -781,8 +791,37 @@ function App() {
           setPaymentStatus,
           setElevatorAccess, // Pass setters to reset access
           setRoomAccess, // Pass setters to reset access
-          guestName // Pass guestName to the API call
+          guestName, // Pass guestName to the API call
+          logApiInteraction // Pass logger
         );
+
+        setTimeout(() => {
+          setVerifiedPhoneNumber(null);
+          setKycMatchResponse(null);
+          setLocation(null);
+          setSimulationMode('arrival');
+          setRegistrationStatus('Not Registered');
+          setArtificialTime(null);
+          setIdentityIntegrity('Bad');
+          setCheckInStatus('Not Checked In');
+          setPaymentStatus('Not Paid');
+          setRfidStatus('Unverified');
+          setElevatorAccess('No');
+          setRoomAccess('No');
+          setHotelLocation(null);
+          setUserGps(null);
+          setInitialUserLocation(null);
+          setLastIntegrityCheckTime(null);
+          setBleStatus('Idle');
+          setSecondUserGps(null);
+          setMessages([]);
+          setApiLogs([]);
+          setFormState(formFields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {}));
+          setPhone('');
+          setError('');
+          setSuccess('');
+          setIsSequenceRunning(false);
+        }, 15000);
       }
     } catch (error) { // eslint-disable-line no-empty
       console.error('Sequence failed:', error);
@@ -818,19 +857,74 @@ function App() {
           {/* Navigation Tabs */}
           <ul className="nav nav-tabs mb-3" style={{ paddingLeft: '15px', paddingRight: '15px' }}>
             <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'status' ? 'active' : ''}`} onClick={() => setActiveTab('status')}>Status & Verification</button>
+              <button className={`nav-link ${activeTab === 'api' ? 'active' : ''}`} onClick={() => setActiveTab('api')}>API Interaction</button>
             </li>
             <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>Profile & Booking</button>
+              <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>Guest Dashboard</button>
             </li>
             <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'logs' ? 'active' : ''}`} onClick={() => setActiveTab('logs')}>Logs & Map</button>
+              <button className={`nav-link ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')}>All Details</button>
             </li>
           </ul>
 
-          {/* Screen 1: Status & Verification */}
-          <div className={activeTab === 'status' ? 'dashboard-main' : 'd-none'}>
-            <div className="dashboard-column" style={{ width: '100%' }}>
+          {/* Main Content Area */}
+          <div className="dashboard-main" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+            
+            {/* Tab 1: API Interaction (Full Width) */}
+            <div className={`dashboard-column ${activeTab === 'api' ? '' : 'd-none'}`} style={{ width: '100%' }}>
+              <div id="apiLogs" className="card">
+                <h2 className="card-header">Network API Request-Response</h2>
+                <div className="p-3" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                  {apiLogs.length === 0 ? <p>No API interactions recorded.</p> : (
+                    <div className="api-log-list">
+                      {apiLogs.map(log => (
+                        <div key={log.id} className="api-log-entry mb-3 p-3 border rounded bg-white">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <h5 className="m-0">{log.title}</h5>
+                            <small className="text-muted">{new Date(log.timestamp).toLocaleTimeString()}</small>
+                          </div>
+                          <div className="mb-2">
+                            <span className={`badge ${log.method === 'GET' ? 'badge-info' : 'badge-success'} mr-2`}>{log.method}</span>
+                            <code className="text-dark">{log.url}</code>
+                          </div>
+                          <div className="row">
+                            <div className="col-md-6">
+                                <strong>Request:</strong>
+                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto'}}>{JSON.stringify(log.request, null, 2)}</pre>
+                            </div>
+                            <div className="col-md-6">
+                                <strong>Response:</strong>
+                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto'}}>{JSON.stringify(log.response, null, 2)}</pre>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Tab 2 & 3: Dashboard & Details - Left Column */}
+            <div className={`dashboard-column ${activeTab !== 'api' ? '' : 'd-none'}`} style={{ flex: '1', minWidth: '300px' }}>
+              
+              {/* Action Buttons */}
+              <div id="actionButtons" className="card">
+                <h2 className="card-header">Actions</h2>
+                <div className="p-3">
+                  <div className="api-buttons">
+                    <button className="btn btn-primary" onClick={handleRegistrationSequence}>Start Registration</button>
+                    {checkInStatus !== 'Checked In' && (
+                      <button className="btn btn-primary" onClick={() => handleStartSequence('arrival')}>Booking & Arrival</button>
+                    )}
+                    {checkInStatus === 'Checked In' && <>
+                      <button className="btn btn-primary" onClick={handleAccessSequence}>Elevator & Room Access</button>
+                      <button className="btn btn-primary" onClick={() => handleStartSequence('departure')}>Checkout</button>
+                    </>}
+                  </div>
+                </div>
+              </div>
+
               {/* Phone Verification */}
               <div id="verification-container" className="card">
                 <h2 className="card-header">1. Phone Verification</h2>
@@ -849,7 +943,7 @@ function App() {
 
               {/* User Status */}
               <div id="userStatus" className="card">
-                <h2 className="card-header">User Status</h2>
+                <h2 className="card-header">2. User Status</h2>
                 <ul className="details-list">
                   <li><strong>Identity Integrity:</strong> <span id="identity-status" style={{ color: identityIntegrity === 'Good' ? 'green' : (identityIntegrity === 'Bad' ? 'red' : 'black') }}>{identityIntegrity}</span>
                     <button className="btn btn-primary" onClick={() => checkIdentityIntegrity(true, checkInStatus)}>Check</button>
@@ -864,12 +958,13 @@ function App() {
                 </ul>
               </div>
 
-              {/* MWC BLE Section */}
-              <div id="mwcSection" className="card">
+              {/* MWC BLE Section (Details Only) */}
+              <div id="mwcSection" className={`card ${(activeTab === 'details') ? '' : 'd-none'}`}>
                 <h2 className="card-header">MWC Location Access (BLE)</h2>
                 <div className="p-3">
                   <p>Scan for local beacons to verify location.</p>
                   <div className="btn-group">
+                    <button className="btn btn-secondary" onClick={testAndroidBridge}>Test Bridge</button>
                     <button className="btn btn-primary" onClick={scanForBeacon}>Manual Scan</button>
                     <button className={`btn ${isAutoScanning ? 'btn-danger' : 'btn-success'}`} onClick={toggleAutoScan} style={{marginLeft: '10px'}}>
                       {isAutoScanning ? 'Stop Auto-Tracking' : 'Start Auto-Tracking'}
@@ -884,11 +979,10 @@ function App() {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Screen 2: Profile & Booking */}
-          <div className={activeTab === 'profile' ? 'dashboard-main' : 'd-none'}>
-            <div className="dashboard-column" style={{ width: '100%' }}>
+            {/* Tab 2 & 3: Dashboard & Details - Right Column */}
+            <div className={`dashboard-column ${activeTab !== 'api' ? '' : 'd-none'}`} style={{ flex: '1', minWidth: '300px' }}>
+              
               {/* Booking Details (Moved from User Status) */}
               <div id="bookingDetails" className="card">
                 <h2 className="card-header">Booking Details</h2>
@@ -937,29 +1031,47 @@ function App() {
                   </div>
                 </form>
               </div>
-            </div>
-          </div>
 
-          {/* Screen 3: Logs & Map */}
-          <div className={activeTab === 'logs' ? 'dashboard-main' : 'd-none'}>
-            <div className="dashboard-column" style={{ width: '100%' }}>
-              {/* API Actions */}
-              <div id="apiActions" className="card">
-                <h2 className="card-header">2. Automated Sequences</h2>
+              {/* Activity Logs */}
+              <div id="activityLogs" className={`card ${(activeTab === 'details') ? '' : 'd-none'}`}>
+                <h2 className="card-header">Activity Logs</h2>
                 <div className="p-3">
-                  <div className="api-buttons">
-                    <button className="btn btn-primary" onClick={handleRegistrationSequence}>Start Registration</button>
-                    {checkInStatus !== 'Checked In' && (
-                      <button className="btn btn-primary" onClick={() => handleStartSequence('arrival')}>Booking & Arrival</button>
-                    )}
-                    {checkInStatus === 'Checked In' && <>
-                      <button className="btn btn-primary" onClick={handleAccessSequence}>Elevator & Room Access</button>
-                      <button className="btn btn-primary" onClick={() => handleStartSequence('departure')}>Checkout</button>
-                    </>}
+                  <div id="response-container" ref={responseContainerRef} style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: 'black', border: '1px solid #dee2e6', padding: '10px' }}>
+                    <pre id="api-response" style={{ margin: 0, whiteSpace: 'pre-wrap', color: 'white' }}>{messages.join('\n')}</pre>
                   </div>
-                  <div id="response-container" ref={responseContainerRef}>
-                    <pre id="api-response">{messages.join('\n')}</pre>
-                  </div>
+                </div>
+              </div>
+
+              {/* API Logs (Details Only) */}
+              <div id="apiLogsDetails" className={`card ${(activeTab === 'details') ? '' : 'd-none'}`}>
+                <h2 className="card-header">Network API Request-Response</h2>
+                <div className="p-3" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                  {apiLogs.length === 0 ? <p>No API interactions recorded.</p> : (
+                    <div className="api-log-list">
+                      {apiLogs.map(log => (
+                        <div key={log.id} className="api-log-entry mb-3 p-3 border rounded bg-white">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <h5 className="m-0">{log.title}</h5>
+                            <small className="text-muted">{new Date(log.timestamp).toLocaleTimeString()}</small>
+                          </div>
+                          <div className="mb-2">
+                            <span className={`badge ${log.method === 'GET' ? 'badge-info' : 'badge-success'} mr-2`}>{log.method}</span>
+                            <code className="text-dark">{log.url}</code>
+                          </div>
+                          <div className="row">
+                            <div className="col-md-6">
+                                <strong>Request:</strong>
+                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto'}}>{JSON.stringify(log.request, null, 2)}</pre>
+                            </div>
+                            <div className="col-md-6">
+                                <strong>Response:</strong>
+                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto'}}>{JSON.stringify(log.response, null, 2)}</pre>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
