@@ -197,16 +197,28 @@ function App() {
       const socket = gatewayClient.connect(verifiedPhoneNumber);
       
       // Wait for actual connection
-      socket.on('connect', () => {
+      const handleConnect = () => {
         setGatewayConnected(true);
         setBleStatus('Connected');
         addMessage(`Connected to Gateway: ${gatewayClient.getGatewayUrl()}`);
-      });
+      };
       
-      socket.on('disconnect', () => {
+      const handleDisconnect = () => {
         setGatewayConnected(false);
         setBleStatus('Disconnected');
-      });
+      };
+      
+      socket.on('connect', handleConnect);
+      socket.on('disconnect', handleDisconnect);
+      
+      // Cleanup listeners on unmount
+      return () => {
+        socket.off('connect', handleConnect);
+        socket.off('disconnect', handleDisconnect);
+        if (gatewayClient.isConnected()) {
+          gatewayClient.disconnect();
+        }
+      };
     } else {
       if (gatewayClient.isConnected()) {
         gatewayClient.disconnect();
@@ -214,12 +226,6 @@ function App() {
         setBleStatus('Disconnected');
       }
     }
-    
-    return () => {
-      if (gatewayClient.isConnected()) {
-        gatewayClient.disconnect();
-      }
-    };
   }, [verifiedPhoneNumber, addMessage, setGatewayConnected, setBleStatus]);
 
   const handleInputChange = (e) => {
