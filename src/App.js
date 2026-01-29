@@ -438,9 +438,11 @@ function App() {
       
       try {
         addMessage("Starting Auto-Tracking (Gateway WebSocket)...");
+        console.log('[App] Starting auto-scan, subscribing to Gateway events');
         
         // Subscribe to Gateway BLE events
         bleUnsubscribeRef.current = gatewayClient.subscribe((data) => {
+          console.log('[App] Received BLE event from Gateway:', data);
           const { rssi, zone } = data;
           addMessage(`BLE Event: ${zone} (RSSI: ${rssi})`);
           // Use zone from Gateway instead of parsing beaconName
@@ -448,6 +450,7 @@ function App() {
         });
         
         setIsAutoScanning(true);
+        addMessage("Auto-Tracking Started. Waiting for beacon signals...");
       } catch (error) {
         addMessage(`Auto-Scan Error: ${error.message}`);
       }
