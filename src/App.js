@@ -430,9 +430,9 @@ function App() {
       setIsAutoScanning(false);
       addMessage("Auto-Tracking Stopped.");
     } else {
-      // Start Scanning
-      if (!gatewayClient.isConnected()) {
-        addMessage("Gateway not connected. Please verify phone number first.");
+      // Start Scanning - no connection check, WebSocket connects asynchronously
+      if (!verifiedPhoneNumber) {
+        addMessage("Please verify phone number first.");
         return;
       }
       
