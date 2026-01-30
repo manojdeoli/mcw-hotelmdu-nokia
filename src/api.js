@@ -294,32 +294,36 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addMessage(`Check-in: ${bookingInfo.checkIn}, Check-out: ${bookingInfo.checkOut}`);
 
     await new Promise(resolve => setTimeout(resolve, 5000));
-    const twelvePM = new Date("2026-01-16T12:00:00");
-    setArtificialTime(twelvePM);
-    addMessage("Artificial clock set to 12:00 PM.");
+    // Use relative time - 3 hours before check-in
+    const checkInDate = new Date();
+    checkInDate.setHours(15, 0, 0, 0);
+    const startTime = new Date(checkInDate.getTime() - 3 * 60 * 60 * 1000);
+    setArtificialTime(startTime);
+    addMessage(`Artificial clock set to ${startTime.toLocaleTimeString()}.`);
 
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     const route = generateRoute(initialUserLocation, hotelLocation);
     const timeSteps = [
-        { time: "2026-01-16T12:00:00", delay: 2000 },
-        { time: "2026-01-16T12:30:00", delay: 2000 },
-        { time: "2026-01-16T13:00:00", delay: 2000 },
-        { time: "2026-01-16T13:30:00", delay: 2000 },
-        { time: "2026-01-16T14:00:00", delay: 2000 },
-        { time: "2026-01-16T14:30:00", delay: 2000 },
-        { time: "2026-01-16T15:00:00", delay: 2000 },
-        { time: "2026-01-16T15:05:00", delay: 1000 },
-        { time: "2026-01-16T15:10:00", delay: 1000 },
-        { time: "2026-01-16T15:15:00", delay: 1000 },
-        { time: "2026-01-16T15:20:00", delay: 1000 },
+        { minutes: 0, delay: 2000 },
+        { minutes: 30, delay: 2000 },
+        { minutes: 60, delay: 2000 },
+        { minutes: 90, delay: 2000 },
+        { minutes: 120, delay: 2000 },
+        { minutes: 150, delay: 2000 },
+        { minutes: 180, delay: 2000 },
+        { minutes: 185, delay: 1000 },
+        { minutes: 190, delay: 1000 },
+        { minutes: 195, delay: 1000 },
+        { minutes: 200, delay: 1000 },
     ];
 
     for (let i = 0; i < timeSteps.length; i++) {
         const step = timeSteps[i];
         const currentLocation = route[i];
-        setArtificialTime(new Date(step.time));
-        addMessage(`Calling Location Retrieval at ${new Date(step.time).toLocaleTimeString()}`);
+        const stepTime = new Date(startTime.getTime() + step.minutes * 60 * 1000);
+        setArtificialTime(stepTime);
+        addMessage(`Calling Location Retrieval at ${stepTime.toLocaleTimeString()}`);
         
         const locRes = await locationRetrieval(phoneNumber, logApiInteraction, currentLocation);
         setLocation(locRes);
@@ -386,23 +390,28 @@ export async function startCheckOutSequence(phoneNumber, initialUserLocation, ho
     }
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    const checkoutTime = new Date("2026-01-17T10:45:00");
+    // Use relative time - 15 minutes before checkout
+    const checkOutDate = new Date();
+    checkOutDate.setDate(checkOutDate.getDate() + 1);
+    checkOutDate.setHours(11, 0, 0, 0);
+    const checkoutTime = new Date(checkOutDate.getTime() - 15 * 60 * 1000);
     setArtificialTime(checkoutTime);
-    addMessage("Artificial clock set to 10:45 AM for checkout.");
+    addMessage(`Artificial clock set to ${checkoutTime.toLocaleTimeString()} for checkout.`);
 
     const route = generateRoute(hotelLocation, initialUserLocation); // Route from hotel to initial user location
 
     const timeSteps = [
-        { time: "2026-01-17T10:45:00", delay: 2000, routeIndex: 2 }, // Short distance
-        { time: "2026-01-17T11:00:00", delay: 2000, routeIndex: 5 }, // Further
-        { time: "2026-01-17T11:15:00", delay: 2000, routeIndex: 8 }, // Even further
-        { time: "2026-01-17T11:20:00", delay: 2000, routeIndex: 9 }, // Far away
+        { minutes: 0, delay: 2000, routeIndex: 2 }, // Short distance
+        { minutes: 15, delay: 2000, routeIndex: 5 }, // Further
+        { minutes: 30, delay: 2000, routeIndex: 8 }, // Even further
+        { minutes: 35, delay: 2000, routeIndex: 9 }, // Far away
     ];
 
     for (const step of timeSteps) {
         const currentLocation = route[step.routeIndex];
-        setArtificialTime(new Date(step.time));
-        addMessage(`Calling Location Retrieval at ${new Date(step.time).toLocaleTimeString()}`);
+        const stepTime = new Date(checkoutTime.getTime() + step.minutes * 60 * 1000);
+        setArtificialTime(stepTime);
+        addMessage(`Calling Location Retrieval at ${stepTime.toLocaleTimeString()}`);
         
         const locRes = await locationRetrieval(phoneNumber, logApiInteraction, currentLocation);
         setLocation(locRes);

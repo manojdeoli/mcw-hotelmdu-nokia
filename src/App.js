@@ -190,7 +190,7 @@ function App() {
   useEffect(() => { verifiedPhoneNumberRef.current = verifiedPhoneNumber; }, [verifiedPhoneNumber]);
   const bleUnsubscribeRef = useRef(null);
 
-  // Connect to Gateway Server when phone is verified
+  // Connect to Gateway Server and start BLE tracking when phone is verified
   useEffect(() => {
     if (verifiedPhoneNumber) {
       addMessage(`Connecting to Gateway Server...`);
@@ -198,7 +198,24 @@ function App() {
       setGatewayConnected(true);
       setBleStatus('Connected');
       addMessage(`Connected to Gateway: ${gatewayClient.getGatewayUrl()}`);
+      
+      // Auto-start BLE tracking
+      addMessage("Starting Auto-Tracking (Gateway WebSocket)...");
+      bleUnsubscribeRef.current = gatewayClient.subscribe((data) => {
+        const { rssi, zone } = data;
+        addMessage(`BLE Event: ${zone} (RSSI: ${rssi})`);
+        // Call processBeaconDetection directly without dependency
+        processBeaconDetection(zone, rssi);
+      });
+      setIsAutoScanning(true);
     } else {
+      // Stop tracking and disconnect when phone is unverified
+      if (bleUnsubscribeRef.current) {
+        bleUnsubscribeRef.current();
+        bleUnsubscribeRef.current = null;
+      }
+      setIsAutoScanning(false);
+      
       if (gatewayClient.isConnected()) {
         gatewayClient.disconnect();
         setGatewayConnected(false);
@@ -207,11 +224,15 @@ function App() {
     }
     
     return () => {
+      if (bleUnsubscribeRef.current) {
+        bleUnsubscribeRef.current();
+      }
       if (gatewayClient.isConnected()) {
         gatewayClient.disconnect();
       }
     };
-  }, [verifiedPhoneNumber, addMessage, setGatewayConnected, setBleStatus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verifiedPhoneNumber, addMessage, setGatewayConnected, setBleStatus, setIsAutoScanning]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -405,81 +426,11 @@ function App() {
       }
   }, [addMessage, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity]);
 
-  // --- Manual Scan (Not needed with Gateway) ---
-  const scanForBeacon = async () => {
-    addMessage("Manual scan not available - using Gateway auto-tracking");
-  };
 
-  // --- Test Gateway Connection ---
-  const testAndroidBridge = async () => {
-    if (gatewayClient.isConnected()) {
-      addMessage(`Gateway connected: ${gatewayClient.getGatewayUrl()}`);
-    } else {
-      addMessage("Gateway not connected. Verify phone number first.");
-    }
-  };
 
-  // --- Auto Scan (Gateway WebSocket) ---
-  const toggleAutoScan = async () => {
-    if (isAutoScanning) {
-      // Stop Scanning
-      if (bleUnsubscribeRef.current) {
-        bleUnsubscribeRef.current();
-        bleUnsubscribeRef.current = null;
-      }
-      setIsAutoScanning(false);
-      addMessage("Auto-Tracking Stopped.");
-    } else {
-      // Start Scanning - no connection check, WebSocket connects asynchronously
-      if (!verifiedPhoneNumber) {
-        addMessage("Please verify phone number first.");
-        return;
-      }
-      
-      try {
-        addMessage("Starting Auto-Tracking (Gateway WebSocket)...");
-        
-        // Subscribe to Gateway BLE events
-        bleUnsubscribeRef.current = gatewayClient.subscribe((data) => {
-          const { rssi, zone } = data;
-          addMessage(`BLE Event: ${zone} (RSSI: ${rssi})`);
-          // Use zone from Gateway instead of parsing beaconName
-          processBeaconDetection(zone, rssi);
-        });
-        
-        setIsAutoScanning(true);
-      } catch (error) {
-        addMessage(`Auto-Scan Error: ${error.message}`);
-      }
-    }
-  };
 
-  const enableRealLocation = () => {
-    if (!navigator.geolocation) {
-      addMessage("Geolocation is not supported by your browser");
-      return;
-    }
-    addMessage("Getting real device location...");
-    navigator.geolocation.getCurrentPosition((position) => {
-        const { latitude, longitude } = position.coords;
-        setUserGps({ lat: latitude, lng: longitude });
-        addMessage(`Device Location updated: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
-    }, (error) => {
-        addMessage(`Unable to retrieve location: ${error.message}`);
-    });
-  };
 
-  const toggleSecondUser = () => {
-    if (secondUserGps) {
-      setSecondUserGps(null);
-      addMessage("Removed mock second user.");
-    } else {
-      const baseLat = userGps ? userGps.lat : (hotelLocation ? hotelLocation.lat : -33.8688);
-      const baseLng = userGps ? userGps.lng : (hotelLocation ? hotelLocation.lng : 151.2093);
-      setSecondUserGps({ lat: baseLat + 0.0005, lng: baseLng + 0.0005 });
-      addMessage("Added mock second user nearby.");
-    }
-  };
+
 
   const handleAccessSequence = async (passedLocation) => {
     // Use passed location if available (from API callback), otherwise fallback to state
@@ -550,7 +501,7 @@ function App() {
   useEffect(() => {
     if (isSequenceRunning && verifiedPhoneNumber) {
       const timer = setInterval(() => {
-        setArtificialTime(prevTime => prevTime ? new Date(prevTime.getTime() + 50000) : getInitialArtificialTime(simulationMode));
+        setArtificialTime(prevTime => prevTime ? new Date(prevTime.getTime() + 1000) : getInitialArtificialTime(simulationMode));
       }, 1000);
       return () => clearInterval(timer);
     }
@@ -705,10 +656,10 @@ function App() {
     const prefix = simulationMode === 'arrival' ? 'Check-in' : 'Check-out';
 
     if (simulationMode === 'arrival' && checkInStatus === 'Checked In') {
-      return <p>Time to Check-in: 00:00:00</p>;
+      return null;
     }
     if (simulationMode === 'departure' && checkInStatus === 'Checked Out') {
-      return <p>Time to Check-out: 00:00:00</p>;
+      return null;
     }
 
     if (!artificialTime) {
@@ -958,23 +909,17 @@ function App() {
                 </ul>
               </div>
 
-              {/* MWC BLE Section (Details Only) */}
-              <div id="mwcSection" className={`card ${(activeTab === 'details') ? '' : 'd-none'}`}>
-                <h2 className="card-header">MWC Location Access (BLE)</h2>
+              {/* BLE Status Display (Hidden - can be enabled later if needed) */}
+              <div id="bleSection" className="d-none">
+                <h2 className="card-header">BLE Auto-Tracking</h2>
                 <div className="p-3">
-                  <p>Scan for local beacons to verify location.</p>
-                  <div className="btn-group">
-                    <button className="btn btn-secondary" onClick={testAndroidBridge}>Test Bridge</button>
-                    <button className="btn btn-primary" onClick={scanForBeacon}>Manual Scan</button>
-                    <button className={`btn ${isAutoScanning ? 'btn-danger' : 'btn-success'}`} onClick={toggleAutoScan} style={{marginLeft: '10px'}}>
-                      {isAutoScanning ? 'Stop Auto-Tracking' : 'Start Auto-Tracking'}
-                    </button>
-                  </div>
+                  <p>BLE tracking is automatically enabled when phone is verified.</p>
                   <div className="mt-2">
                     <strong>Status: </strong>
                     <span style={{ color: bleStatus === 'Connected' ? 'green' : (bleStatus === 'Failed' ? 'red' : 'black') }}>
                       {bleStatus}
                     </span>
+                    {isAutoScanning && <span className="ml-2">(Tracking Active)</span>}
                   </div>
                 </div>
               </div>
@@ -1078,13 +1023,7 @@ function App() {
               {/* Location Tracker */}
               <div id="locationTracker" className="card">
                 <h2 className="card-header">Location Tracker</h2>
-                <div className="p-2">
-                  <button className="btn btn-sm btn-info" style={{ marginRight: '10px' }} onClick={enableRealLocation}>Use Device GPS</button>
-                  <button className="btn btn-sm btn-warning" onClick={toggleSecondUser}>
-                    {secondUserGps ? 'Remove 2nd User' : 'Mock 2nd User'}
-                  </button>
-                </div>
-                <div id="map" style={{ height: '700px', width: '100%' }}></div>
+                <div id="map" style={{ height: '400px', width: '100%' }}></div>
               </div>
             </div>
           </div>
