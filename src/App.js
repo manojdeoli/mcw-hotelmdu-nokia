@@ -1001,14 +1001,8 @@ function App() {
                   <li><strong>Payment Status:</strong> <span style={{ color: paymentStatus === 'Paid' ? 'green' : 'red' }}>{paymentStatus}</span></li>
                   <li><strong>RFID Verification:</strong> <span style={{ color: rfidStatus === 'Verified' ? 'green' : 'red' }}>{rfidStatus}</span></li>
                   <li><strong>Elevator Access:</strong> <span>{elevatorAccess}</span>
-                    {isSequenceRunning && api.getCurrentWaitingStage() === 'elevator' && (
-                      <button className="btn btn-sm btn-warning ml-2" onClick={() => { addMessage('Manual skip triggered'); api.skipCurrentBeacon(); }}>Skip Wait</button>
-                    )}
                   </li>
                   <li><strong>Room Access:</strong> <span>{roomAccess}</span>
-                    {isSequenceRunning && api.getCurrentWaitingStage() === 'room' && (
-                      <button className="btn btn-sm btn-warning ml-2" onClick={() => { addMessage('Manual skip triggered'); api.skipCurrentBeacon(); }}>Skip Wait</button>
-                    )}
                   </li>
                 </ul>
               </div>
