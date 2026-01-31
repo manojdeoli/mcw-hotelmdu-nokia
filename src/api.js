@@ -293,6 +293,24 @@ export function clearBeaconQueue() {
     beaconWaiters = [];
 }
 
+// Function to manually skip current beacon wait
+export function skipCurrentBeacon() {
+    console.log('[API] Manual skip triggered, waiters:', beaconWaiters.length);
+    if (beaconWaiters.length > 0) {
+        const waiter = beaconWaiters[0];
+        console.log('[API] Waiter details:', { keywords: waiter.keywords, resolved: waiter.resolved });
+        if (!waiter.resolved) {
+            waiter.resolved = true;
+            console.log('[API] ✓ Manually resolving waiter');
+            waiter.resolve('MANUAL_SKIP');
+            // Remove the resolved waiter
+            beaconWaiters.shift();
+        }
+    } else {
+        console.log('[API] No waiters to skip');
+    }
+}
+
 // Function to notify beacon detection
 export function notifyBeaconDetection(beaconName) {
     console.log('[API] notifyBeaconDetection called with:', beaconName, 'type:', typeof beaconName);
