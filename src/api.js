@@ -385,6 +385,13 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addMessage("Location updated: Hotel Entrance");
 
     addMessage(`Starting ${guestName} Auto-Tracking`);
+    
+    // Start BLE subscription to receive beacon events
+    bleUnsubscribeRef.current = gatewayClient.subscribe((data) => {
+        const { rssi, zone } = data;
+        addMessage(`BLE Event: ${zone} (RSSI: ${rssi})`);
+        processBeaconDetection(zone, rssi);
+    });
     setIsAutoScanning(true);
 
     // STEP 1: Wait for Entry Gate beacon
