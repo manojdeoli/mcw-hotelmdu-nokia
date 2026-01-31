@@ -214,11 +214,11 @@ function App() {
       
       // Set up BLE subscription that persists across reconnections
       const unsubscribe = gatewayClient.subscribe((data) => {
-        const { rssi, zone } = data;
-        console.log('[App.js subscription] BLE Event received:', zone, rssi);
+        const { beaconName, rssi, zone } = data;
+        console.log('[App.js subscription] BLE Event received:', beaconName, zone, rssi);
         addMessage(`BLE Event: ${zone} (RSSI: ${rssi})`);
-        // Notify api.js waiting system
-        api.notifyBeaconDetection(zone);
+        // Notify api.js waiting system with beaconName
+        api.notifyBeaconDetection(beaconName);
         // Also call processBeaconDetection for UI updates
         processBeaconDetection(zone, rssi);
       });

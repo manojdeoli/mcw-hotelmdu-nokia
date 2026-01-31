@@ -287,18 +287,18 @@ let beaconEventQueue = [];
 let beaconWaiters = [];
 
 // Function to notify beacon detection
-export function notifyBeaconDetection(zone) {
-    console.log('[API] Beacon detected, notifying waiters:', zone);
+export function notifyBeaconDetection(beaconName) {
+    console.log('[API] Beacon detected, notifying waiters:', beaconName);
     console.log('[API] Current waiters:', beaconWaiters.length);
-    beaconEventQueue.push(zone);
+    beaconEventQueue.push(beaconName);
     // Check all waiters
     beaconWaiters.forEach((waiter, index) => {
-        const matched = waiter.keywords.some(keyword => zone.toLowerCase().includes(keyword.toLowerCase()));
+        const matched = waiter.keywords.some(keyword => beaconName.toLowerCase().includes(keyword.toLowerCase()));
         console.log(`[API] Checking waiter ${index}, keywords:`, waiter.keywords, 'matched:', matched);
         if (matched && !waiter.resolved) {
             waiter.resolved = true;
-            console.log('[API] Resolving waiter with zone:', zone);
-            waiter.resolve(zone);
+            console.log('[API] Resolving waiter with beaconName:', beaconName);
+            waiter.resolve(beaconName);
         }
     });
 }
@@ -310,13 +310,13 @@ function waitForBeacon(beaconKeywords, addMessage) {
         addMessage(`Waiting for BLE beacon detection (${beaconKeywords.join(' or ')})...`);
         
         // Check if beacon already detected
-        const existingBeacon = beaconEventQueue.find(zone => 
-            beaconKeywords.some(keyword => zone.toLowerCase().includes(keyword.toLowerCase()))
+        const existingBeacon = beaconEventQueue.find(beaconName => 
+            beaconKeywords.some(keyword => beaconName.toLowerCase().includes(keyword.toLowerCase()))
         );
         
         if (existingBeacon) {
             console.log('[API] Beacon already in queue:', existingBeacon);
-            addMessage(`BLE Beacon already detected: ${existingBeacon}`);
+            addMessage(`BLE Beacon detected: ${existingBeacon}`);
             resolve(existingBeacon);
             return;
         }
