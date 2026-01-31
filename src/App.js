@@ -211,6 +211,20 @@ function App() {
       setGatewayConnected(true);
       setBleStatus('Connected');
       addMessage(`Connected to Gateway: ${gatewayClient.getGatewayUrl()}`);
+      
+      // Set up BLE subscription that persists across reconnections
+      const unsubscribe = gatewayClient.subscribe((data) => {
+        const { rssi, zone } = data;
+        console.log('[App.js subscription] BLE Event received:', zone, rssi);
+        addMessage(`BLE Event: ${zone} (RSSI: ${rssi})`);
+        // Notify api.js waiting system
+        api.notifyBeaconDetection(zone);
+        // Also call processBeaconDetection for UI updates
+        processBeaconDetection(zone, rssi);
+      });
+      
+      // Store unsubscribe function
+      bleUnsubscribeRef.current = unsubscribe;
     } else {
       // Stop tracking and disconnect when phone is unverified
       if (bleUnsubscribeRef.current) {

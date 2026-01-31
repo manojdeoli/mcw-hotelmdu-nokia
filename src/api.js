@@ -385,17 +385,6 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addMessage("Location updated: Hotel Entrance");
 
     addMessage(`Starting ${guestName} Auto-Tracking`);
-    
-    // Start BLE subscription to receive beacon events
-    bleUnsubscribeRef.current = gatewayClient.subscribe((data) => {
-        const { rssi, zone } = data;
-        console.log('[api.js subscription] BLE Event received:', zone, rssi);
-        addMessage(`BLE Event: ${zone} (RSSI: ${rssi})`);
-        // Directly notify the waiting system
-        notifyBeaconDetection(zone);
-        // Also call processBeaconDetection for UI updates
-        processBeaconDetection(zone, rssi);
-    });
     setIsAutoScanning(true);
 
     // STEP 1: Wait for Entry Gate beacon
