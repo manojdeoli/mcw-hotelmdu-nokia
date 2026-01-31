@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import * as api from './api';
 import { formFields } from './formFields';
 import gatewayClient from './gatewayClient';
+import GuestTab from './components/GuestTab';
 
 
 // --- Fix for Leaflet's default icon ---
@@ -147,6 +148,8 @@ function App() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isAutoScanning, setIsAutoScanning] = useState(false);
+  const [museumMap, setMuseumMap] = useState(null);
+  const [hasReachedHotel, setHasReachedHotel] = useSyncedState('hasReachedHotel', false);
 
   const logApiInteraction = useCallback((title, method, url, request, response) => {
     const logEntry = {
@@ -269,7 +272,7 @@ function App() {
     if (checkInStatus === 'Checked Out') { // Only show checkout message here
       addMessage('Thank you for staying with us! Your check-out is complete');
       const guestName = formState.name ? formState.name.split(' ')[0] : 'Guest';
-      addGuestMessage(`Thank you for staying at Telstra Towers, ${guestName}! We hope to see you again soon!`, 'success');
+      addGuestMessage(`Thank you for staying at Hotel Barcelona Sol, ${guestName}! We hope to see you again soon!`, 'success');
     }
   }, [verifiedPhoneNumber, checkInStatus, kycMatchResponse, formState.name, addMessage, addGuestMessage]);
 
@@ -405,7 +408,8 @@ function App() {
         locationLabel = "Hotel Entry Gate";
         newLocation = { lat: baseLat, lng: baseLng };
         addMessage("Context: User arrived at Entry Gate.");
-        addGuestMessage(`Welcome to Telstra Towers, ${guestName}! You have arrived at the hotel entrance.`, 'info');
+        addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the hotel entrance.`, 'info');
+        setHasReachedHotel(true);
         
       } else if (deviceName.includes("Kiosk") || deviceName.includes("Lobby")) {
         locationLabel = "Check-in Kiosk";
@@ -623,7 +627,7 @@ function App() {
       }
 
       if (hotelLocation && hotelLocation.lat && hotelLocation.lng) {
-        L.marker([hotelLocation.lat, hotelLocation.lng]).addTo(map).bindPopup('Hotel: Telstra Towers');
+        L.marker([hotelLocation.lat, hotelLocation.lng]).addTo(map).bindPopup('Hotel: Hotel Barcelona Sol');
 
         L.circle([hotelLocation.lat, hotelLocation.lng], {
           color: 'green',
@@ -836,6 +840,7 @@ function App() {
           setError('');
           setSuccess('');
           setIsSequenceRunning(false);
+          setHasReachedHotel(false);
         }, 15000);
       }
     } catch (error) { // eslint-disable-line no-empty
@@ -925,27 +930,15 @@ function App() {
 
             {/* Tab 2: Guest Information (Full Width) */}
             <div className={`dashboard-column ${activeTab === 'guest' ? '' : 'd-none'}`} style={{ width: '100%' }}>
-              <div className="card">
-                <h2 className="card-header">Guest Information</h2>
-                <div className="p-3">
-                  {guestMessages.length === 0 ? (
-                    <p className="text-center text-muted" style={{ padding: '40px 20px' }}>No messages yet. Start your journey by verifying your phone number.</p>
-                  ) : (
-                    <div className="guest-messages-list">
-                      {guestMessages.map(msg => (
-                        <div key={msg.id} className={`alert alert-${msg.type === 'success' ? 'success' : msg.type === 'error' ? 'danger' : msg.type === 'processing' ? 'warning' : msg.type === 'welcome' ? 'primary' : 'info'} mb-3`}>
-                          <div className="d-flex justify-content-between align-items-start">
-                            <div style={{ flex: 1 }}>
-                              <p className="mb-0" style={{ fontSize: '16px' }}>{msg.message}</p>
-                            </div>
-                            <small className="text-muted ml-3" style={{ whiteSpace: 'nowrap' }}>{new Date(msg.timestamp).toLocaleTimeString()}</small>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <GuestTab 
+                checkInStatus={checkInStatus}
+                formState={formState}
+                verifiedPhoneNumber={verifiedPhoneNumber}
+                activeTab={activeTab}
+                museumMap={museumMap}
+                setMuseumMap={setMuseumMap}
+                hasReachedHotel={hasReachedHotel}
+              />
             </div>
 
             {/* Tab 3 & 4: Dashboard & Details - Left Column */}
@@ -1030,7 +1023,7 @@ function App() {
               <div id="bookingDetails" className="card">
                 <h2 className="card-header">Booking Details</h2>
                 <ul className="details-list">
-                  <li><strong>Hotel:</strong> <span>{verifiedPhoneNumber ? 'Telstra Towers Melbourne' : '--'}</span></li>
+                  <li><strong>Hotel:</strong> <span>{verifiedPhoneNumber ? 'Hotel Barcelona Sol' : '--'}</span></li>
                   <li><strong>Room:</strong> <span>{verifiedPhoneNumber ? '1337' : '--'}</span></li>
                   <li><strong>Check-in:</strong> <span>{verifiedPhoneNumber ? format(CHECK_IN_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>
                   <li><strong>Check-out:</strong> <span>{verifiedPhoneNumber ? format(CHECK_OUT_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>

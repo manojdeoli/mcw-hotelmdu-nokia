@@ -378,7 +378,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     clearBeaconQueue();
     
     addMessage("Starting Booking and Arrival sequence...");
-    addGuestMessage(`Your journey to Telstra Towers is beginning, ${guestName}...`, 'info');
+    addGuestMessage(`Your journey to Hotel Barcelona Sol is beginning, ${guestName}...`, 'info');
 
     await new Promise(resolve => setTimeout(resolve, 5000));
     addMessage("Pre-populating booking information...");
@@ -427,7 +427,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     }
 
     addMessage("User has arrived within the vicinity.");
-    addGuestMessage(`You are approaching Telstra Towers, ${guestName}. Check-in will be available soon!`, 'info');
+    addGuestMessage(`You are approaching Hotel Barcelona Sol, ${guestName}. Check-in will be available soon!`, 'info');
 
     setUserGps(hotelLocation);
     addMessage("Location updated: Hotel Entrance");
@@ -439,7 +439,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addMessage("Waiting for guest to reach Entry Gate...");
     addGuestMessage(`Please proceed to the hotel entrance, ${guestName}.`, 'info');
     await waitForBeacon(['Gate', 'Hotel'], addMessage, 'gate');
-    addGuestMessage(`Welcome to Telstra Towers, ${guestName}! You have arrived at the hotel entrance.`, 'success');
+    addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the hotel entrance.`, 'success');
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // STEP 2: Wait for Kiosk beacon

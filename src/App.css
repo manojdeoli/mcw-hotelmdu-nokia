@@ -357,3 +357,301 @@ body {
 .p-3 {
   padding: 1.5rem;
 }
+
+
+/* Guest Tab Styles */
+.guest-tab-container {
+  background: var(--card-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.hotel-header {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: white;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.hotel-logo-placeholder {
+  font-size: 2rem;
+  margin-bottom: 0.3rem;
+}
+
+.hotel-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.3rem 0;
+}
+
+.hotel-rating {
+  font-size: 1rem;
+  margin-top: 0.3rem;
+}
+
+.welcome-section {
+  padding: 2rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.welcome-section h2 {
+  font-size: 1.8rem;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+}
+
+.checkin-prompt-container {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  text-align: left;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.checkin-text {
+  flex: 1;
+}
+
+.checkin-text p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.checkin-subtitle {
+  font-size: 0.95rem !important;
+  color: var(--text-secondary);
+}
+
+.checkin-button-wrapper {
+  flex-shrink: 0;
+}
+
+.checkin-prompt-container .btn-lg {
+  padding: 0.75rem 2rem;
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.wayfinding-section,
+.offers-section,
+.partner-offers-section {
+  padding: 2rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.wayfinding-section:last-child,
+.offers-section:last-child,
+.partner-offers-section:last-child {
+  border-bottom: none;
+}
+
+.wayfinding-section h3,
+.offers-section h3,
+.partner-offers-section h3 {
+  font-size: 1.4rem;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+/* Two-column layout for content with visuals */
+.content-with-visual {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.text-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.visual-content {
+  flex: 0 0 350px;
+  width: 350px;
+}
+
+.wayfinding-content {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--telstra-blue);
+}
+
+.room-number {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--telstra-blue);
+  margin-bottom: 1rem;
+}
+
+.directions-text {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.offer-card {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.offer-item {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.offer-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.offer-item:last-child {
+  margin-bottom: 0;
+}
+
+.offer-item h4 {
+  font-size: 1.3rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.offer-badge {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+  min-width: 150px;
+}
+
+.badge-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.badge-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.offer-hours,
+.offer-features {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0.5rem 0;
+}
+
+.partner-offers-section h4 {
+  font-size: 1.3rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.offer-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+.ratings {
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.offer-details {
+  font-size: 1.05rem;
+  color: var(--text-primary);
+  margin: 1rem 0;
+  font-weight: 500;
+}
+
+.location-info {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0.5rem 0;
+}
+
+.terms {
+  font-size: 0.8rem;
+  color: #999;
+  margin-top: 1rem;
+  margin-bottom: 0;
+  font-style: italic;
+}
+
+.welcome-message {
+  padding: 2rem;
+}
+
+
+/* Visual Elements - Floor Plan and Maps */
+.floor-plan {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-top: 0;
+}
+
+.floor-plan svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.location-map {
+  height: 250px;
+  position: relative;
+  background: white;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-top: 0;
+}
+
+.location-map .leaflet-container {
+  height: 100%;
+  border-radius: 6px;
+}
+
+/* Responsive adjustments for two-column layout */
+@media (max-width: 768px) {
+  .content-with-visual,
+  .checkin-prompt-container {
+    flex-direction: column;
+  }
+  
+  .visual-content {
+    flex: 1;
+    width: 100%;
+  }
+  
+  .checkin-button-wrapper {
+    width: 100%;
+  }
+  
+  .checkin-button-wrapper .btn-lg {
+    width: 100%;
+  }
+}
