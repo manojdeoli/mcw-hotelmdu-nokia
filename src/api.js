@@ -282,6 +282,22 @@ export function carrierBilling(phoneNumber, logApiInteraction) {
     });
 }
 
+// Helper function to wait for specific BLE beacon
+function waitForBeacon(gatewayClient, beaconKeywords, addMessage) {
+    return new Promise((resolve) => {
+        addMessage(`Waiting for BLE beacon detection (${beaconKeywords.join(' or ')})...`);
+        const unsubscribe = gatewayClient.subscribe((data) => {
+            const { zone } = data;
+            const matched = beaconKeywords.some(keyword => zone.toLowerCase().includes(keyword.toLowerCase()));
+            if (matched) {
+                addMessage(`BLE Beacon detected: ${zone}`);
+                unsubscribe();
+                resolve(zone);
+            }
+        });
+    });
+}
+
 export async function startBookingAndArrivalSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, setRfidStatus, setPaymentStatus, setElevatorAccess, setRoomAccess, generateRoute, setArtificialTime, handleAccessSequence, logApiInteraction, addGuestMessage, guestName = 'Guest', gatewayClient, processBeaconDetection, setIsAutoScanning, bleUnsubscribeRef) {
     addMessage("Starting Booking and Arrival sequence...");
     addGuestMessage(`Your journey to Telstra Towers is beginning, ${guestName}...`, 'info');
@@ -290,12 +306,11 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addMessage("Pre-populating booking information...");
     const bookingInfo = {
         checkIn: "2026-01-16T15:00:00",
-        checkOut: "2026-01-17T11:00:00" // Assuming checkout is next day
+        checkOut: "2026-01-17T11:00:00"
     };
     addMessage(`Check-in: ${bookingInfo.checkIn}, Check-out: ${bookingInfo.checkOut}`);
 
     await new Promise(resolve => setTimeout(resolve, 5000));
-    // Use relative time - 3 hours before check-in
     const checkInDate = new Date();
     checkInDate.setHours(15, 0, 0, 0);
     const startTime = new Date(checkInDate.getTime() - 3 * 60 * 60 * 1000);
@@ -336,64 +351,82 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addMessage("User has arrived within the vicinity.");
     addGuestMessage(`You are approaching Telstra Towers, ${guestName}. Check-in will be available soon!`, 'info');
 
-    // Update location to Hotel Entrance
     setUserGps(hotelLocation);
     addMessage("Location updated: Hotel Entrance");
 
-    // Start BLE Auto-Tracking when guest arrives at hotel
     addMessage(`Starting ${guestName} Auto-Tracking`);
-    bleUnsubscribeRef.current = gatewayClient.subscribe((data) => {
-        const { rssi, zone } = data;
-        addMessage(`BLE Event: ${zone} (RSSI: ${rssi})`);
-        processBeaconDetection(zone, rssi);
-    });
     setIsAutoScanning(true);
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    addMessage("Calling Location Verification...");
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    // STEP 1: Wait for Entry Gate beacon
+    addMessage("Waiting for guest to reach Entry Gate...");
+    addGuestMessage(`Please proceed to the hotel entrance, ${guestName}.`, 'info');
+    await waitForBeacon(gatewayClient, ['Entry', 'Gate'], addMessage);
+    addGuestMessage(`Welcome to Telstra Towers, ${guestName}! You have arrived at the hotel entrance.`, 'success');
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const locationVerificationData = {
-        device: { phoneNumber: phoneNumber },
-        area: {
-            areaType: "CIRCLE",
-            center: { latitude: hotelLocation.lat, longitude: hotelLocation.lng }, // Verify against hotel location
-            radius: 100 // As per Telstra's vicinity radius
-        }
-    };
-    const verification = await locationVerification(locationVerificationData, logApiInteraction);
+    // STEP 2: Wait for Kiosk beacon
+    addMessage("Waiting for guest to reach Check-in Kiosk...");
+    addGuestMessage('Please proceed to the check-in kiosk.', 'info');
+    await waitForBeacon(gatewayClient, ['Kiosk', 'Lobby'], addMessage);
+    
+    addMessage("Guest at Check-in Kiosk. Processing check-in...");
+    addGuestMessage('Processing your check-in...', 'processing');
+    setCheckInStatus("Checked In");
+    const checkInLocation = { lat: hotelLocation.lat + 0.0001, lng: hotelLocation.lng };
+    setUserGps(checkInLocation);
+    
+    addMessage("Check-in process: RFID scan at kiosk...");
+    setRfidStatus("Verified");
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    addMessage("Check-in complete. RFID activated.");
+    addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    addGuestMessage('Hotel amenities: Pool (Level 5), Gym (Level 4), Restaurant (Ground Floor)', 'info');
 
-    if (verification.verificationResult === "TRUE") {
-        addMessage("Location verification successful...");
-        addMessage("Welcome to Telstra Towers!");
-        addGuestMessage(`Welcome to Telstra Towers, ${guestName}!`, 'success');
-
-        // (ii) Check in (involves RFID scan)
-        addGuestMessage('Processing your check-in at the kiosk...', 'processing');
-        setCheckInStatus("Checked In");
-        
-        // Update location to Check-in Desk
-        const checkInLocation = { lat: hotelLocation.lat + 0.0001, lng: hotelLocation.lng };
-        setUserGps(checkInLocation);
-        addMessage("Location updated: Hotel Lobby / Check-in Desk");
-
-        addMessage("Check-in process: RFID scan at kiosk...");
-        setRfidStatus("Verified");
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        addMessage("Check-in complete. RFID activated.");
-        addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        addGuestMessage('Hotel amenities: Pool (Level 5), Gym (Level 4), Restaurant (Ground Floor)', 'info');
-
-        // Now, trigger the shared access sequence for steps (iii) and (iv)
-        await handleAccessSequence(hotelLocation);
+    // STEP 3: Wait for Elevator beacon
+    addMessage("Waiting for guest to reach Elevator...");
+    addGuestMessage('Please proceed to the elevator.', 'info');
+    await waitForBeacon(gatewayClient, ['Elevator', 'Lift'], addMessage);
+    
+    addMessage("Guest at Elevator. Verifying identity...");
+    addGuestMessage('Verifying your identity for elevator access...', 'processing');
+    const elevatorLocation = { lat: hotelLocation.lat + 0.0001, lng: hotelLocation.lng + 0.0001 };
+    setUserGps(elevatorLocation);
+    
+    const simSwapResult = await simSwap(phoneNumber, logApiInteraction);
+    const deviceSwapResult = await deviceSwap(phoneNumber, logApiInteraction);
+    if (simSwapResult.swapped === false && deviceSwapResult.swapped === false) {
+        setElevatorAccess('Yes, Floor 13');
+        addMessage("Access Granted: Elevator to Floor 13.");
+        addGuestMessage('Elevator access granted! Proceeding to Floor 13.', 'success');
     } else {
-        addMessage("Location verification failed.");
-        addGuestMessage('Location verification failed. Please contact reception.', 'error');
+        addGuestMessage('Elevator access denied. Please contact reception.', 'error');
+        return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // STEP 4: Wait for Room beacon
+    addMessage("Waiting for guest to reach Room Door...");
+    addGuestMessage('Please proceed to your room (Room 1337).', 'info');
+    await waitForBeacon(gatewayClient, ['Room', 'Door'], addMessage);
+    
+    addMessage("Guest at Room Door. Verifying identity...");
+    addGuestMessage('Verifying your identity for room access...', 'processing');
+    const roomLocation = { lat: hotelLocation.lat + 0.0002, lng: hotelLocation.lng + 0.0002 };
+    setUserGps(roomLocation);
+    
+    const simSwapResult2 = await simSwap(phoneNumber, logApiInteraction);
+    const deviceSwapResult2 = await deviceSwap(phoneNumber, logApiInteraction);
+    if (simSwapResult2.swapped === false && deviceSwapResult2.swapped === false) {
+        setRoomAccess('Granted');
+        addMessage("Access Granted: Room 1337 Unlocked.");
+        addGuestMessage(`Welcome to your room, ${guestName}! Door unlocked. Enjoy your stay!`, 'success');
+    } else {
+        addGuestMessage('Room access denied. Please contact reception.', 'error');
     }
 }
 
-export async function startCheckOutSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, generateRoute, setArtificialTime, setPaymentStatus, setElevatorAccess, setRoomAccess, guestName, logApiInteraction, addGuestMessage) {
+export async function startCheckOutSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, generateRoute, setArtificialTime, setPaymentStatus, setElevatorAccess, setRoomAccess, setRfidStatus, guestName, logApiInteraction, addGuestMessage) {
     addMessage("Starting Check-out sequence...");
     addGuestMessage(`Processing your check-out, ${guestName}. Please wait...`, 'processing');
     await new Promise(resolve => setTimeout(resolve, 5000));

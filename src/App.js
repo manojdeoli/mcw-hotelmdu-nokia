@@ -785,6 +785,7 @@ function App() {
           setPaymentStatus,
           setElevatorAccess, // Pass setters to reset access
           setRoomAccess, // Pass setters to reset access
+          setRfidStatus, // Pass setRfidStatus
           guestName, // Pass guestName to the API call
           logApiInteraction, // Pass logger
           addGuestMessage // Pass guest message function
