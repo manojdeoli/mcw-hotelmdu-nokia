@@ -98,7 +98,8 @@ class GatewayClient {
       this.ws.close();
       this.ws = null;
       this.connected = false;
-      this.subscribers = [];
+      // Don't clear subscribers - they should persist across reconnections
+      // this.subscribers = [];
     }
   }
 
