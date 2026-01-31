@@ -360,7 +360,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     // STEP 1: Wait for Entry Gate beacon
     addMessage("Waiting for guest to reach Entry Gate...");
     addGuestMessage(`Please proceed to the hotel entrance, ${guestName}.`, 'info');
-    await waitForBeacon(gatewayClient, ['Entry', 'Gate'], addMessage);
+    await waitForBeacon(gatewayClient, ['Gate', 'Hotel'], addMessage);
     addGuestMessage(`Welcome to Telstra Towers, ${guestName}! You have arrived at the hotel entrance.`, 'success');
     await new Promise(resolve => setTimeout(resolve, 2000));
 
