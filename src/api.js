@@ -422,6 +422,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addMessage("Check-in process: RFID scan at kiosk...");
     setRfidStatus("Verified");
     await new Promise(resolve => setTimeout(resolve, 2000));
+    setRfidStatus("Unverified");
     addMessage("Check-in complete. RFID activated.");
     addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -462,9 +463,12 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     const simSwapResult2 = await simSwap(phoneNumber, logApiInteraction);
     const deviceSwapResult2 = await deviceSwap(phoneNumber, logApiInteraction);
     if (simSwapResult2.swapped === false && deviceSwapResult2.swapped === false) {
+        setRfidStatus("Verified");
         setRoomAccess('Granted');
         addMessage("Access Granted: Room 1337 Unlocked.");
         addGuestMessage(`Welcome to your room, ${guestName}! Door unlocked. Enjoy your stay!`, 'success');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        setRfidStatus("Unverified");
     } else {
         addGuestMessage('Room access denied. Please contact reception.', 'error');
     }
