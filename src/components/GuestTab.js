@@ -52,8 +52,12 @@ const GuestTab = ({
     }
     
     return () => {
-      if (museumMap && activeTab !== 'guest') {
-        museumMap.remove();
+      if (museumMap) {
+        try {
+          museumMap.remove();
+        } catch (e) {
+          console.log('Museum map already removed');
+        }
         setMuseumMap(null);
       }
     };

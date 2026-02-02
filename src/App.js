@@ -815,6 +815,14 @@ function App() {
         );
 
         setTimeout(() => {
+          if (museumMap) {
+            try {
+              museumMap.remove();
+            } catch (e) {
+              console.log('Museum map cleanup');
+            }
+            setMuseumMap(null);
+          }
           setVerifiedPhoneNumber(null);
           setKycMatchResponse(null);
           setLocation(null);
