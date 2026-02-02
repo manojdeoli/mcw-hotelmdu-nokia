@@ -891,7 +891,7 @@ function App() {
               <button className={`nav-link ${activeTab === 'guest' ? 'active' : ''}`} onClick={() => setActiveTab('guest')}>Guest Information</button>
             </li>
             <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>Hospital Dashboard</button>
+              <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>Hotel Dashboard</button>
             </li>
             <li className="nav-item">
               <button className={`nav-link ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')}>All Details</button>
