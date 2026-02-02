@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 
 const GuestTab = ({ 
@@ -11,9 +11,11 @@ const GuestTab = ({
   hasReachedHotel
 }) => {
   
+  const mapInitialized = useRef(false);
+  
   // Initialize museum map when tab is active and checked in
   useEffect(() => {
-    if (activeTab === 'guest' && checkInStatus === 'Checked In' && !museumMap) {
+    if (activeTab === 'guest' && checkInStatus === 'Checked In' && !mapInitialized.current) {
       setTimeout(() => {
         const mapElement = document.getElementById('museum-map');
         if (mapElement && !museumMap) {
@@ -47,20 +49,21 @@ const GuestTab = ({
           }).addTo(mapInstance);
           
           setMuseumMap(mapInstance);
+          mapInitialized.current = true;
         }
       }, 300);
     }
     
-    return () => {
-      if (museumMap) {
-        try {
-          museumMap.remove();
-        } catch (e) {
-          console.log('Museum map already removed');
-        }
-        setMuseumMap(null);
+    // Cleanup when component unmounts or check-in status changes to not checked in
+    if (checkInStatus !== 'Checked In' && mapInitialized.current && museumMap) {
+      try {
+        museumMap.remove();
+      } catch (e) {
+        console.log('Museum map cleanup');
       }
-    };
+      setMuseumMap(null);
+      mapInitialized.current = false;
+    }
   }, [activeTab, checkInStatus, museumMap, setMuseumMap]);
 
   return (
