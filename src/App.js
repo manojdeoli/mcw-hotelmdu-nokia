@@ -995,8 +995,11 @@ function App() {
                   <li><strong>Registration Status:</strong> <span style={{ color: registrationStatus === 'Registered' ? 'green' : 'red' }}>{registrationStatus}</span>
                   </li>
                   <li><strong>Check-in Status:</strong> <span style={{ color: checkInStatus === 'Checked In' ? 'green' : 'red' }}>{checkInStatus}</span>
-                    {isSequenceRunning && (api.getCurrentWaitingStage() === 'gate' || api.getCurrentWaitingStage() === 'kiosk') && (
-                      <button className="btn btn-sm btn-warning ml-2" onClick={() => { addMessage('Manual skip triggered'); api.skipCurrentBeacon(); }}>Skip Wait</button>
+                    {isSequenceRunning && api.getCurrentWaitingStage() === 'gate' && (
+                      <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual skip triggered'); api.skipCurrentBeacon(); }}>Proceed to Kiosk</button>
+                    )}
+                    {isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk' && (
+                      <button className="btn btn-sm btn-success ml-2" onClick={() => { addMessage('Manual skip triggered'); api.skipCurrentBeacon(); }}>Complete Check-in</button>
                     )}
                   </li>
                   <li><strong>Payment Status:</strong> <span style={{ color: paymentStatus === 'Paid' ? 'green' : 'red' }}>{paymentStatus}</span></li>
