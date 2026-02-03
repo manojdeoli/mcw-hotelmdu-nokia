@@ -1,81 +1,80 @@
-// import axios from 'axios';
+import axios from 'axios';
+import authService from './auth';
 
-// const API_BASE_URL = 'https://telstra-hackathon-apis.p-eu.rapidapi.com/passthrough/camara/v1';
-// const API_KEY = '15cc20cd08msh7054d8a2a3ed868p146283jsn43ebc1478fe7';
+const API_BASE_URL = 'https://network-as-code.p-eu.rapidapi.com/passthrough/camara/v1';
+const API_KEY = '5f2dbafafamsh87b419851b02d59p1c9ce3jsncbbd0bf87a70';
 
-// const defaultHeaders = {
-//     'Content-Type': 'application/json',
-//     'authorization': 'Test',
-//     'x-rapidapi-host': 'telstra-hackathon-apis.nokia.rapidapi.com',
-//     'x-rapidapi-key': API_KEY
-// };
+const defaultHeaders = {
+    'Content-Type': 'application/json',
+    'authorization': 'Test',
+    'x-rapidapi-host': 'network-as-code.nokia.rapidapi.com',
+    'x-rapidapi-key': API_KEY
+};
 
-// async function post(url, body) {
-//     const response = await axios.post(url, body, { headers: defaultHeaders });
-//     return response.data;
-// }
+async function post(url, body, customHeaders = {}) {
+    const headers = { ...defaultHeaders, ...customHeaders };
+    const response = await axios.post(url, body, { headers });
+    return response.data;
+}
 
-// import axios from 'axios';
-
-// const API_BASE_URL = 'https://telstra-hackathon-apis.p-eu.rapidapi.com/passthrough/camara/v1';
-// const API_KEY = '15cc20cd08msh7054d8a2a3ed868p146283jsn43ebc1478fe7';
-
-// const defaultHeaders = {
-//     'Content-Type': 'application/json',
-//     'authorization': 'Test',
-//     'x-rapidapi-host': 'telstra-hackathon-apis.nokia.rapidapi.com',
-//     'x-rapidapi-key': API_KEY
-// };
-
-// async function post(url, body) {
-//     const response = await axios.post(url, body, { headers: defaultHeaders });
-//     return response.data;
-// }
+async function ensureValidToken() {
+    if (authService.isTokenValid()) {
+        console.log('✅ Token is valid');
+        return Promise.resolve();
+    }
+    console.log('⚠️ Token expired, re-authenticating...');
+    await authService.authenticate();
+    return new Promise(() => {});
+}
 
 export function verifyPhoneNumber(phoneNumber, logApiInteraction) {
-    // return post(`${API_BASE_URL}/number-verification/number-verification/v0/verify`, { phoneNumber });
-    const requestPayload = { phoneNumber };
-    return new Promise(resolve => {
-        setTimeout(() => {
-            const response = {
-                devicePhoneNumberVerified: true
-            };
+    return ensureValidToken().then(() => {
+        const accessToken = authService.accessToken;
+        return post(`${API_BASE_URL}/number-verification/number-verification/v0/verify`, { phoneNumber }, {
+            'Authorization': `Bearer ${accessToken}`
+        }).then(response => {
             if (logApiInteraction) {
-                logApiInteraction('Verify Phone Number', 'POST', '/number-verification/verify', requestPayload, response);
+                logApiInteraction('Verify Phone Number', 'POST', '/number-verification/verify', { phoneNumber }, response);
             }
-            resolve(response);
-        }, 500);
+            return response;
+        });
     });
 }
 
 export function kycMatch(data, logApiInteraction) {
-    //return post(`${API_BASE_URL}/kyc-match/kyc-match/v0.2/match`, data);
-    const response = {
-        nameMatch: 'true',
-        addressMatch: 'true',
-        emailMatch: 'true',
-        birthdateMatch: 'true'
-    };
-    if (logApiInteraction) {
-        logApiInteraction('KYC Match', 'POST', '/kyc-match/match', data, response);
+    const stored = storedKycFillData[data.phoneNumber];
+    if (!stored) {
+        const response = {
+            nameMatch: 'not_available',
+            addressMatch: 'not_available',
+            birthdateMatch: 'not_available',
+            emailMatch: 'not_available'
+        };
+        if (logApiInteraction) logApiInteraction('KYC Match', 'POST', '/kyc-match/match', data, response);
+        return Promise.resolve(response);
     }
+    const response = {
+        nameMatch: data.name === stored.name ? 'true' : 'false',
+        addressMatch: data.address === stored.address ? 'true' : 'false',
+        birthdateMatch: data.birthdate === stored.birthdate ? 'true' : 'false',
+        emailMatch: data.email === stored.email ? 'true' : 'false'
+    };
+    if (logApiInteraction) logApiInteraction('KYC Match', 'POST', '/kyc-match/match', data, response);
     return Promise.resolve(response);
 }
 
 export function simSwap(phoneNumber, logApiInteraction) {
-    //return post(`${API_BASE_URL}/sim-swap/sim-swap/v0/check`, { phoneNumber, maxAge: 240 });
-    const requestPayload = { phoneNumber, maxAge: 240 };
-    const response = { swapped: false };
-    if (logApiInteraction) logApiInteraction('SIM Swap', 'POST', '/sim-swap/check', requestPayload, response);
-    return Promise.resolve(response);
+    return post(`${API_BASE_URL}/sim-swap/sim-swap/v0/check`, { phoneNumber, maxAge: 240 }).then(response => {
+        if (logApiInteraction) logApiInteraction('SIM Swap', 'POST', '/sim-swap/check', { phoneNumber, maxAge: 240 }, response);
+        return response;
+    });
 }
 
 export function deviceSwap(phoneNumber, logApiInteraction) {
-    //return post(`${API_BASE_URL}/device-swap/device-swap/v0.1/check`, { phoneNumber, maxAge: 240 });
-    const requestPayload = { phoneNumber, maxAge: 240 };
-    const response = { swapped: false };
-    if (logApiInteraction) logApiInteraction('Device Swap', 'POST', '/device-swap/check', requestPayload, response);
-    return Promise.resolve(response);
+    return post(`${API_BASE_URL}/device-swap/device-swap/v1/check`, { phoneNumber, maxAge: 240 }).then(response => {
+        if (logApiInteraction) logApiInteraction('Device Swap', 'POST', '/device-swap/check', { phoneNumber, maxAge: 240 }, response);
+        return response;
+    });
 }
 
 
@@ -190,22 +189,24 @@ const defaultKycData = {
     birthdate: '1958-08-29'
 };
 
+let storedKycFillData = {};
+
 export function kycFill(phoneNumber, logApiInteraction) {
     const requestPayload = { phoneNumber };
     return new Promise(resolve => {
         setTimeout(() => {
             const phone = phoneNumber ? phoneNumber.replace('+', '') : '';
-            let userData = mockKycData[phone]; // Attempt to find user data
+            let userData = mockKycData[phone];
 
             if (!userData) {
-                // Fallback to default data if no match
                 userData = defaultKycData;
             }
+            storedKycFillData[phoneNumber] = userData;
             if (logApiInteraction) {
                 logApiInteraction('KYC Fill', 'GET', '/kyc-fill/fill', requestPayload, userData);
             }
             resolve(userData);
-        }, 1000); // Simulate network delay
+        }, 1000);
     });
 }
 

@@ -10,6 +10,7 @@ import * as api from './api';
 import { formFields } from './formFields';
 import gatewayClient from './gatewayClient';
 import GuestTab from './components/GuestTab';
+import authService from './auth';
 
 
 // --- Fix for Leaflet's default icon ---
@@ -111,6 +112,12 @@ function getDistance(coords1, coords2) {
 function App() {
   const mapUpdateThrottle = useRef(null);
   
+  // OAuth Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const [authError, setAuthError] = useState(null);
+  const [tokenExpirySeconds, setTokenExpirySeconds] = useState(0);
+  
   // --- Shared State (Synced across windows) ---
   const [verifiedPhoneNumber, setVerifiedPhoneNumber] = useSyncedState('verifiedPhoneNumber', null);
   const [kycMatchResponse, setKycMatchResponse] = useSyncedState('kycMatchResponse', null);
@@ -150,6 +157,40 @@ function App() {
   const [isAutoScanning, setIsAutoScanning] = useState(false);
   const [museumMap, setMuseumMap] = useState(null);
   const [hasReachedHotel, setHasReachedHotel] = useSyncedState('hasReachedHotel', false);
+
+  // OAuth Authentication Effect
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const hasToken = await authService.checkAndHandleCallback();
+        if (hasToken) {
+          setIsAuthenticated(true);
+          setAuthError(null);
+        } else {
+          await authService.authenticate();
+        }
+      } catch (error) {
+        setAuthError(error.message);
+      } finally {
+        setIsAuthenticating(false);
+      }
+    };
+    initAuth();
+  }, []);
+
+  // Token expiry countdown
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => {
+      const seconds = authService.getTimeUntilExpiry();
+      setTokenExpirySeconds(seconds);
+      if (seconds <= 0) {
+        setIsAuthenticated(false);
+        authService.authenticate();
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const logApiInteraction = useCallback((title, method, url, request, response) => {
     const logEntry = {
@@ -863,6 +904,20 @@ function App() {
 
   return (
     <div className="App">
+      {isAuthenticating && (
+        <div className="loader-overlay">
+          <div className="d-flex justify-content-center align-items-center h-100">
+            <div className="spinner-border text-light" style={{ width: '3rem', height: '3rem' }} role="status">
+              <span className="sr-only">Authenticating...</span>
+            </div>
+          </div>
+        </div>
+      )}
+      {authError && (
+        <div className="alert alert-danger" style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}>
+          Authentication Error: {authError}
+        </div>
+      )}
       {isLoading &&
         <div className="loader-overlay">
           <div className="d-flex justify-content-center align-items-center h-100">
@@ -875,6 +930,9 @@ function App() {
       <header className="header">
         <h1><a href="/" className="header-link">Hotels/MDUs Use Case Demo</a></h1>
         <div className="artificial-clock">
+          {isAuthenticated && tokenExpirySeconds > 0 && (
+            <p style={{ fontSize: '0.9em', marginRight: '20px' }}>Token expires in: {Math.floor(tokenExpirySeconds / 60)}:{(tokenExpirySeconds % 60).toString().padStart(2, '0')}</p>
+          )}
           {verifiedPhoneNumber && artificialTime && renderCountdown()}
         </div>
       </header>
