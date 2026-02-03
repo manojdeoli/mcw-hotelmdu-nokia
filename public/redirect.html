@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authentication Callback</title>
+</head>
+<body>
+    <h3>Processing authentication...</h3>
+    <p>Please wait while we complete the authentication process.</p>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        
+        if (code) {
+            console.log('Code received on redirect page:', code);
+            window.location.href = '/?code=' + code;
+        } else {
+            console.error('No code in redirect URL');
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
