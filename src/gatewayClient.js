@@ -1,5 +1,5 @@
 // Gateway Server URL - Update this when deployed to cloud
-const GATEWAY_URL = process.env.REACT_APP_GATEWAY_URL || 'http://localhost:3001';
+const GATEWAY_URL = process.env.REACT_APP_GATEWAY_URL || 'http://localhost:4000';
 
 class GatewayClient {
   constructor() {
