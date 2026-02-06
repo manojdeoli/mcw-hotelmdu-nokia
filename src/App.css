@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
 :root {
-  --telstra-blue: #007bff;
-  --telstra-pink: #e80074;
+  --mcw-blue: #007bff;
+  --mcw-pink: #e80074;
   --background-color: #f4f7fc;
   --card-background: #ffffff;
   --text-primary: #1d2330;
@@ -25,7 +25,7 @@ body {
 /* Header */
 .header {
   background: var(--card-background);
-  color: var(--telstra-blue);
+  color: var(--mcw-blue);
   padding: 1rem 2rem;
   box-shadow: var(--shadow);
   display: flex;
@@ -50,7 +50,7 @@ body {
 }
 
 .header-link:hover {
-  color: var(--telstra-pink);
+  color: var(--mcw-pink);
 
 }
 
@@ -137,7 +137,7 @@ body {
 
 .form-control:focus {
 
-  border-color: var(--telstra-blue);
+  border-color: var(--mcw-blue);
   outline: 0;
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
   background-color: var(--card-background);
@@ -182,9 +182,9 @@ body {
 }
 
 .btn-primary {
-  background: var(--telstra-blue);
+  background: var(--mcw-blue);
 
-  border-color: var(--telstra-blue);
+  border-color: var(--mcw-blue);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -194,8 +194,8 @@ body {
 
 
 .btn-secondary {
-  background: var(--telstra-pink);
-  border-color: var(--telstra-pink);
+  background: var(--mcw-pink);
+  border-color: var(--mcw-pink);
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -479,13 +479,13 @@ body {
   background: #f8f9fa;
   padding: 1.5rem;
   border-radius: 8px;
-  border-left: 4px solid var(--telstra-blue);
+  border-left: 4px solid var(--mcw-blue);
 }
 
 .room-number {
   font-size: 1.2rem;
   font-weight: 600;
-  color: var(--telstra-blue);
+  color: var(--mcw-blue);
   margin-bottom: 1rem;
 }
 
@@ -653,5 +653,484 @@ body {
   
   .checkin-button-wrapper .btn-lg {
     width: 100%;
+  }
+}
+
+
+/* ========================================
+   KIOSK INTERFACE STYLES
+   ======================================== */
+
+.kiosk-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow-y: auto;
+  background: #000;
+}
+
+.kiosk-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  z-index: 1;
+}
+
+.kiosk-background::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 60, 120, 0.4) 100%);
+  z-index: 2;
+}
+
+.kiosk-overlay {
+  position: relative;
+  z-index: 3;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.kiosk-header {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.3rem 1rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  z-index: 10;
+}
+
+.hotel-logo {
+  font-size: 1.2rem;
+}
+
+.kiosk-hotel-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hotel-stars {
+  font-size: 0.8rem;
+}
+
+.kiosk-welcome-idle {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 4rem 3rem;
+  text-align: center;
+  margin: auto;
+  max-width: 700px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.8s ease-in;
+}
+
+.kiosk-welcome-compact {
+  max-width: 680px;
+  padding: 1.5rem 2rem;
+  margin: 6rem auto auto 1rem;
+  text-align: left;
+}
+
+.kiosk-welcome-compact h2 {
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.kiosk-welcome-compact p {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.kiosk-welcome-idle h2 {
+  font-size: 2.5rem;
+  color: var(--mcw-blue);
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.kiosk-welcome-idle p {
+  font-size: 1.3rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.kiosk-checkin-section {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 3rem;
+  margin: auto;
+  max-width: 900px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.kiosk-welcome-message {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid rgba(0, 123, 255, 0.2);
+}
+
+.kiosk-welcome-message h2 {
+  font-size: 2.5rem;
+  color: var(--mcw-blue);
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.kiosk-subtitle {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.kiosk-guest-info {
+  background: rgba(248, 249, 250, 0.8);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.info-value {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.status-badge {
+  padding: 0.5rem 1.5rem;
+  border-radius: 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-pending {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.kiosk-action {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.kiosk-checkin-btn {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 1.2rem 4rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 123, 255, 0.4);
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.kiosk-checkin-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 123, 255, 0.5);
+}
+
+.kiosk-checkin-btn:active {
+  transform: translateY(-1px);
+}
+
+.btn-icon {
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+.kiosk-success-section {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 3rem;
+  margin: auto;
+  max-width: 1000px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.8s ease-in;
+}
+
+.success-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid rgba(40, 167, 69, 0.2);
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: bold;
+  margin: 0 auto 1.5rem;
+  box-shadow: 0 8px 24px rgba(40, 167, 69, 0.3);
+  animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+.success-header h2 {
+  font-size: 2.5rem;
+  color: #28a745;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.success-header p {
+  font-size: 1.3rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.kiosk-directions-with-visual {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  background: rgba(248, 249, 250, 0.8);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border-left: 4px solid var(--mcw-blue);
+}
+
+.directions-content {
+  flex: 1;
+}
+
+.directions-content h3 {
+  font-size: 1.5rem;
+  color: var(--mcw-blue);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.wayfinding-diagram {
+  flex: 0 0 200px;
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.wayfinding-diagram svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.kiosk-directions {
+  background: rgba(248, 249, 250, 0.8);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border-left: 4px solid var(--mcw-blue);
+}
+
+.directions-text {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.kiosk-amenities {
+  margin-bottom: 2rem;
+}
+
+.kiosk-amenities h3 {
+  font-size: 1.8rem;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.amenity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.amenity-card {
+  background: linear-gradient(135deg, rgba(0, 123, 255, 0.05) 0%, rgba(232, 0, 116, 0.05) 100%);
+  border: 2px solid rgba(0, 123, 255, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.amenity-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 123, 255, 0.2);
+  border-color: var(--mcw-blue);
+}
+
+.amenity-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.amenity-card h4 {
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  margin: 0.5rem 0;
+  font-weight: 600;
+}
+
+.amenity-card p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin: 0.5rem 0;
+}
+
+.amenity-location {
+  display: inline-block;
+  background: rgba(0, 123, 255, 0.1);
+  color: var(--mcw-blue);
+  padding: 0.3rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.kiosk-attractions {
+  margin-top: 2rem;
+}
+
+.kiosk-attractions h3 {
+  font-size: 1.8rem;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.attraction-card {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  background: rgba(248, 249, 250, 0.8);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 2px solid rgba(232, 0, 116, 0.2);
+  margin-bottom: 1.5rem;
+}
+
+.attraction-card:last-child {
+  margin-bottom: 0;
+}
+
+.attraction-info {
+  flex: 1;
+}
+
+.attraction-map {
+  flex: 0 0 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .kiosk-overlay {
+    padding: 1rem;
+  }
+
+  .kiosk-hotel-name {
+    font-size: 1.8rem;
+  }
+
+  .kiosk-welcome-idle h2,
+  .kiosk-welcome-message h2,
+  .success-header h2 {
+    font-size: 1.8rem;
+  }
+
+  .amenity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kiosk-checkin-btn {
+    padding: 1rem 2.5rem;
+    font-size: 1.2rem;
   }
 }

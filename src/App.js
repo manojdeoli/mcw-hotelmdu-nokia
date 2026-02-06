@@ -63,15 +63,22 @@ const generateRoute = (start, end, sections = 10) => {
 const useSyncedState = (key, initialValue) => {
   const [state, setState] = useState(initialValue);
   const channelRef = useRef(null);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    if (!channelRef.current) {
-      channelRef.current = new BroadcastChannel('hotel_mdu_sync');
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      if (!channelRef.current) {
+        channelRef.current = new BroadcastChannel('hotel_mdu_sync');
+        console.log('[App] BroadcastChannel created for key:', key);
+      }
     }
+    
     const channel = channelRef.current;
 
     const handler = (event) => {
       if (event.data.key === key) {
+        console.log('[App] Received broadcast for', key, ':', event.data.value);
         setState(event.data.value);
       }
     };
@@ -87,6 +94,7 @@ const useSyncedState = (key, initialValue) => {
   const setSyncedState = useCallback((newValue) => {
     setState((prev) => {
       const value = newValue instanceof Function ? newValue(prev) : newValue;
+      console.log('[App] Broadcasting', key, ':', value);
       if (channelRef.current) {
         channelRef.current.postMessage({ key, value });
       }
@@ -111,6 +119,7 @@ function getDistance(coords1, coords2) {
 
 function App() {
   const mapUpdateThrottle = useRef(null);
+  const authCheckExecuted = useRef(false);
   
   // OAuth Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -167,6 +176,13 @@ function App() {
 
   // OAuth Authentication Effect
   useEffect(() => {
+    // Prevent double execution in StrictMode
+    if (authCheckExecuted.current) {
+      console.log('⚠️ Auth check already executed, skipping...');
+      return;
+    }
+    authCheckExecuted.current = true;
+    
     console.log('🚀 App mounted, checking authentication...');
     
     // Redirect from /redirect to / if no code
@@ -193,6 +209,20 @@ function App() {
             console.log('💾 Restoring app state:', savedState);
             setActiveTab(savedState.activeTab);
             localStorage.setItem('activeTab', savedState.activeTab);
+            // Restore phone number if it was saved
+            if (savedState.phoneNumber) {
+              setPhone(savedState.phoneNumber);
+              // Auto-trigger phone verification after re-authentication
+              setTimeout(() => {
+                const verifyBtn = document.getElementById('verifyBtn');
+                if (verifyBtn && !sessionStorage.getItem('verify_triggered')) {
+                  sessionStorage.setItem('verify_triggered', 'true');
+                  verifyBtn.click();
+                  // Clear flag after 2 seconds
+                  setTimeout(() => sessionStorage.removeItem('verify_triggered'), 2000);
+                }
+              }, 500);
+            }
           }
         } else if (authResult.error) {
           setAuthError(authResult.error);
@@ -398,6 +428,10 @@ function App() {
     const guestName = kycData.name ? kycData.name.split(' ')[0] : 'Guest';
     addMessage('Form populated. Please review and click KYC Match to verify.');
     addGuestMessage(`Registration form populated, ${guestName}! Please verify your information.`, 'info');
+    
+    // Set registration status to Registered
+    setRegistrationStatus('Registered');
+    addMessage('Registration status updated to: Registered');
   };
 
   const submitKyc = async () => {
@@ -422,8 +456,8 @@ function App() {
       // Check if all fields are true after the match
       const allFieldsMatch = !Object.values(kycData).includes('false');
       if (allFieldsMatch) {
-        setRegistrationStatus('Registered');
-        addMessage('KYC Match successful. Proceed with check-in.');
+        // Don't auto-set registration status - user must click Start Registration
+        addMessage('KYC Match successful. Click Start Registration to register.');
         addGuestMessage('Your information has been verified successfully!', 'success');
       } else {
         addGuestMessage('Some information could not be verified. Please check and update.', 'error');
@@ -501,7 +535,7 @@ function App() {
         newLocation = { lat: baseLat + 0.0001, lng: baseLng };
         addMessage("Context: User is at the Check-in Kiosk.");
         
-        if (checkInStatusRef.current !== 'Checked In') {
+        if (checkInStatusRef.current !== 'Checked In' && api.isCheckInConsentGiven()) {
             addMessage("Beacon Trigger: Initiating Check-in...");
             addGuestMessage('Processing your check-in...', 'processing');
             setCheckInStatus("Checked In");
@@ -510,6 +544,9 @@ function App() {
               setRfidStatus("Unverified");
               addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
             }, 3000);
+        } else if (checkInStatusRef.current !== 'Checked In') {
+            addMessage("Waiting for guest consent to proceed with check-in...");
+            addGuestMessage('Please confirm your check-in on the Guest Information tab.', 'info');
         }
 
       } else if (deviceName.includes("Elevator") || deviceName.includes("Lift")) {
@@ -761,11 +798,18 @@ function App() {
 
     // Check if authenticated before proceeding
     if (!authService.isTokenValid()) {
-      setError('Authentication required. Redirecting...');
+      // Save app state before re-authentication
+      const appState = {
+        activeTab: activeTab,
+        phoneNumber: fullPhoneNumber,
+        timestamp: Date.now()
+      };
+      authService.saveAppState(appState);
+      
       const phoneToUse = fullPhoneNumber || '+99999991000';
       setTimeout(() => {
         authService.authenticate(phoneToUse);
-      }, 1000);
+      }, 100);
       return;
     }
 
@@ -1000,9 +1044,6 @@ function App() {
               <button className={`nav-link ${activeTab === 'api' ? 'active' : ''}`} onClick={() => setActiveTab('api')}>API Interaction</button>
             </li>
             <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'guest' ? 'active' : ''}`} onClick={() => setActiveTab('guest')}>Guest Information</button>
-            </li>
-            <li className="nav-item">
               <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>Hotel Dashboard</button>
             </li>
             <li className="nav-item">
@@ -1048,18 +1089,8 @@ function App() {
               </div>
             </div>
 
-            {/* Tab 2: Guest Information (Full Width) */}
-            <div className={`dashboard-column ${activeTab === 'guest' ? '' : 'd-none'}`} style={{ width: '100%' }}>
-              <GuestTab 
-                checkInStatus={checkInStatus}
-                formState={formState}
-                verifiedPhoneNumber={verifiedPhoneNumber}
-                activeTab={activeTab}
-                museumMap={museumMap}
-                setMuseumMap={setMuseumMap}
-                hasReachedHotel={hasReachedHotel}
-              />
-            </div>
+            {/* Tab 2: Guest Information - Opens in new window */}
+            {/* Content removed - opens in separate kiosk window */}
 
             {/* Tab 3 & 4: Dashboard & Details - Left Column */}
             <div className={`dashboard-column ${activeTab === 'dashboard' || activeTab === 'details' ? '' : 'd-none'}`} style={{ flex: '1', minWidth: '300px' }}>
@@ -1069,6 +1100,7 @@ function App() {
                 <h2 className="card-header">Actions</h2>
                 <div className="p-3">
                   <div className="api-buttons">
+                    <button className="btn btn-info" onClick={() => window.open(window.location.origin + '/kiosk', '_blank')}>🏨 Open Hotel Kiosk</button>
                     <button className="btn btn-primary" onClick={handleRegistrationSequence}>Start Registration</button>
                     {checkInStatus !== 'Checked In' && (
                       <button className="btn btn-primary" onClick={() => handleStartSequence('arrival')}>Booking & Arrival</button>
@@ -1108,10 +1140,16 @@ function App() {
                   </li>
                   <li><strong>Check-in Status:</strong> <span style={{ color: checkInStatus === 'Checked In' ? 'green' : 'red' }}>{checkInStatus}</span>
                     {isSequenceRunning && api.getCurrentWaitingStage() === 'gate' && (
-                      <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual skip triggered'); api.skipCurrentBeacon(); }}>Proceed to Kiosk</button>
+                      <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual skip triggered'); setHasReachedHotel(true); api.skipCurrentBeacon(); }}>Proceed to Kiosk</button>
                     )}
                     {isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk' && (
-                      <button className="btn btn-sm btn-success ml-2" onClick={() => { addMessage('Manual skip triggered'); api.skipCurrentBeacon(); }}>Complete Check-in</button>
+                      <button className="btn btn-sm btn-success ml-2" onClick={() => { 
+                        addMessage('Manual check-in triggered'); 
+                        setCheckInStatus('Checked In');
+                        setRfidStatus('Verified');
+                        setTimeout(() => setRfidStatus('Unverified'), 3000);
+                        api.skipCurrentBeacon(); 
+                      }}>Complete Check-in</button>
                     )}
                   </li>
                   <li><strong>Payment Status:</strong> <span style={{ color: paymentStatus === 'Paid' ? 'green' : 'red' }}>{paymentStatus}</span></li>
@@ -1245,7 +1283,7 @@ function App() {
       </main>
 
       <footer className="footer">
-        &copy; 2025 Telstra Hackathon
+        &copy; 2026 MWC Event
       </footer>
     </div>
   );

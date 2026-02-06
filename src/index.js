@@ -3,12 +3,18 @@ import ReactDOM from 'react-dom/client';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import App from './App';
+import KioskPage from './KioskPage';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+
+// Simple routing based on pathname
+const pathname = window.location.pathname;
+const isKiosk = pathname === '/kiosk';
+
 root.render(
   <React.StrictMode>
-    <App />
+    {isKiosk ? <KioskPage /> : <App />}
   </React.StrictMode>
 );
 

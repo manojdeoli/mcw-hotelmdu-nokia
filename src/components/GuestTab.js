@@ -1,5 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import { format } from 'date-fns';
+
+const CHECK_IN_DATE = new Date('2026-03-02T14:00:00');
+const CHECK_OUT_DATE = new Date('2026-03-06T11:00:00');
 
 const GuestTab = ({ 
   checkInStatus, 
@@ -8,49 +12,109 @@ const GuestTab = ({
   activeTab,
   museumMap,
   setMuseumMap,
-  hasReachedHotel
+  hasReachedHotel,
+  onCheckInConsent,
+  guestMessages
 }) => {
   
   const mapInitialized = useRef(false);
+  const [showCheckedInContent, setShowCheckedInContent] = useState(false);
   
-  // Initialize museum map when tab is active and checked in
+  // Debug logging
   useEffect(() => {
-    if (activeTab === 'guest' && checkInStatus === 'Checked In' && !mapInitialized.current) {
+    console.log('[GuestTab] State updated:', {
+      checkInStatus,
+      verifiedPhoneNumber,
+      hasReachedHotel,
+      firstName: formState.firstName || formState.name
+    });
+  }, [checkInStatus, verifiedPhoneNumber, hasReachedHotel, formState]);
+  
+  // Show checked-in content with delay after check-in
+  useEffect(() => {
+    if (checkInStatus === 'Checked In' && !showCheckedInContent) {
+      const timer = setTimeout(() => {
+        setShowCheckedInContent(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    } else if (checkInStatus !== 'Checked In') {
+      setShowCheckedInContent(false);
+    }
+  }, [checkInStatus, showCheckedInContent]);
+  
+  // Initialize maps when tab is active and checked in
+  useEffect(() => {
+    if (activeTab === 'guest' && checkInStatus === 'Checked In' && showCheckedInContent && !mapInitialized.current) {
       setTimeout(() => {
-        const mapElement = document.getElementById('museum-map');
-        if (mapElement && !museumMap) {
+        const hotelCoords = [41.3874, 2.1686];
+        
+        // Museum Map
+        const museumMapElement = document.getElementById('museum-map');
+        if (museumMapElement && !museumMap) {
           const museumCoords = [41.3851, 2.1734];
-          const hotelCoords = [41.3874, 2.1686];
           
-          const mapInstance = L.map('museum-map').setView([(museumCoords[0] + hotelCoords[0])/2, (museumCoords[1] + hotelCoords[1])/2], 14);
+          const museumMapInstance = L.map('museum-map').setView([(museumCoords[0] + hotelCoords[0])/2, (museumCoords[1] + hotelCoords[1])/2], 14);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
-          }).addTo(mapInstance);
+          }).addTo(museumMapInstance);
           
           const hotelIcon = L.divIcon({
             html: '<div style="background: #007bff; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🏨</div>',
             className: '',
             iconSize: [30, 30]
           });
-          L.marker(hotelCoords, { icon: hotelIcon }).addTo(mapInstance).bindPopup('Hotel Barcelona Sol');
+          L.marker(hotelCoords, { icon: hotelIcon }).addTo(museumMapInstance).bindPopup('Hotel Barcelona Sol');
           
           const museumIcon = L.divIcon({
             html: '<div style="background: #e80074; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🎨</div>',
             className: '',
             iconSize: [30, 30]
           });
-          L.marker(museumCoords, { icon: museumIcon }).addTo(mapInstance).bindPopup('Museu Picasso Barcelona');
+          L.marker(museumCoords, { icon: museumIcon }).addTo(museumMapInstance).bindPopup('Museu Picasso Barcelona');
           
           L.polyline([hotelCoords, museumCoords], {
             color: '#007bff',
             weight: 3,
             opacity: 0.7,
             dashArray: '10, 10'
-          }).addTo(mapInstance);
+          }).addTo(museumMapInstance);
           
-          setMuseumMap(mapInstance);
-          mapInitialized.current = true;
+          setMuseumMap(museumMapInstance);
         }
+        
+        // Beach Map
+        const beachMapElement = document.getElementById('beach-map');
+        if (beachMapElement) {
+          const beachCoords = [41.3806, 2.1896];
+          
+          const beachMapInstance = L.map('beach-map').setView([(beachCoords[0] + hotelCoords[0])/2, (beachCoords[1] + hotelCoords[1])/2], 13);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(beachMapInstance);
+          
+          const hotelIcon2 = L.divIcon({
+            html: '<div style="background: #007bff; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🏨</div>',
+            className: '',
+            iconSize: [30, 30]
+          });
+          L.marker(hotelCoords, { icon: hotelIcon2 }).addTo(beachMapInstance).bindPopup('Hotel Barcelona Sol');
+          
+          const beachIcon = L.divIcon({
+            html: '<div style="background: #20c997; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🏖️</div>',
+            className: '',
+            iconSize: [30, 30]
+          });
+          L.marker(beachCoords, { icon: beachIcon }).addTo(beachMapInstance).bindPopup('Barceloneta Beach');
+          
+          L.polyline([hotelCoords, beachCoords], {
+            color: '#20c997',
+            weight: 3,
+            opacity: 0.7,
+            dashArray: '10, 10'
+          }).addTo(beachMapInstance);
+        }
+        
+        mapInitialized.current = true;
       }, 300);
     }
     
@@ -64,182 +128,207 @@ const GuestTab = ({
       setMuseumMap(null);
       mapInitialized.current = false;
     }
-  }, [activeTab, checkInStatus, museumMap, setMuseumMap]);
+  }, [activeTab, checkInStatus, showCheckedInContent, museumMap, setMuseumMap]);
+
+  const guestName = formState.firstName && formState.lastName 
+    ? `${formState.firstName} ${formState.lastName}` 
+    : formState.name || 'Guest';
+  const firstName = formState.firstName || (formState.name ? formState.name.split(' ')[0] : 'Guest');
 
   return (
-    <div className="guest-tab-container">
-      <div className="hotel-header">
-        <div className="hotel-logo-placeholder">🏨</div>
-        <h1 className="hotel-name">Hotel Barcelona Sol</h1>
-        <div className="hotel-rating">⭐⭐⭐⭐⭐</div>
-      </div>
+    <div className="kiosk-container">
+      <div className="kiosk-background" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/Hotel_entrance.png)`, backgroundPosition: 'center top' }}></div>
+      
+      <div className="kiosk-overlay">
+        <div className="kiosk-header">
+          <div className="hotel-logo">🏨</div>
+          <h1 className="kiosk-hotel-name">Hotel Barcelona Sol</h1>
+          <div className="hotel-stars">⭐⭐⭐⭐⭐</div>
+        </div>
 
-      <div className="welcome-section">
-        <h2>Welcome{formState.name ? `, ${formState.name.split(' ')[0]}` : ''}!</h2>
-        {verifiedPhoneNumber && hasReachedHotel && checkInStatus !== 'Checked In' && (
-          <div className="checkin-prompt-container">
-            <div className="checkin-text">
-              <p>Ready to begin your stay?</p>
-              <p className="checkin-subtitle">Complete your check-in process to access your room and hotel amenities.</p>
+        {!verifiedPhoneNumber && (
+          <div className="kiosk-welcome-idle kiosk-welcome-compact">
+            <h2>Welcome to Hotel Barcelona Sol</h2>
+            <p>Please verify your phone number in the Hotel Dashboard to begin</p>
+          </div>
+        )}
+
+        {verifiedPhoneNumber && !hasReachedHotel && (
+          <div className="kiosk-welcome-idle">
+            <h2>Welcome, {firstName}!</h2>
+            <p>Your booking is confirmed. Approaching hotel entrance...</p>
+          </div>
+        )}
+
+        {checkInStatus === 'Checked Out' && (
+          <div className="kiosk-success-section">
+            <div className="success-header">
+              <div className="success-icon">👋</div>
+              <h2>Thank You for Staying With Us!</h2>
+              <p>We hope you enjoyed your stay, {firstName}</p>
             </div>
-            <div className="checkin-button-wrapper">
-              <button className="btn btn-primary btn-lg">Tap here to check in for your stay</button>
+            <div className="kiosk-directions-with-visual">
+              <div className="directions-content">
+                <h3>✨ Check-out Complete</h3>
+                <p className="directions-text">
+                  Your payment has been processed successfully. We hope you had a wonderful experience at Hotel Barcelona Sol.
+                  We look forward to welcoming you back soon!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {verifiedPhoneNumber && hasReachedHotel && checkInStatus !== 'Checked In' && checkInStatus !== 'Checked Out' && (
+          <div className="kiosk-checkin-section">
+            <div className="kiosk-welcome-message">
+              <h2>Welcome, {firstName}!</h2>
+              <p className="kiosk-subtitle">We're delighted to have you at Hotel Barcelona Sol</p>
+            </div>
+
+            <div className="kiosk-guest-info">
+              <div className="info-row">
+                <span className="info-label">Guest Name:</span>
+                <span className="info-value">{guestName}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Phone:</span>
+                <span className="info-value">{verifiedPhoneNumber}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Room Number:</span>
+                <span className="info-value">1337</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Check-in:</span>
+                <span className="info-value">{format(CHECK_IN_DATE, 'MMM dd, yyyy • HH:mm')}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Check-out:</span>
+                <span className="info-value">{format(CHECK_OUT_DATE, 'MMM dd, yyyy • HH:mm')}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Status:</span>
+                <span className="status-badge status-pending">Ready for Check-in</span>
+              </div>
+            </div>
+
+            <div className="kiosk-action">
+              <button className="kiosk-checkin-btn" onClick={onCheckInConsent}>
+                <span className="btn-icon">✓</span>
+                Check In Now
+              </button>
+            </div>
+          </div>
+        )}
+
+        {checkInStatus === 'Checked In' && showCheckedInContent && (
+          <div className="kiosk-success-section">
+            <div className="success-header">
+              <div className="success-icon">✓</div>
+              <h2>Check-in Complete!</h2>
+              <p>Welcome to Hotel Barcelona Sol, {firstName}</p>
+            </div>
+
+            <div className="kiosk-directions-with-visual">
+              <div className="directions-content">
+                <h3>🗺️ Your Room: 1337 • Floor 13</h3>
+                <p className="directions-text">
+                  From the lobby, proceed to the main elevator bank. Take the elevator to Floor 13. 
+                  Turn left when you exit, and your room is the 7th door on the right.
+                </p>
+              </div>
+              <div className="wayfinding-diagram">
+                <svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
+                  {/* Floor corridor */}
+                  <rect x="10" y="50" width="180" height="60" fill="#f0f0f0" stroke="#333" strokeWidth="2"/>
+                  {/* Elevator */}
+                  <rect x="85" y="50" width="30" height="20" fill="#007bff" stroke="#333" strokeWidth="1"/>
+                  <text x="100" y="63" fontSize="10" fill="white" textAnchor="middle">🛗</text>
+                  {/* Arrow path */}
+                  <path d="M 100 70 L 100 85 L 30 85" stroke="#e80074" strokeWidth="3" fill="none" markerEnd="url(#arrowhead)"/>
+                  {/* Room doors */}
+                  <rect x="15" y="55" width="8" height="15" fill="#ddd" stroke="#666" strokeWidth="1"/>
+                  <rect x="15" y="70" width="8" height="15" fill="#ddd" stroke="#666" strokeWidth="1"/>
+                  <rect x="15" y="85" width="8" height="15" fill="#28a745" stroke="#666" strokeWidth="2"/>
+                  <text x="19" y="95" fontSize="8" fill="white" fontWeight="bold">1337</text>
+                  {/* Arrow marker */}
+                  <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                      <polygon points="0 0, 10 3, 0 6" fill="#e80074" />
+                    </marker>
+                  </defs>
+                  {/* Labels */}
+                  <text x="100" y="45" fontSize="10" fill="#333" textAnchor="middle" fontWeight="bold">Elevator</text>
+                  <text x="30" y="125" fontSize="10" fill="#28a745" textAnchor="middle" fontWeight="bold">Your Room</text>
+                  <text x="150" y="80" fontSize="9" fill="#666" textAnchor="middle">← Turn Left</text>
+                </svg>
+              </div>
+            </div>
+
+            <div className="kiosk-amenities">
+              <h3>🏨 Hotel Amenities</h3>
+              <div className="amenity-grid">
+                <div className="amenity-card">
+                  <div className="amenity-icon">🍽️</div>
+                  <h4>La Cocina del Sol</h4>
+                  <p>Free starter with main course</p>
+                  <span className="amenity-location">Ground Floor</span>
+                </div>
+                <div className="amenity-card">
+                  <div className="amenity-icon">💆</div>
+                  <h4>Sol Wellness Spa</h4>
+                  <p>20% off all treatments</p>
+                  <span className="amenity-location">Level 6</span>
+                </div>
+                <div className="amenity-card">
+                  <div className="amenity-icon">💪</div>
+                  <h4>Fitness Center</h4>
+                  <p>Free 24/7 access</p>
+                  <span className="amenity-location">Level 4</span>
+                </div>
+                <div className="amenity-card">
+                  <div className="amenity-icon">🏊</div>
+                  <h4>Rooftop Pool & Bar</h4>
+                  <p>Free welcome cocktail</p>
+                  <span className="amenity-location">Level 5</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="kiosk-attractions">
+              <h3>🌍 Local Attractions</h3>
+              
+              <div className="attraction-card">
+                <div className="attraction-info">
+                  <h4>Museu Picasso Barcelona</h4>
+                  <p className="attraction-offer">Save 15% when you book via mobile!</p>
+                  <p className="attraction-distance">📍 2.5km • 🚶 30 min walk • 🚕 8 min drive</p>
+                </div>
+                <div className="attraction-map">
+                  <div id="museum-map" style={{ height: '150px', width: '100%', borderRadius: '8px' }}></div>
+                </div>
+              </div>
+
+              <div className="attraction-card">
+                <div className="attraction-info">
+                  <h4>Barceloneta Beach</h4>
+                  <p className="attraction-offer">Free beach towel rental with hotel key!</p>
+                  <p className="attraction-distance">🏖️ 3km • 🚶 35 min walk • 🚕 10 min drive</p>
+                </div>
+                <div className="attraction-map">
+                  <div id="beach-map" style={{ height: '150px', width: '100%', borderRadius: '8px' }}></div>
+                </div>
+              </div>
             </div>
           </div>
         )}
       </div>
-
-      {checkInStatus === 'Checked In' && (
-        <div className="wayfinding-section">
-          <h3>🗺️ Directions to Your Room</h3>
-          <div className="content-with-visual">
-            <div className="text-content">
-              <p className="room-number">Room 1337 • Floor 13</p>
-              <p className="directions-text">
-                From the lobby, proceed to the main elevator bank. Take the elevator to Floor 13. 
-                Turn left when you exit the elevator, and your room is the 7th door on the right.
-              </p>
-            </div>
-            <div className="visual-content">
-              <div className="floor-plan">
-                <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="10" y="10" width="380" height="180" fill="#f8f9fa" stroke="#333" strokeWidth="2"/>
-                  <rect x="180" y="10" width="40" height="40" fill="#007bff" stroke="#333" strokeWidth="1"/>
-                  <text x="200" y="35" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">🛗</text>
-                  <line x1="200" y1="50" x2="200" y2="100" stroke="#666" strokeWidth="3" strokeDasharray="5,5"/>
-                  <path d="M 200 100 L 220 90 M 200 100 L 220 110" stroke="#007bff" strokeWidth="3" fill="none"/>
-                  <line x1="200" y1="100" x2="320" y2="100" stroke="#666" strokeWidth="3" strokeDasharray="5,5"/>
-                  <rect x="340" y="60" width="30" height="25" fill="#e9ecef" stroke="#333" strokeWidth="1"/>
-                  <text x="355" y="77" textAnchor="middle" fontSize="8">1331</text>
-                  <rect x="340" y="90" width="30" height="25" fill="#e9ecef" stroke="#333" strokeWidth="1"/>
-                  <text x="355" y="107" textAnchor="middle" fontSize="8">1333</text>
-                  <rect x="340" y="120" width="30" height="25" fill="#e9ecef" stroke="#333" strokeWidth="1"/>
-                  <text x="355" y="137" textAnchor="middle" fontSize="8">1335</text>
-                  <rect x="290" y="60" width="30" height="25" fill="#e9ecef" stroke="#333" strokeWidth="1"/>
-                  <text x="305" y="77" textAnchor="middle" fontSize="8">1332</text>
-                  <rect x="290" y="90" width="30" height="25" fill="#e9ecef" stroke="#333" strokeWidth="1"/>
-                  <text x="305" y="107" textAnchor="middle" fontSize="8">1334</text>
-                  <rect x="290" y="120" width="30" height="25" fill="#e9ecef" stroke="#333" strokeWidth="1"/>
-                  <text x="305" y="137" textAnchor="middle" fontSize="8">1336</text>
-                  <rect x="290" y="150" width="30" height="25" fill="#28a745" stroke="#333" strokeWidth="2"/>
-                  <text x="305" y="167" textAnchor="middle" fontSize="8" fontWeight="bold">1337</text>
-                  <text x="305" y="180" textAnchor="middle" fontSize="10" fill="#28a745">📍 Your Room</text>
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {checkInStatus === 'Checked In' && (
-        <div className="offers-section">
-          <h3>🏨 Hotel Amenities & Offers</h3>
-          
-          <div className="offer-item">
-            <div className="content-with-visual">
-              <div className="text-content">
-                <h4>🍽️ La Cocina del Sol</h4>
-                <p className="offer-subtitle">Award-winning Mediterranean restaurant</p>
-                <div className="ratings">
-                  <span>⭐ 4.8/5 on TripAdvisor</span>
-                  <span className="ml-3">⭐ 4.7/5 on Google</span>
-                </div>
-                <p className="offer-details">Enjoy one complimentary starter when you order a main course!</p>
-                <p className="offer-hours">📅 Open: 7:00 AM - 11:00 PM • Ground Floor</p>
-                <p className="terms">*Terms and conditions apply</p>
-              </div>
-              <div className="visual-content">
-                <div className="offer-badge">
-                  <div className="badge-icon">🍽️</div>
-                  <div className="badge-text">Free Starter</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="offer-item">
-            <div className="content-with-visual">
-              <div className="text-content">
-                <h4>💆 Sol Wellness Spa</h4>
-                <p className="offer-subtitle">Luxury spa & wellness center</p>
-                <p className="offer-details">20% off all spa treatments for hotel guests!</p>
-                <p className="offer-features">✨ Massage • Facial • Sauna • Hot Tub</p>
-                <p className="offer-hours">📅 Open: 9:00 AM - 9:00 PM • Level 6</p>
-                <p className="terms">*Advance booking recommended</p>
-              </div>
-              <div className="visual-content">
-                <div className="offer-badge">
-                  <div className="badge-icon">💆</div>
-                  <div className="badge-text">20% Off</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="offer-item">
-            <div className="content-with-visual">
-              <div className="text-content">
-                <h4>💪 Barcelona Fitness Center</h4>
-                <p className="offer-subtitle">State-of-the-art gym facilities</p>
-                <p className="offer-details">Complimentary access for all hotel guests!</p>
-                <p className="offer-features">🏋️ Cardio • Weights • Yoga Studio • Personal Trainer</p>
-                <p className="offer-hours">📅 Open: 24/7 • Level 4</p>
-                <p className="terms">*Personal training sessions available at extra cost</p>
-              </div>
-              <div className="visual-content">
-                <div className="offer-badge">
-                  <div className="badge-icon">💪</div>
-                  <div className="badge-text">Free Access</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="offer-item">
-            <div className="content-with-visual">
-              <div className="text-content">
-                <h4>🏊 Rooftop Pool & Bar</h4>
-                <p className="offer-subtitle">Infinity pool with panoramic city views</p>
-                <p className="offer-details">Free welcome cocktail at the pool bar!</p>
-                <p className="offer-features">🍹 Pool Bar • Sun Loungers • Towel Service</p>
-                <p className="offer-hours">📅 Open: 8:00 AM - 10:00 PM • Level 5</p>
-                <p className="terms">*One cocktail per guest per stay</p>
-              </div>
-              <div className="visual-content">
-                <div className="offer-badge">
-                  <div className="badge-icon">🏊</div>
-                  <div className="badge-text">Free Cocktail</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {checkInStatus === 'Checked In' && (
-        <div className="partner-offers-section">
-          <h3>🎨 Local Attractions</h3>
-          <div className="content-with-visual">
-            <div className="text-content">
-              <h4>Museu Picasso Barcelona</h4>
-              <p className="offer-subtitle">Award-winning art museum</p>
-              <p className="offer-details">Save 15% when you book via mobile phone!</p>
-              <p className="location-info">📍 Just 2.5km from the hotel • 🚶 30 min walk • 🚕 8 min drive</p>
-              <p className="terms">*Terms and conditions apply</p>
-            </div>
-            <div className="visual-content">
-              <div className="location-map">
-                <div id="museum-map" style={{ height: '100%', width: '100%' }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!verifiedPhoneNumber && (
-        <div className="welcome-message">
-        </div>
-      )}
+      
+      {/* Debug Panel */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '5px 10px', fontSize: '10px', zIndex: 9999 }}>
+        Debug: Phone={verifiedPhoneNumber ? 'Yes' : 'No'} | Reached={hasReachedHotel ? 'Yes' : 'No'} | Status={checkInStatus} | Name={firstName}
+      </div>
     </div>
   );
 };

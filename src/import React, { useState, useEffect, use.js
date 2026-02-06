@@ -492,7 +492,7 @@ function App() {
       }
 
       if (hotelLocation && hotelLocation.lat && hotelLocation.lng) {
-        L.marker([hotelLocation.lat, hotelLocation.lng]).addTo(map).bindPopup('Hotel: Telstra Towers');
+        L.marker([hotelLocation.lat, hotelLocation.lng]).addTo(map).bindPopup('Hotel Barcelona Sol');
 
         L.circle([hotelLocation.lat, hotelLocation.lng], {
           color: 'green',
@@ -801,7 +801,7 @@ function App() {
               <div id="bookingDetails" className="card">
                 <h2 className="card-header">Booking Details</h2>
                 <ul className="details-list">
-                  <li><strong>Hotel:</strong> <span>{verifiedPhoneNumber ? 'Telstra Towers Melbourne' : '--'}</span></li>
+                  <li><strong>Hotel:</strong> <span>{verifiedPhoneNumber ? 'Hotel Barcelona Sol' : '--'}</span></li>
                   <li><strong>Room:</strong> <span>{verifiedPhoneNumber ? '1337' : '--'}</span></li>
                   <li><strong>Check-in:</strong> <span>{verifiedPhoneNumber ? format(CHECK_IN_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>
                   <li><strong>Check-out:</strong> <span>{verifiedPhoneNumber ? format(CHECK_OUT_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>
@@ -888,7 +888,7 @@ function App() {
       </main>
 
       <footer className="footer">
-        &copy; 2025 Telstra Hackathon
+        &copy; 2026 MWC Event
       </footer>
     </div>
   );

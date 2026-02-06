@@ -339,6 +339,7 @@ export function carrierBilling(phoneNumber, logApiInteraction) {
 let beaconEventQueue = [];
 let beaconWaiters = [];
 let currentWaitingStage = null; // Track which stage is currently waiting
+let checkInConsentGiven = false; // Track if guest has given consent for check-in
 
 // Function to clear beacon queue (call at start of sequence)
 export function clearBeaconQueue() {
@@ -346,6 +347,22 @@ export function clearBeaconQueue() {
     beaconEventQueue = [];
     beaconWaiters = [];
     currentWaitingStage = null;
+    checkInConsentGiven = false;
+}
+
+// Function to set check-in consent
+export function setCheckInConsent(consent) {
+    console.log('[API] Check-in consent set to:', consent);
+    checkInConsentGiven = consent;
+    // If consent given, resolve any waiting kiosk beacon
+    if (consent && currentWaitingStage === 'kiosk') {
+        skipCurrentBeacon();
+    }
+}
+
+// Function to check if consent is given
+export function isCheckInConsentGiven() {
+    return checkInConsentGiven;
 }
 
 // Function to get current waiting stage
@@ -518,7 +535,16 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addGuestMessage('Please proceed to the check-in kiosk.', 'info');
     await waitForBeacon(['Kiosk', 'Lobby'], addMessage, 'kiosk');
     
-    addMessage("Guest at Check-in Kiosk. Processing check-in...");
+    // Wait for guest consent before proceeding with check-in
+    addMessage("Guest at Check-in Kiosk. Waiting for check-in consent...");
+    addGuestMessage('Please confirm your check-in on the Guest Information tab.', 'info');
+    
+    // Wait for consent
+    while (!checkInConsentGiven) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    addMessage("Check-in consent received. Processing check-in...");
     addGuestMessage('Processing your check-in...', 'processing');
     setCheckInStatus("Checked In");
     const checkInLocation = { lat: hotelLocation.lat + 0.0001, lng: hotelLocation.lng };
