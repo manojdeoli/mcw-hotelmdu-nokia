@@ -16,11 +16,14 @@ app.get('/redirect', (req, res) => {
   const error = req.query.error;
 
   if (error) {
-    res.send(`<!DOCTYPE html><html><head><title>Auth Error</title></head><body><h3>Authentication Error</h3><p>${error}</p><script>if(window.opener){window.opener.postMessage({type:'AUTH_ERROR',error:'${error}'},'*');setTimeout(()=>window.close(),1000);}</script></body></html>`);
+    // Redirect back to app with error
+    res.redirect(`/?error=${encodeURIComponent(error)}`);
   } else if (code) {
-    res.send(`<!DOCTYPE html><html><head><title>Auth Success</title></head><body><h3>✅ Authentication Successful!</h3><p>Authorization code received. Closing window...</p><script>if(window.opener){window.opener.postMessage({type:'AUTH_CODE',code:'${code}'},'*');setTimeout(()=>window.close(),500);}else{document.body.innerHTML+='<p>Please close this window manually.</p>';}</script></body></html>`);
+    // Redirect back to app with code
+    res.redirect(`/?code=${encodeURIComponent(code)}`);
   } else {
-    res.send(`<!DOCTYPE html><html><head><title>Auth Callback</title></head><body><h3>No authorization code received</h3><script>setTimeout(()=>window.close(),2000);</script></body></html>`);
+    // No code or error, redirect to home
+    res.redirect('/');
   }
 });
 
