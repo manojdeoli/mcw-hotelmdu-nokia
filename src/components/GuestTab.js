@@ -141,7 +141,9 @@ const GuestTab = ({
       
       <div className="kiosk-overlay">
         <div className="kiosk-header">
-          <div className="hotel-logo">🏨</div>
+          <div className="hotel-logo">
+            <img src={`${process.env.PUBLIC_URL}/hotel_logo.png`} alt="Hotel Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
           <h1 className="kiosk-hotel-name">Hotel Barcelona Sol</h1>
           <div className="hotel-stars">⭐⭐⭐⭐⭐</div>
         </div>

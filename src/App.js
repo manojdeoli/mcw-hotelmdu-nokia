@@ -749,7 +749,7 @@ function App() {
       }
 
       if (hotelLocation && hotelLocation.lat && hotelLocation.lng) {
-        L.marker([hotelLocation.lat, hotelLocation.lng]).addTo(map).bindPopup('Hotel: Hotel Barcelona Sol');
+        L.marker([hotelLocation.lat, hotelLocation.lng]).addTo(map).bindPopup('Hotel Barcelona Sol');
 
         L.circle([hotelLocation.lat, hotelLocation.lng], {
           color: 'green',
