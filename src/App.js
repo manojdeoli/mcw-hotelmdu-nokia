@@ -1100,7 +1100,10 @@ function App() {
                 <h2 className="card-header">Actions</h2>
                 <div className="p-3">
                   <div className="api-buttons">
-                    <button className="btn btn-info" onClick={() => window.open(window.location.origin + '/kiosk', '_blank')}>🏨 Open Hotel Kiosk</button>
+                    <button className="btn btn-info" onClick={() => window.open(window.location.origin + '/kiosk', '_blank')}>
+                      <img src={`${process.env.PUBLIC_URL}/hotel_logo.png`} alt="Hotel" style={{ width: '20px', height: '20px', marginRight: '8px', verticalAlign: 'middle' }} />
+                      Open Hotel Kiosk
+                    </button>
                     <button className="btn btn-primary" onClick={handleRegistrationSequence}>Start Registration</button>
                     {checkInStatus !== 'Checked In' && (
                       <button className="btn btn-primary" onClick={() => handleStartSequence('arrival')}>Booking & Arrival</button>
