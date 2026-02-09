@@ -696,14 +696,14 @@ body {
 .kiosk-overlay {
   position: relative;
   z-index: 3;
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   padding: 2rem;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  padding-right: 18rem;
+  padding-right: 2rem;
 }
 
 .kiosk-header {
@@ -766,6 +766,11 @@ body {
   margin-bottom: 0.5rem;
 }
 
+.kiosk-welcome-compact h3 {
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
 .kiosk-welcome-compact p {
   font-size: 0.65rem;
   margin: 0;
@@ -778,6 +783,13 @@ body {
 
 .kiosk-welcome-idle h2 {
   font-size: 1.1rem;
+  color: var(--mcw-blue);
+  margin-bottom: 0.8rem;
+  font-weight: 700;
+}
+
+.kiosk-welcome-idle h3 {
+  font-size: 0.95rem;
   color: var(--mcw-blue);
   margin-bottom: 0.8rem;
   font-weight: 700;
@@ -815,6 +827,13 @@ body {
 
 .kiosk-welcome-message h2 {
   font-size: 1.1rem;
+  color: var(--mcw-blue);
+  margin-bottom: 0.3rem;
+  font-weight: 700;
+}
+
+.kiosk-welcome-message h3 {
+  font-size: 0.95rem;
   color: var(--mcw-blue);
   margin-bottom: 0.3rem;
   font-weight: 700;
@@ -949,6 +968,13 @@ body {
 
 .success-header h2 {
   font-size: 1.1rem;
+  color: #28a745;
+  margin-bottom: 0.3rem;
+  font-weight: 700;
+}
+
+.success-header h3 {
+  font-size: 0.95rem;
   color: #28a745;
   margin-bottom: 0.3rem;
   font-weight: 700;
@@ -1122,8 +1148,11 @@ body {
   }
 
   .kiosk-welcome-idle h2,
+  .kiosk-welcome-idle h3,
   .kiosk-welcome-message h2,
-  .success-header h2 {
+  .kiosk-welcome-message h3,
+  .success-header h2,
+  .success-header h3 {
     font-size: 1.1rem;
   }
 

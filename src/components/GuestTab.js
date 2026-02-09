@@ -150,14 +150,14 @@ const GuestTab = ({
 
         {!verifiedPhoneNumber && (
           <div className="kiosk-welcome-idle kiosk-welcome-compact">
-            <h2>Welcome to Hotel Barcelona Sol</h2>
+            <h3>Welcome to Hotel Barcelona Sol</h3>
             <p>Please verify your phone number in the Hotel Dashboard to begin</p>
           </div>
         )}
 
         {verifiedPhoneNumber && !hasReachedHotel && (
           <div className="kiosk-welcome-idle">
-            <h2>Welcome, {firstName}!</h2>
+            <h3>Welcome, {firstName}!</h3>
             <p>Your booking is confirmed. Approaching hotel entrance...</p>
           </div>
         )}
@@ -166,7 +166,7 @@ const GuestTab = ({
           <div className="kiosk-success-section">
             <div className="success-header">
               <div className="success-icon">👋</div>
-              <h2>Thank You for Staying With Us!</h2>
+              <h3>Thank You for Staying With Us!</h3>
               <p>We hope you enjoyed your stay, {firstName}</p>
             </div>
             <div className="kiosk-directions-with-visual">
@@ -184,7 +184,7 @@ const GuestTab = ({
         {verifiedPhoneNumber && hasReachedHotel && checkInStatus !== 'Checked In' && checkInStatus !== 'Checked Out' && (
           <div className="kiosk-checkin-section">
             <div className="kiosk-welcome-message">
-              <h2>Welcome, {firstName}!</h2>
+              <h3>Welcome, {firstName}!</h3>
               <p className="kiosk-subtitle">We're delighted to have you at Hotel Barcelona Sol</p>
             </div>
 
@@ -228,7 +228,7 @@ const GuestTab = ({
           <div className="kiosk-success-section">
             <div className="success-header">
               <div className="success-icon">✓</div>
-              <h2>Check-in Complete!</h2>
+              <h3>Check-in Complete!</h3>
               <p>Welcome to Hotel Barcelona Sol, {firstName}</p>
             </div>
 
