@@ -703,6 +703,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  padding-right: 3rem;
 }
 
 .kiosk-header {
@@ -745,18 +746,18 @@ body {
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 20px;
-  padding: 4rem 3rem;
+  padding: 2rem 2rem;
   text-align: center;
   margin: auto 0 auto auto;
-  max-width: 700px;
+  max-width: 450px;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
   animation: fadeIn 0.8s ease-in;
 }
 
 .kiosk-welcome-compact {
-  max-width: 680px;
-  padding: 1.5rem 2rem;
-  margin: 6rem 1rem auto auto;
+  max-width: 420px;
+  padding: 1.2rem 1.5rem;
+  margin: 6rem 0 auto auto;
   text-align: left;
 }
 
@@ -776,14 +777,14 @@ body {
 }
 
 .kiosk-welcome-idle h2 {
-  font-size: 2.5rem;
+  font-size: 1.8rem;
   color: var(--mcw-blue);
-  margin-bottom: 1rem;
+  margin-bottom: 0.8rem;
   font-weight: 700;
 }
 
 .kiosk-welcome-idle p {
-  font-size: 1.3rem;
+  font-size: 1rem;
   color: var(--text-secondary);
   margin: 0;
 }
@@ -793,9 +794,9 @@ body {
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 20px;
-  padding: 3rem;
+  padding: 2rem;
   margin: auto 0 auto auto;
-  max-width: 900px;
+  max-width: 550px;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
   animation: slideUp 0.6s ease-out;
 }
@@ -807,20 +808,20 @@ body {
 
 .kiosk-welcome-message {
   text-align: center;
-  margin-bottom: 2.5rem;
-  padding-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
   border-bottom: 2px solid rgba(0, 123, 255, 0.2);
 }
 
 .kiosk-welcome-message h2 {
-  font-size: 2.5rem;
+  font-size: 1.8rem;
   color: var(--mcw-blue);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
   font-weight: 700;
 }
 
 .kiosk-subtitle {
-  font-size: 1.2rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
   margin: 0;
 }
@@ -828,15 +829,15 @@ body {
 .kiosk-guest-info {
   background: rgba(248, 249, 250, 0.8);
   border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
+  padding: 1.2rem;
+  margin-bottom: 1.5rem;
 }
 
 .info-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 0;
+  padding: 0.6rem 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
@@ -845,21 +846,21 @@ body {
 }
 
 .info-label {
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
 .info-value {
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-primary);
 }
 
 .status-badge {
-  padding: 0.5rem 1.5rem;
+  padding: 0.3rem 1rem;
   border-radius: 20px;
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -873,7 +874,7 @@ body {
 
 .kiosk-action {
   text-align: center;
-  margin-top: 2rem;
+  margin-top: 1.5rem;
 }
 
 .kiosk-checkin-btn {
@@ -881,15 +882,15 @@ body {
   color: white;
   border: none;
   border-radius: 50px;
-  padding: 1.2rem 4rem;
-  font-size: 1.5rem;
+  padding: 0.8rem 2.5rem;
+  font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(0, 123, 255, 0.4);
   transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.8rem;
 }
 
 .kiosk-checkin-btn:hover {
@@ -902,7 +903,7 @@ body {
 }
 
 .btn-icon {
-  font-size: 1.8rem;
+  font-size: 1.3rem;
   font-weight: bold;
 }
 
@@ -911,32 +912,32 @@ body {
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 20px;
-  padding: 3rem;
+  padding: 2rem;
   margin: auto 0 auto auto;
-  max-width: 1000px;
+  max-width: 600px;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
   animation: fadeIn 0.8s ease-in;
 }
 
 .success-header {
   text-align: center;
-  margin-bottom: 3rem;
-  padding-bottom: 2rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
   border-bottom: 2px solid rgba(40, 167, 69, 0.2);
 }
 
 .success-icon {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
+  font-size: 2rem;
   font-weight: bold;
-  margin: 0 auto 1.5rem;
+  margin: 0 auto 1rem;
   box-shadow: 0 8px 24px rgba(40, 167, 69, 0.3);
   animation: scaleIn 0.5s ease-out;
 }
@@ -947,26 +948,26 @@ body {
 }
 
 .success-header h2 {
-  font-size: 2.5rem;
+  font-size: 1.8rem;
   color: #28a745;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
   font-weight: 700;
 }
 
 .success-header p {
-  font-size: 1.3rem;
+  font-size: 1rem;
   color: var(--text-secondary);
   margin: 0;
 }
 
 .kiosk-directions-with-visual {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   align-items: flex-start;
   background: rgba(248, 249, 250, 0.8);
   border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
   border-left: 4px solid var(--mcw-blue);
 }
 
@@ -975,17 +976,17 @@ body {
 }
 
 .directions-content h3 {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   color: var(--mcw-blue);
-  margin-bottom: 1rem;
+  margin-bottom: 0.8rem;
   font-weight: 600;
 }
 
 .wayfinding-diagram {
-  flex: 0 0 200px;
+  flex: 0 0 150px;
   background: white;
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.8rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -1004,9 +1005,9 @@ body {
 }
 
 .directions-text {
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
-  line-height: 1.7;
+  line-height: 1.6;
   margin: 0;
 }
 
