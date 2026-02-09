@@ -94,7 +94,8 @@ class AuthService {
             throw new Error('Must call getClientCredentials and getEndpoints first');
         }
 
-        const redirectUri = 'http://localhost:4001/redirect';
+        const port = window.location.port || '4002';
+        const redirectUri = `http://localhost:${port}/redirect`;
 
         const params = new URLSearchParams({
             scope: 'number-verification:verify',
