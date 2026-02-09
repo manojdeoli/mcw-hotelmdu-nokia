@@ -703,7 +703,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  padding-right: 3rem;
+  padding-right: 8rem;
 }
 
 .kiosk-header {
@@ -762,12 +762,12 @@ body {
 }
 
 .kiosk-welcome-compact h2 {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   margin-bottom: 0.5rem;
 }
 
 .kiosk-welcome-compact p {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   margin: 0;
 }
 
@@ -777,14 +777,14 @@ body {
 }
 
 .kiosk-welcome-idle h2 {
-  font-size: 1.8rem;
+  font-size: 1.4rem;
   color: var(--mcw-blue);
   margin-bottom: 0.8rem;
   font-weight: 700;
 }
 
 .kiosk-welcome-idle p {
-  font-size: 1rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   margin: 0;
 }
@@ -814,14 +814,14 @@ body {
 }
 
 .kiosk-welcome-message h2 {
-  font-size: 1.8rem;
+  font-size: 1.4rem;
   color: var(--mcw-blue);
   margin-bottom: 0.3rem;
   font-weight: 700;
 }
 
 .kiosk-subtitle {
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   margin: 0;
 }
@@ -846,13 +846,13 @@ body {
 }
 
 .info-label {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
 }
 
 .info-value {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -860,7 +860,7 @@ body {
 .status-badge {
   padding: 0.3rem 1rem;
   border-radius: 20px;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -882,8 +882,8 @@ body {
   color: white;
   border: none;
   border-radius: 50px;
-  padding: 0.8rem 2.5rem;
-  font-size: 1.1rem;
+  padding: 0.7rem 2rem;
+  font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(0, 123, 255, 0.4);
@@ -903,7 +903,7 @@ body {
 }
 
 .btn-icon {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: bold;
 }
 
@@ -927,15 +927,15 @@ body {
 }
 
 .success-icon {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  font-size: 1.6rem;
   font-weight: bold;
   margin: 0 auto 1rem;
   box-shadow: 0 8px 24px rgba(40, 167, 69, 0.3);
@@ -948,14 +948,14 @@ body {
 }
 
 .success-header h2 {
-  font-size: 1.8rem;
+  font-size: 1.4rem;
   color: #28a745;
   margin-bottom: 0.3rem;
   font-weight: 700;
 }
 
 .success-header p {
-  font-size: 1rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   margin: 0;
 }
@@ -976,7 +976,7 @@ body {
 }
 
 .directions-content h3 {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: var(--mcw-blue);
   margin-bottom: 0.8rem;
   font-weight: 600;
@@ -1005,7 +1005,7 @@ body {
 }
 
 .directions-text {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   line-height: 1.6;
   margin: 0;
@@ -1016,7 +1016,7 @@ body {
 }
 
 .kiosk-amenities h3 {
-  font-size: 1.8rem;
+  font-size: 1.4rem;
   color: var(--text-primary);
   margin-bottom: 1.5rem;
   font-weight: 600;
@@ -1050,14 +1050,14 @@ body {
 }
 
 .amenity-card h4 {
-  font-size: 1.2rem;
+  font-size: 1rem;
   color: var(--text-primary);
   margin: 0.5rem 0;
   font-weight: 600;
 }
 
 .amenity-card p {
-  font-size: 1rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   margin: 0.5rem 0;
 }
@@ -1078,7 +1078,7 @@ body {
 }
 
 .kiosk-attractions h3 {
-  font-size: 1.8rem;
+  font-size: 1.4rem;
   color: var(--text-primary);
   margin-bottom: 1.5rem;
   font-weight: 600;
@@ -1124,7 +1124,7 @@ body {
   .kiosk-welcome-idle h2,
   .kiosk-welcome-message h2,
   .success-header h2 {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
   }
 
   .amenity-grid {
