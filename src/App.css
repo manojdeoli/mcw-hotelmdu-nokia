@@ -703,7 +703,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  padding-right: 12rem;
+  padding-right: 18rem;
 }
 
 .kiosk-header {

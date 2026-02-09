@@ -150,7 +150,7 @@ const GuestTab = ({
 
         {!verifiedPhoneNumber && (
           <div className="kiosk-welcome-idle kiosk-welcome-compact">
-            <h2>Welcome to Hotel Barcelona Sol AAAA</h2>
+            <h2>Welcome to Hotel Barcelona Sol</h2>
             <p>Please verify your phone number in the Hotel Dashboard to begin</p>
           </div>
         )}
