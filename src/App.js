@@ -355,6 +355,7 @@ function App() {
       const unsubscribe = gatewayClient.subscribe((data) => {
         const { beaconName, rssi, zone } = data;
         console.log('[App.js subscription] BLE Event received:', beaconName, zone, rssi);
+        console.log('[App.js subscription] isSequenceRunning:', isSequenceRunning, 'hasReachedHotel:', hasReachedHotel);
         addMessage(`BLE Event: ${zone} (RSSI: ${rssi})`);
         // Notify api.js waiting system with beaconName
         api.notifyBeaconDetection(beaconName);

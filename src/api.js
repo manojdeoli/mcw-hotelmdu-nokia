@@ -595,8 +595,8 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     // Wait for consent with timeout to prevent infinite loop
     let consentWaitTime = 0;
     while (!checkInConsentGiven && consentWaitTime < 60000) { // Max 60 seconds
-        await new Promise(resolve => setTimeout(resolve, 500));
-        consentWaitTime += 500;
+        await new Promise(resolve => setTimeout(resolve, 100)); // Check every 100ms instead of 500ms
+        consentWaitTime += 100;
     }
     
     // Clear the current waiting stage since consent is given or timeout reached
