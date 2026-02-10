@@ -359,7 +359,7 @@ function App() {
         // Notify api.js waiting system with beaconName
         api.notifyBeaconDetection(beaconName);
         // Also call processBeaconDetection for UI updates
-        processBeaconDetection(zone, rssi);
+        processBeaconDetection(beaconName, rssi);
       });
       
       // Store unsubscribe function
