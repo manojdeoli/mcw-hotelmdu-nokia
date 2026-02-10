@@ -559,8 +559,8 @@ function App() {
         newLocation = { lat: baseLat + 0.0001, lng: baseLng + 0.0001 };
         addMessage("Context: User is at the Elevator.");
         
-        // BLE-triggered Elevator Access
-        if (elevatorAccessRef.current !== 'Yes, Floor 13') {
+        // BLE-triggered Elevator Access - only after check-in
+        if (checkInStatusRef.current === 'Checked In' && elevatorAccessRef.current !== 'Yes, Floor 13') {
             addMessage("BLE Trigger: Verifying Identity for Elevator Access...");
             addGuestMessage('Verifying your identity for elevator access...', 'processing');
             const identityResult = await checkIdentityIntegrity(false, 'Checked In', false);
@@ -572,6 +572,9 @@ function App() {
                 addMessage("BLE Access Denied: Elevator access failed.");
                 addGuestMessage('Elevator access denied. Please contact reception.', 'error');
             }
+        } else if (checkInStatusRef.current !== 'Checked In') {
+            addMessage("Elevator access requires check-in completion first.");
+            addGuestMessage('Please complete check-in first to access the elevator.', 'info');
         }
 
       } else if (deviceName.includes("Room") || deviceName.includes("Door")) {
@@ -579,8 +582,8 @@ function App() {
         newLocation = { lat: baseLat + 0.0002, lng: baseLng + 0.0002 };
         addMessage("Context: User is at the Room Door.");
         
-        // BLE-triggered Room Access
-        if (roomAccessRef.current !== 'Granted') {
+        // BLE-triggered Room Access - only after check-in
+        if (checkInStatusRef.current === 'Checked In' && roomAccessRef.current !== 'Granted') {
              addMessage("BLE Trigger: Verifying Identity for Room Access...");
              addGuestMessage('Verifying your identity for room access...', 'processing');
              const identityResult = await checkIdentityIntegrity(false, 'Checked In', false);
@@ -594,6 +597,9 @@ function App() {
                  addMessage("BLE Access Denied: Room access failed.");
                  addGuestMessage('Room access denied. Please contact reception.', 'error');
              }
+        } else if (checkInStatusRef.current !== 'Checked In') {
+            addMessage("Room access requires check-in completion first.");
+            addGuestMessage('Please complete check-in first to access your room.', 'info');
         }
       }
       
