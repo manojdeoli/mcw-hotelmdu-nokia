@@ -110,16 +110,50 @@ export function kycMatch(data, logApiInteraction) {
 }
 
 export function simSwap(phoneNumber, logApiInteraction) {
-    return post(`${API_BASE_URL}/sim-swap/sim-swap/v0/check`, { phoneNumber, maxAge: 240 }).then(response => {
-        if (logApiInteraction) logApiInteraction('SIM Swap', 'POST', '/sim-swap/check', { phoneNumber, maxAge: 240 }, response);
-        return response;
+    // Actual API call (commented for demo)
+    // return ensureValidToken().then(() => {
+    //     const accessToken = authService.getAccessToken();
+    //     return post(`${API_BASE_URL}/sim-swap/sim-swap/v0/check`, { phoneNumber, maxAge: 240 }, {
+    //         'Authorization': `Bearer ${accessToken}`
+    //     }).then(response => {
+    //         if (logApiInteraction) logApiInteraction('SIM Swap', 'POST', '/sim-swap/check', { phoneNumber, maxAge: 240 }, response);
+    //         return response;
+    //     });
+    // });
+    
+    // Mock response for demo
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const response = { swapped: false };
+            if (logApiInteraction) {
+                logApiInteraction('SIM Swap', 'POST', '/sim-swap/check', { phoneNumber, maxAge: 240 }, response);
+            }
+            resolve(response);
+        }, 500);
     });
 }
 
 export function deviceSwap(phoneNumber, logApiInteraction) {
-    return post(`${API_BASE_URL}/device-swap/device-swap/v1/check`, { phoneNumber, maxAge: 240 }).then(response => {
-        if (logApiInteraction) logApiInteraction('Device Swap', 'POST', '/device-swap/check', { phoneNumber, maxAge: 240 }, response);
-        return response;
+    // Actual API call (commented for demo)
+    // return ensureValidToken().then(() => {
+    //     const accessToken = authService.getAccessToken();
+    //     return post(`${API_BASE_URL}/device-swap/device-swap/v1/check`, { phoneNumber, maxAge: 240 }, {
+    //         'Authorization': `Bearer ${accessToken}`
+    //     }).then(response => {
+    //         if (logApiInteraction) logApiInteraction('Device Swap', 'POST', '/device-swap/check', { phoneNumber, maxAge: 240 }, response);
+    //         return response;
+    //     });
+    // });
+    
+    // Mock response for demo
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const response = { swapped: false };
+            if (logApiInteraction) {
+                logApiInteraction('Device Swap', 'POST', '/device-swap/check', { phoneNumber, maxAge: 240 }, response);
+            }
+            resolve(response);
+        }, 500);
     });
 }
 
@@ -630,17 +664,6 @@ export async function startCheckOutSequence(phoneNumber, initialUserLocation, ho
     addGuestMessage(`Processing your check-out, ${guestName}. Please wait...`, 'processing');
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    addMessage("Calling Carrier Billing API to finalise payment...");
-    const billingRes = await carrierBilling(phoneNumber, logApiInteraction);
-    if (billingRes.paymentStatus === 'succeeded') {
-        addMessage("Carrier Billing Successful. Amount: 299.00 AUD");
-        addGuestMessage('Payment successful! Amount charged: $299.00 AUD', 'success');
-    } else {
-        addMessage("Carrier Billing Failed.");
-        addGuestMessage('Payment failed. Please contact reception.', 'error');
-    }
-    await new Promise(resolve => setTimeout(resolve, 5000));
-
     // Use relative time - 15 minutes before checkout
     const checkOutDate = new Date();
     checkOutDate.setDate(checkOutDate.getDate() + 1);
@@ -695,7 +718,18 @@ export async function startCheckOutSequence(phoneNumber, initialUserLocation, ho
     addMessage(`Contact guest ${guestName} on ${phoneNumber} to confirm check out.`);
     setCheckInStatus("Checked Out");
     setRfidStatus("Unverified");
-    setPaymentStatus("Paid");
     setElevatorAccess("No");
     setRoomAccess("No");
+    
+    // Process payment after guest has checked out
+    addMessage("Calling Carrier Billing API to finalise payment...");
+    const billingRes = await carrierBilling(phoneNumber, logApiInteraction);
+    if (billingRes.paymentStatus === 'succeeded') {
+        addMessage("Carrier Billing Successful. Amount: 299.00 AUD");
+        addGuestMessage('Payment successful! Amount charged: $299.00 AUD', 'success');
+        setPaymentStatus("Paid");
+    } else {
+        addMessage("Carrier Billing Failed.");
+        addGuestMessage('Payment failed. Please contact reception.', 'error');
+    }
 }

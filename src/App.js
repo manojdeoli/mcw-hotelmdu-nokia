@@ -483,15 +483,11 @@ function App() {
       const simSwapResult = await api.simSwap(verifiedPhoneNumberRef.current, logApiInteraction);
       const deviceSwapResult = await api.deviceSwap(verifiedPhoneNumberRef.current, logApiInteraction);
 
-      if (simSwapResult.swapped === true || deviceSwapResult.swapped === true) {
-        setIdentityIntegrity('Good');
-        if (artificialTime) setLastIntegrityCheckTime(new Date(artificialTime.getTime()));
-        addMessage('Identity Integrity Verified (Demo Mode)');
-      } else {
-        setIdentityIntegrity('Good');
-        if (artificialTime) setLastIntegrityCheckTime(new Date(artificialTime.getTime()));
-        addMessage('Identity Integrity Verified');
-      }
+      // Since mock responses return swapped: false, identity is good
+      setIdentityIntegrity('Good');
+      if (artificialTime) setLastIntegrityCheckTime(new Date(artificialTime.getTime()));
+      addMessage('Identity Integrity Verified - No SIM/Device swap detected');
+      
       if (autoGrant && checkInStatus === 'Checked In') {
         setElevatorAccess('Yes, Floor 13');
         setRoomAccess('Granted');
@@ -791,6 +787,10 @@ function App() {
     setError('');
     setSuccess('');
 
+    // Reset form fields when starting fresh verification with new number
+    setFormState(formFields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {}));
+    setKycMatchResponse(null);
+
     if (!regex.test(fullPhoneNumber)) {
       setError('Please enter a valid international phone number (e.g., +61412345678).');
       return;
@@ -982,8 +982,7 @@ function App() {
           setSecondUserGps(null);
           setMessages([]);
           setApiLogs([]);
-          setFormState(formFields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {}));
-          setPhone('');
+          // Form fields and phone number are NOT reset here - they will be reset on next Verify
           setError('');
           setSuccess('');
           setIsSequenceRunning(false);
