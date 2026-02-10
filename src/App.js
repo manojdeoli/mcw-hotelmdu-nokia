@@ -483,22 +483,25 @@ function App() {
       const simSwapResult = await api.simSwap(verifiedPhoneNumberRef.current, logApiInteraction);
       const deviceSwapResult = await api.deviceSwap(verifiedPhoneNumberRef.current, logApiInteraction);
 
-      // Since mock responses return swapped: false, identity is good
-      setIdentityIntegrity('Good');
-      if (artificialTime) setLastIntegrityCheckTime(new Date(artificialTime.getTime()));
-      addMessage('Identity Integrity Verified - No SIM/Device swap detected');
-      
-      if (autoGrant && checkInStatus === 'Checked In') {
-        setElevatorAccess('Yes, Floor 13');
-        setRoomAccess('Granted');
+      // Only set to 'Good' if this is a manual check (loader=true) or during automated sequences
+      // For demo purposes, always return good status but only update UI if manual check
+      if (loader || autoGrant) {
+        setIdentityIntegrity('Good');
+        if (artificialTime) setLastIntegrityCheckTime(new Date(artificialTime.getTime()));
+        addMessage('Identity Integrity Verified - No SIM/Device swap detected');
+        
+        if (autoGrant && checkInStatus === 'Checked In') {
+          setElevatorAccess('Yes, Floor 13');
+          setRoomAccess('Granted');
+        }
       }
       return true;
     } catch (err) {
       console.error('Identity integrity check failed:', err);
-      setIdentityIntegrity('Bad');
+      if (loader) setIdentityIntegrity('Bad');
       return false;
     } finally {
-      setIsLoading(false);
+      if (loader) setIsLoading(false);
     }
   }, [artificialTime, logApiInteraction, setIdentityIntegrity, setElevatorAccess, setRoomAccess, setLastIntegrityCheckTime, addMessage]);
 
@@ -787,9 +790,10 @@ function App() {
     setError('');
     setSuccess('');
 
-    // Reset form fields when starting fresh verification with new number
+    // Reset form fields and hotel arrival status when starting fresh verification with new number
     setFormState(formFields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {}));
     setKycMatchResponse(null);
+    setHasReachedHotel(false); // Reset hotel arrival status
 
     if (!regex.test(fullPhoneNumber)) {
       setError('Please enter a valid international phone number (e.g., +61412345678).');
