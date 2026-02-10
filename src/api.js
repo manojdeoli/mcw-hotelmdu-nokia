@@ -597,6 +597,9 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
         await new Promise(resolve => setTimeout(resolve, 500));
     }
     
+    // Skip the kiosk beacon wait since consent is given
+    currentWaitingStage = null;
+    
     addMessage("Check-in consent received. Processing check-in...");
     addGuestMessage('Processing your check-in...', 'processing');
     setCheckInStatus("Checked In");
