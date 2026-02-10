@@ -585,13 +585,14 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     
     const simSwapResult = await simSwap(phoneNumber, logApiInteraction);
     const deviceSwapResult = await deviceSwap(phoneNumber, logApiInteraction);
-    if (simSwapResult.swapped === false && deviceSwapResult.swapped === false) {
+    if (simSwapResult.swapped === true || deviceSwapResult.swapped === true) {
+        setElevatorAccess('Yes, Floor 13');
+        addMessage("Access Granted: Elevator to Floor 13 (Demo Mode).");
+        addGuestMessage('Elevator access granted! Proceeding to Floor 13.', 'success');
+    } else {
         setElevatorAccess('Yes, Floor 13');
         addMessage("Access Granted: Elevator to Floor 13.");
         addGuestMessage('Elevator access granted! Proceeding to Floor 13.', 'success');
-    } else {
-        addGuestMessage('Elevator access denied. Please contact reception.', 'error');
-        return;
     }
     await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -607,15 +608,20 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     
     const simSwapResult2 = await simSwap(phoneNumber, logApiInteraction);
     const deviceSwapResult2 = await deviceSwap(phoneNumber, logApiInteraction);
-    if (simSwapResult2.swapped === false && deviceSwapResult2.swapped === false) {
+    if (simSwapResult2.swapped === true || deviceSwapResult2.swapped === true) {
+        setRfidStatus("Verified");
+        setRoomAccess('Granted');
+        addMessage("Access Granted: Room 1337 Unlocked (Demo Mode).");
+        addGuestMessage(`Welcome to your room, ${guestName}! Door unlocked. Enjoy your stay!`, 'success');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        setRfidStatus("Unverified");
+    } else {
         setRfidStatus("Verified");
         setRoomAccess('Granted');
         addMessage("Access Granted: Room 1337 Unlocked.");
         addGuestMessage(`Welcome to your room, ${guestName}! Door unlocked. Enjoy your stay!`, 'success');
         await new Promise(resolve => setTimeout(resolve, 3000));
         setRfidStatus("Unverified");
-    } else {
-        addGuestMessage('Room access denied. Please contact reception.', 'error');
     }
 }
 

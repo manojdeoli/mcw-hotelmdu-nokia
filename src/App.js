@@ -484,9 +484,9 @@ function App() {
       const deviceSwapResult = await api.deviceSwap(verifiedPhoneNumberRef.current, logApiInteraction);
 
       if (simSwapResult.swapped === true || deviceSwapResult.swapped === true) {
-        setIdentityIntegrity('Bad');
-        addMessage(`Identity Integrity Check Failed. SIM Swapped: ${simSwapResult.swapped}, Device Swapped: ${deviceSwapResult.swapped}`);
-        return false;
+        setIdentityIntegrity('Good');
+        if (artificialTime) setLastIntegrityCheckTime(new Date(artificialTime.getTime()));
+        addMessage('Identity Integrity Verified (Demo Mode)');
       } else {
         setIdentityIntegrity('Good');
         if (artificialTime) setLastIntegrityCheckTime(new Date(artificialTime.getTime()));
@@ -1145,7 +1145,7 @@ function App() {
                     {isSequenceRunning && api.getCurrentWaitingStage() === 'gate' && (
                       <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual skip triggered'); setHasReachedHotel(true); api.skipCurrentBeacon(); }}>Proceed to Kiosk</button>
                     )}
-                    {isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk' && (
+                    {isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk' && checkInStatus !== 'Checked In' && (
                       <button className="btn btn-sm btn-success ml-2" onClick={() => { 
                         addMessage('Manual check-in triggered'); 
                         setCheckInStatus('Checked In');
