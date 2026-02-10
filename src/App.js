@@ -1166,12 +1166,6 @@ function App() {
                         api.skipCurrentBeacon(); 
                       }}>Complete Check-in</button>
                     )}
-                    {checkInStatus === 'Checked Out' && (
-                      <button className="btn btn-sm btn-info ml-2" onClick={() => { 
-                        addMessage('Starting new check-in process'); 
-                        setCheckInStatus('Not Checked In');
-                      }}>Start New Check-in</button>
-                    )}
                   </li>
                   <li><strong>Payment Status:</strong> <span style={{ color: paymentStatus === 'Paid' ? 'green' : 'red' }}>{paymentStatus}</span></li>
                   <li><strong>RFID Verification:</strong> <span style={{ color: rfidStatus === 'Verified' ? 'green' : 'red' }}>{rfidStatus}</span></li>
