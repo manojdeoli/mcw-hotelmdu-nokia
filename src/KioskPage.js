@@ -71,24 +71,13 @@ function KioskPage() {
     console.log('[KioskPage] Check-in consent button clicked');
     console.log('[KioskPage] Current check-in status:', checkInStatus);
     
-    // Set consent in API
+    // Set consent in API (just a flag)
     api.setCheckInConsent(true);
-    addGuestMessage('Check-in consent received. Processing...', 'processing');
+    addGuestMessage('Check-in consent received. Waiting for kiosk verification...', 'processing');
     
-    // Force check-in if not already checked in
-    if (checkInStatus !== 'Checked In') {
-      console.log('[KioskPage] Forcing check-in status update');
-      setCheckInStatus('Checked In');
-      setRfidStatus('Verified');
-      
-      // Reset RFID status after 3 seconds
-      setTimeout(() => {
-        setRfidStatus('Unverified');
-        const guestName = formState.firstName || (formState.name ? formState.name.split(' ')[0] : 'Guest');
-        addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
-      }, 3000);
-    }
-  }, [checkInStatus, setCheckInStatus, setRfidStatus, formState, addGuestMessage]);
+    // DO NOT force check-in here - let BLE Kiosk beacon or manual "Complete Check-in" button handle it
+    console.log('[KioskPage] Consent given, waiting for Kiosk BLE or manual trigger');
+  }, [checkInStatus, addGuestMessage]);
 
   return (
     <div className="App" style={{ margin: 0, padding: 0 }}>

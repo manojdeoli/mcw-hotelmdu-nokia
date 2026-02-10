@@ -390,22 +390,9 @@ export function setCheckInConsent(consent) {
     console.log('[API] Current waiting stage:', currentWaitingStage);
     console.log('[API] Current waiters count:', beaconWaiters.length);
     checkInConsentGiven = consent;
-    // If consent given, resolve any waiting kiosk beacon
-    if (consent && currentWaitingStage === 'kiosk') {
-        console.log('[API] Skipping current beacon due to consent');
-        skipCurrentBeacon();
-    } else if (consent) {
-        console.log('[API] Consent given but not in kiosk stage, triggering manual check-in');
-        // Broadcast check-in status change directly
-        if (typeof window !== 'undefined' && window.BroadcastChannel) {
-            const channel = new BroadcastChannel('hotel_mdu_sync');
-            channel.postMessage({ key: 'checkInStatus', value: 'Checked In' });
-            channel.postMessage({ key: 'rfidStatus', value: 'Verified' });
-            setTimeout(() => {
-                channel.postMessage({ key: 'rfidStatus', value: 'Unverified' });
-            }, 3000);
-        }
-    }
+    // Consent is just a flag - it should NOT trigger check-in directly
+    // Check-in should only be triggered by Kiosk BLE beacon or manual "Complete Check-in" button
+    console.log('[API] Consent flag updated, waiting for Kiosk BLE or manual trigger');
 }
 
 // Function to check if consent is given

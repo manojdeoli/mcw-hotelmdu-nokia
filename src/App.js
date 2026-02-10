@@ -355,11 +355,14 @@ function App() {
       const unsubscribe = gatewayClient.subscribe((data) => {
         const { beaconName, rssi, zone } = data;
         console.log('[App.js subscription] BLE Event received:', beaconName, zone, rssi);
+        console.log('[App.js subscription] Full data object:', data);
         console.log('[App.js subscription] isSequenceRunning:', isSequenceRunning, 'hasReachedHotel:', hasReachedHotel);
-        addMessage(`BLE Event: ${zone} (RSSI: ${rssi})`);
+        addMessage(`BLE Event: ${zone || beaconName} (RSSI: ${rssi})`);
         // Notify api.js waiting system with beaconName
+        console.log('[App.js subscription] Calling api.notifyBeaconDetection with:', beaconName);
         api.notifyBeaconDetection(beaconName);
         // Also call processBeaconDetection for UI updates
+        console.log('[App.js subscription] Calling processBeaconDetection with:', beaconName, rssi);
         processBeaconDetection(beaconName, rssi);
       });
       
@@ -512,9 +515,9 @@ function App() {
       console.log('[App.js] isSequenceRunning:', isSequenceRunning, 'hasReachedHotel:', hasReachedHotel);
       console.log('[App.js] checkInStatus:', checkInStatusRef.current);
       
-      // Only process BLE events if arrival sequence is running AND location verification confirms guest is at hotel
-      if (!isSequenceRunning || !hasReachedHotel) {
-        console.log('[App.js] Ignoring BLE event - sequence not running or guest not verified at hotel location');
+      // Only process BLE events if guest has been verified at hotel location OR if it's a Gate beacon
+      if (!hasReachedHotel && !deviceName.includes("Entry") && !deviceName.includes("Gate")) {
+        console.log('[App.js] Ignoring non-Gate BLE event - guest location not verified yet');
         return;
       }
       
@@ -542,13 +545,20 @@ function App() {
         addMessage("Context: User arrived at Entry Gate.");
         addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the hotel entrance.`, 'info');
         
+        // Set status to indicate guest is at kiosk (triggers Welcome Overlay)
+        if (checkInStatusRef.current !== 'Checked In') {
+            setCheckInStatus('At Kiosk');
+            addMessage('Gate BLE detected - Welcome Overlay now available on kiosk');
+        }
+        
       } else if (deviceName.includes("Kiosk") || deviceName.includes("Lobby")) {
         locationLabel = "Check-in Kiosk";
         newLocation = { lat: baseLat + 0.0001, lng: baseLng };
         addMessage("Context: User is at the Check-in Kiosk.");
         
+        // Only trigger check-in if consent has been given
         if (checkInStatusRef.current !== 'Checked In' && api.isCheckInConsentGiven()) {
-            addMessage("Beacon Trigger: Initiating Check-in...");
+            addMessage("Kiosk BLE + Consent: Initiating Check-in...");
             addGuestMessage('Processing your check-in...', 'processing');
             setCheckInStatus("Checked In");
             setRfidStatus("Verified");
@@ -557,7 +567,7 @@ function App() {
               addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
             }, 3000);
         } else if (checkInStatusRef.current !== 'Checked In') {
-            addMessage("Waiting for guest consent to proceed with check-in...");
+            addMessage("Kiosk BLE detected but waiting for guest consent...");
             addGuestMessage('Please confirm your check-in on the Guest Information tab.', 'info');
         }
 
@@ -1183,18 +1193,18 @@ function App() {
                   </li>
                   <li><strong>Check-in Status:</strong> <span style={{ color: checkInStatus === 'Checked In' ? 'green' : 'red' }}>{checkInStatus}</span>
                     {isSequenceRunning && api.getCurrentWaitingStage() === 'gate' && (
-                      <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual skip triggered'); setHasReachedHotel(true); api.skipCurrentBeacon(); }}>Proceed to Kiosk</button>
+                      <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual Gate skip triggered'); setCheckInStatus('At Kiosk'); api.skipCurrentBeacon(); }}>Proceed to Kiosk</button>
                     )}
-                    {isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk' && checkInStatus !== 'Checked In' && !api.isCheckInConsentGiven() && (
+                    {(checkInStatus === 'At Kiosk' || (isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk')) && checkInStatus !== 'Checked In' && !api.isCheckInConsentGiven() && (
                       <span className="ml-2 text-info">Waiting for User Consent for Check-in</span>
                     )}
-                    {isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk' && checkInStatus !== 'Checked In' && api.isCheckInConsentGiven() && (
+                    {(checkInStatus === 'At Kiosk' || (isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk')) && checkInStatus !== 'Checked In' && api.isCheckInConsentGiven() && (
                       <button className="btn btn-sm btn-success ml-2" onClick={() => { 
                         addMessage('Manual check-in triggered'); 
                         setCheckInStatus('Checked In');
                         setRfidStatus('Verified');
                         setTimeout(() => setRfidStatus('Unverified'), 3000);
-                        api.skipCurrentBeacon(); 
+                        if (api.getCurrentWaitingStage() === 'kiosk') api.skipCurrentBeacon(); 
                       }}>Complete Check-in</button>
                     )}
                   </li>

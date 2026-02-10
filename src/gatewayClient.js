@@ -56,13 +56,17 @@ class GatewayClient {
       // Listen for BLE events from Gateway
       this.ws.onmessage = (event) => {
         console.log('[Gateway] Raw message received:', event.data);
+        console.log('[Gateway] Message type:', typeof event.data);
+        console.log('[Gateway] Message length:', event.data.length);
         try {
           const data = JSON.parse(event.data);
-          console.log('[Gateway] BLE event received:', data);
+          console.log('[Gateway] BLE event parsed successfully:', data);
+          console.log('[Gateway] Event details - beaconName:', data.beaconName, 'zone:', data.zone, 'rssi:', data.rssi);
           console.log('[Gateway] Notifying', this.subscribers.length, 'subscribers');
           this.notifySubscribers(data);
         } catch (error) {
           console.error('[Gateway] Error parsing message:', error);
+          console.error('[Gateway] Raw message that failed to parse:', event.data);
         }
       };
     } catch (error) {
