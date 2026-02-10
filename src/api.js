@@ -125,10 +125,10 @@ export function deviceSwap(phoneNumber, logApiInteraction) {
 
 
 const mockKycData = {
-    '61400500800': { name: 'Michael Jackson', address: '242 Exhibition St, Melbourne', birthdate: '1958-08-29', email: 'michael.hehe@gmail.com' },
-    '61400500801': { name: 'Maria Fernanda González', address: '12 Collins St, Melbourne VIC 3000', birthdate: '1968-02-08', email: 'gonzalez02081968@example.com' },
-    '61400500802': { name: 'John Smith', address: '85 George St, Sydney NSW 2000', birthdate: '1979-12-20', email: 'john20121979@outlook.com' },
-    '61400500803': { name: 'Aisha Mohammed Al-Farsi', address: '7 Adelaide Terrace, Perth WA 6000', birthdate: '1950-03-13', email: 'aishaal-farsi13031950@example.com' },
+    '1234567890': { name: 'Joe Bloggs', address: 'Av. Joan Carles I, 64, 08908 L\'Hospitalet de Llobregat, Barcelona, Spain', birthdate: '29/08/1865', email: 'oldestperson.alive@anemaildomain.com' },
+    '1234567891': { name: 'John Smith', address: '2 Tower Center Blvd, East Brunswick, NJ 08816, USA', birthdate: '01-01-1970', email: 'smith3463452@anemaildomain.com' },
+    '1234567892': { name: 'Alice Anonymous', address: '425 National Ave # 200, Mountain View, CA 94043, USA', birthdate: '01-01-1980', email: 'alice547345234@anemaildomain.com' },
+    '1234567893': { name: 'Patricia Public', address: 'Wipro Limited, Doddakannelli, Sarjapur Road, Bengaluru - 560 035, India', birthdate: '01-01-1990', email: 'patricia.public23562346@anemaildomain.com' },
     '61400500804': { name: 'Chen Wei', address: '23 North Terrace, Adelaide SA 5000', birthdate: '1979-03-22', email: 'chen22031979@example.com' },
     '61400500805': { name: 'Priya Ramesh Kumar', address: '45 Margaret St, Brisbane QLD 4000', birthdate: '1974-04-12', email: 'priyak12041974@gmail.com' },
     '61400500806': { name: 'Jean-Pierre Dubois', address: '18 Macquarie St, Hobart TAS 7000', birthdate: '1957-05-30', email: 'user3674@yahoo.com' },
@@ -353,10 +353,24 @@ export function clearBeaconQueue() {
 // Function to set check-in consent
 export function setCheckInConsent(consent) {
     console.log('[API] Check-in consent set to:', consent);
+    console.log('[API] Current waiting stage:', currentWaitingStage);
+    console.log('[API] Current waiters count:', beaconWaiters.length);
     checkInConsentGiven = consent;
     // If consent given, resolve any waiting kiosk beacon
     if (consent && currentWaitingStage === 'kiosk') {
+        console.log('[API] Skipping current beacon due to consent');
         skipCurrentBeacon();
+    } else if (consent) {
+        console.log('[API] Consent given but not in kiosk stage, triggering manual check-in');
+        // Broadcast check-in status change directly
+        if (typeof window !== 'undefined' && window.BroadcastChannel) {
+            const channel = new BroadcastChannel('hotel_mdu_sync');
+            channel.postMessage({ key: 'checkInStatus', value: 'Checked In' });
+            channel.postMessage({ key: 'rfidStatus', value: 'Verified' });
+            setTimeout(() => {
+                channel.postMessage({ key: 'rfidStatus', value: 'Unverified' });
+            }, 3000);
+        }
     }
 }
 

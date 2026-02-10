@@ -47,11 +47,12 @@ const useSyncedState = (key, initialValue) => {
 };
 
 function KioskPage() {
-  const [checkInStatus] = useSyncedState('checkInStatus', 'Not Checked In');
+  const [checkInStatus, setCheckInStatus] = useSyncedState('checkInStatus', 'Not Checked In');
   const [formState] = useSyncedState('formState', {});
   const [verifiedPhoneNumber] = useSyncedState('verifiedPhoneNumber', null);
   const [hasReachedHotel] = useSyncedState('hasReachedHotel', false);
   const [guestMessages, setGuestMessages] = useSyncedState('guestMessages', []);
+  const [rfidStatus, setRfidStatus] = useSyncedState('rfidStatus', 'Unverified');
   const [museumMap, setMuseumMap] = useState(null);
 
   const addGuestMessage = useCallback((message, type = 'info') => {
@@ -66,6 +67,29 @@ function KioskPage() {
     ]);
   }, [setGuestMessages]);
 
+  const handleCheckInConsent = useCallback(() => {
+    console.log('[KioskPage] Check-in consent button clicked');
+    console.log('[KioskPage] Current check-in status:', checkInStatus);
+    
+    // Set consent in API
+    api.setCheckInConsent(true);
+    addGuestMessage('Check-in consent received. Processing...', 'processing');
+    
+    // Force check-in if not already checked in
+    if (checkInStatus !== 'Checked In') {
+      console.log('[KioskPage] Forcing check-in status update');
+      setCheckInStatus('Checked In');
+      setRfidStatus('Verified');
+      
+      // Reset RFID status after 3 seconds
+      setTimeout(() => {
+        setRfidStatus('Unverified');
+        const guestName = formState.firstName || (formState.name ? formState.name.split(' ')[0] : 'Guest');
+        addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
+      }, 3000);
+    }
+  }, [checkInStatus, setCheckInStatus, setRfidStatus, formState, addGuestMessage]);
+
   return (
     <div className="App" style={{ margin: 0, padding: 0 }}>
       <GuestTab 
@@ -77,10 +101,7 @@ function KioskPage() {
         setMuseumMap={setMuseumMap}
         hasReachedHotel={hasReachedHotel}
         guestMessages={guestMessages}
-        onCheckInConsent={() => {
-          api.setCheckInConsent(true);
-          addGuestMessage('Check-in consent received. Processing...', 'processing');
-        }}
+        onCheckInConsent={handleCheckInConsent}
       />
     </div>
   );
