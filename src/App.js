@@ -559,16 +559,17 @@ function App() {
         newLocation = { lat: baseLat + 0.0001, lng: baseLng + 0.0001 };
         addMessage("Context: User is at the Elevator.");
         
-        // Auto-trigger Elevator Access
+        // BLE-triggered Elevator Access
         if (elevatorAccessRef.current !== 'Yes, Floor 13') {
-            addMessage("Beacon Trigger: Verifying Identity for Elevator...");
+            addMessage("BLE Trigger: Verifying Identity for Elevator Access...");
             addGuestMessage('Verifying your identity for elevator access...', 'processing');
             const identityResult = await checkIdentityIntegrity(false, 'Checked In', false);
             if (identityResult) {
                 setElevatorAccess('Yes, Floor 13');
-                addMessage("Access Granted: Elevator to Floor 13.");
+                addMessage("BLE Access Granted: Elevator to Floor 13.");
                 addGuestMessage('Elevator access granted! Proceeding to Floor 13.', 'success');
             } else {
+                addMessage("BLE Access Denied: Elevator access failed.");
                 addGuestMessage('Elevator access denied. Please contact reception.', 'error');
             }
         }
@@ -578,18 +579,19 @@ function App() {
         newLocation = { lat: baseLat + 0.0002, lng: baseLng + 0.0002 };
         addMessage("Context: User is at the Room Door.");
         
-        // Auto-trigger Room Access
+        // BLE-triggered Room Access
         if (roomAccessRef.current !== 'Granted') {
-             addMessage("Beacon Trigger: Verifying Identity for Room...");
+             addMessage("BLE Trigger: Verifying Identity for Room Access...");
              addGuestMessage('Verifying your identity for room access...', 'processing');
              const identityResult = await checkIdentityIntegrity(false, 'Checked In', false);
              if (identityResult) {
                  setRoomAccess('Granted');
                  setRfidStatus('Verified');
                  setTimeout(() => setRfidStatus('Unverified'), 3000);
-                 addMessage("Access Granted: Room 1337 Unlocked.");
+                 addMessage("BLE Access Granted: Room 1337 Unlocked.");
                  addGuestMessage(`Welcome to your room, ${guestName}! Door unlocked. Enjoy your stay!`, 'success');
              } else {
+                 addMessage("BLE Access Denied: Room access failed.");
                  addGuestMessage('Room access denied. Please contact reception.', 'error');
              }
         }
@@ -1155,7 +1157,10 @@ function App() {
                     {isSequenceRunning && api.getCurrentWaitingStage() === 'gate' && (
                       <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual skip triggered'); setHasReachedHotel(true); api.skipCurrentBeacon(); }}>Proceed to Kiosk</button>
                     )}
-                    {isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk' && checkInStatus !== 'Checked In' && (
+                    {isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk' && checkInStatus !== 'Checked In' && !api.isCheckInConsentGiven() && (
+                      <span className="ml-2 text-info">Waiting for User Consent for Check-in</span>
+                    )}
+                    {isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk' && checkInStatus !== 'Checked In' && api.isCheckInConsentGiven() && (
                       <button className="btn btn-sm btn-success ml-2" onClick={() => { 
                         addMessage('Manual check-in triggered'); 
                         setCheckInStatus('Checked In');
