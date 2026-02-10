@@ -491,7 +491,7 @@ function waitForBeacon(beaconKeywords, addMessage, stage) {
     });
 }
 
-export async function startBookingAndArrivalSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, setRfidStatus, setPaymentStatus, setElevatorAccess, setRoomAccess, generateRoute, setArtificialTime, handleAccessSequence, logApiInteraction, addGuestMessage, guestName = 'Guest', gatewayClient, processBeaconDetection, setIsAutoScanning, bleUnsubscribeRef) {
+export async function startBookingAndArrivalSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, setRfidStatus, setPaymentStatus, setElevatorAccess, setRoomAccess, generateRoute, setArtificialTime, handleAccessSequence, logApiInteraction, addGuestMessage, guestName = 'Guest', gatewayClient, processBeaconDetection, setIsAutoScanning, bleUnsubscribeRef, setHasReachedHotel) {
     // Clear any previous beacon events
     clearBeaconQueue();
     
@@ -560,6 +560,11 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     const verification = await locationVerification(locationVerificationData, logApiInteraction);
     if (verification.verificationResult === "TRUE") {
         addMessage("Location verification successful - guest confirmed at hotel!");
+        // Set hasReachedHotel based on Location Verification API result
+        if (setHasReachedHotel) {
+            setHasReachedHotel(true);
+            addMessage("Guest arrival confirmed by Location Verification API - BLE processing enabled");
+        }
     } else {
         addMessage("Location verification failed.");
     }

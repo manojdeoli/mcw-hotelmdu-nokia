@@ -509,9 +509,9 @@ function App() {
   const processBeaconDetection = useCallback(async (deviceName, rssi = null) => {
       console.log('[App.js] processBeaconDetection called with:', deviceName, rssi);
       
-      // Only process BLE events if arrival sequence is running
-      if (!isSequenceRunning) {
-        console.log('[App.js] Ignoring BLE event - sequence not running');
+      // Only process BLE events if arrival sequence is running AND location verification confirms guest is at hotel
+      if (!isSequenceRunning || !hasReachedHotel) {
+        console.log('[App.js] Ignoring BLE event - sequence not running or guest not verified at hotel location');
         return;
       }
       
@@ -534,7 +534,6 @@ function App() {
         newLocation = { lat: baseLat, lng: baseLng };
         addMessage("Context: User arrived at Entry Gate.");
         addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the hotel entrance.`, 'info');
-        setHasReachedHotel(true);
         
       } else if (deviceName.includes("Kiosk") || deviceName.includes("Lobby")) {
         locationLabel = "Check-in Kiosk";
@@ -602,7 +601,7 @@ function App() {
       } else {
         addMessage(`Location Verified via BLE: ${locationLabel}`);
       }
-  }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity, isSequenceRunning]);
+  }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity, isSequenceRunning, hasReachedHotel]);
 
 
 
@@ -941,7 +940,8 @@ function App() {
           gatewayClient, // Pass gateway client
           processBeaconDetection, // Pass beacon detection function
           setIsAutoScanning, // Pass setIsAutoScanning
-          bleUnsubscribeRef // Pass bleUnsubscribeRef
+          bleUnsubscribeRef, // Pass bleUnsubscribeRef
+          setHasReachedHotel // Pass setHasReachedHotel to be set by Location Verification API
         );
       } else if (mode === 'departure') {
         const guestName = formState.name ? `${formState.name}` : 'Guest';
