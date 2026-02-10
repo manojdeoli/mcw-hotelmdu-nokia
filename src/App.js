@@ -508,6 +508,13 @@ function App() {
   // --- Centralized Beacon Logic (Used by Manual & Auto Scan) ---
   const processBeaconDetection = useCallback(async (deviceName, rssi = null) => {
       console.log('[App.js] processBeaconDetection called with:', deviceName, rssi);
+      
+      // Only process BLE events if arrival sequence is running
+      if (!isSequenceRunning) {
+        console.log('[App.js] Ignoring BLE event - sequence not running');
+        return;
+      }
+      
       // Notify the api.js waiting system
       api.notifyBeaconDetection(deviceName);
       console.log('[App.js] Called api.notifyBeaconDetection');
@@ -595,7 +602,7 @@ function App() {
       } else {
         addMessage(`Location Verified via BLE: ${locationLabel}`);
       }
-  }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity]);
+  }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity, isSequenceRunning]);
 
 
 
