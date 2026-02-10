@@ -589,18 +589,24 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     await waitForBeacon(['Kiosk', 'Lobby'], addMessage, 'kiosk');
     
     // Wait for guest consent before proceeding with check-in
-    addMessage("Guest at Check-in Kiosk. Waiting for check-in consent...");
+    addMessage("Waiting for guest consent to proceed with check-in...");
     addGuestMessage('Please confirm your check-in on the Guest Information tab.', 'info');
     
-    // Wait for consent
-    while (!checkInConsentGiven) {
+    // Wait for consent with timeout to prevent infinite loop
+    let consentWaitTime = 0;
+    while (!checkInConsentGiven && consentWaitTime < 60000) { // Max 60 seconds
         await new Promise(resolve => setTimeout(resolve, 500));
+        consentWaitTime += 500;
     }
     
-    // Skip the kiosk beacon wait since consent is given
+    // Clear the current waiting stage since consent is given or timeout reached
     currentWaitingStage = null;
     
-    addMessage("Check-in consent received. Processing check-in...");
+    if (checkInConsentGiven) {
+        addMessage("Check-in consent received. Processing check-in...");
+    } else {
+        addMessage("Consent timeout reached. Processing check-in automatically...");
+    }
     addGuestMessage('Processing your check-in...', 'processing');
     setCheckInStatus("Checked In");
     const checkInLocation = { lat: hotelLocation.lat + 0.0001, lng: hotelLocation.lng };
@@ -619,8 +625,10 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addMessage("Check-in sequence complete. BLE-controlled elevator and room access now active.");
     addGuestMessage('You can now access the elevator and your room using BLE beacons.', 'info');
     
-    // Clear the current waiting stage to indicate sequence completion
+    // Clear all remaining waiters and waiting stage to ensure BLE processing works
+    beaconWaiters = [];
     currentWaitingStage = null;
+    console.log('[API] Sequence complete - cleared all waiters and waiting stage');
 }
 
 export async function startCheckOutSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, generateRoute, setArtificialTime, setPaymentStatus, setElevatorAccess, setRoomAccess, setRfidStatus, guestName, logApiInteraction, addGuestMessage) {
