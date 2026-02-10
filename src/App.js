@@ -802,6 +802,8 @@ function App() {
     setHasReachedHotel(false); // Reset hotel arrival status
     setIdentityIntegrity('Bad'); // Reset identity integrity status
     setRegistrationStatus('Not Registered'); // Reset registration status
+    setMessages([]); // Reset activity logs
+    setApiLogs([]); // Reset API interaction logs
 
     if (!regex.test(fullPhoneNumber)) {
       setError('Please enter a valid international phone number (e.g., +61412345678).');
@@ -993,9 +995,7 @@ function App() {
           setLastIntegrityCheckTime(null);
           setBleStatus('Idle');
           setSecondUserGps(null);
-          setMessages([]);
-          setApiLogs([]);
-          // Form fields and phone number are NOT reset here - they will be reset on next Verify
+          // Activity logs, API logs, and form data are NOT reset here - they will be reset on next Verify
           setError('');
           setSuccess('');
           setIsSequenceRunning(false);
@@ -1165,6 +1165,12 @@ function App() {
                         setTimeout(() => setRfidStatus('Unverified'), 3000);
                         api.skipCurrentBeacon(); 
                       }}>Complete Check-in</button>
+                    )}
+                    {checkInStatus === 'Checked Out' && (
+                      <button className="btn btn-sm btn-info ml-2" onClick={() => { 
+                        addMessage('Starting new check-in process'); 
+                        setCheckInStatus('Not Checked In');
+                      }}>Start New Check-in</button>
                     )}
                   </li>
                   <li><strong>Payment Status:</strong> <span style={{ color: paymentStatus === 'Paid' ? 'green' : 'red' }}>{paymentStatus}</span></li>
