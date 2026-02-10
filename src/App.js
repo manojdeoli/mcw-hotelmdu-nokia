@@ -796,10 +796,12 @@ function App() {
     setError('');
     setSuccess('');
 
-    // Reset form fields and hotel arrival status when starting fresh verification with new number
+    // Reset form fields and all status when starting fresh verification with new number
     setFormState(formFields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {}));
     setKycMatchResponse(null);
     setHasReachedHotel(false); // Reset hotel arrival status
+    setIdentityIntegrity('Bad'); // Reset identity integrity status
+    setRegistrationStatus('Not Registered'); // Reset registration status
 
     if (!regex.test(fullPhoneNumber)) {
       setError('Please enter a valid international phone number (e.g., +61412345678).');
