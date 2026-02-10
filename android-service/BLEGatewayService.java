@@ -49,15 +49,16 @@ public class BLEGatewayService extends Service {
                 String deviceName = result.getDevice().getName();
                 if (deviceName == null) deviceName = "Unknown";
                 
-                if (deviceName.contains("MWC") || deviceName.contains("Hotel") || 
-                    deviceName.contains("Gate") || deviceName.contains("Kiosk") ||
-                    deviceName.contains("Elevator") || deviceName.contains("Room")) {
+                // Filter for specific hotel beacons and Easy Reach devices
+                if (isAllowedDevice(deviceName)) {
+                    // Map Easy Reach devices to hotel zones
+                    String mappedName = mapDeviceToZone(deviceName);
                     
                     JSONObject bleEvent = new JSONObject();
                     bleEvent.put("deviceId", result.getDevice().getAddress());
-                    bleEvent.put("beaconName", deviceName);
+                    bleEvent.put("beaconName", mappedName);
                     bleEvent.put("rssi", result.getRssi());
-                    bleEvent.put("zone", deviceName);
+                    bleEvent.put("zone", mappedName);
                     bleEvent.put("timestamp", System.currentTimeMillis());
                     
                     broadcastToClients(bleEvent.toString());
@@ -68,6 +69,41 @@ public class BLEGatewayService extends Service {
             }
         }
     };
+    
+    // Filter to only allow specific devices
+    private boolean isAllowedDevice(String deviceName) {
+        if (deviceName == null) return false;
+        
+        // Allow hotel beacon names
+        if (deviceName.equals("HotelGate") || deviceName.equals("HotelKiosk") ||
+            deviceName.equals("HotelElevator") || deviceName.equals("HotelRoom")) {
+            return true;
+        }
+        
+        // Allow Easy Reach devices
+        if (deviceName.equals("ER26B00001") || deviceName.equals("ER26B00002") ||
+            deviceName.equals("ER26B00003") || deviceName.equals("ER26B00004")) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Map Easy Reach device IDs to hotel zones
+    private String mapDeviceToZone(String deviceName) {
+        switch (deviceName) {
+            case "ER26B00001":
+                return "HotelGate";
+            case "ER26B00002":
+                return "HotelKiosk";
+            case "ER26B00003":
+                return "HotelElevator";
+            case "ER26B00004":
+                return "HotelRoom";
+            default:
+                return deviceName; // Return original name if already mapped
+        }
+    }
     
     @Override
     public void onCreate() {
