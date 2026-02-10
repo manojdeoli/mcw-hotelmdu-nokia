@@ -618,6 +618,9 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     // After check-in, BLE events for elevator and room will be handled by App.js processBeaconDetection
     addMessage("Check-in sequence complete. BLE-controlled elevator and room access now active.");
     addGuestMessage('You can now access the elevator and your room using BLE beacons.', 'info');
+    
+    // Clear the current waiting stage to indicate sequence completion
+    currentWaitingStage = null;
 }
 
 export async function startCheckOutSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, generateRoute, setArtificialTime, setPaymentStatus, setElevatorAccess, setRoomAccess, setRfidStatus, guestName, logApiInteraction, addGuestMessage) {

@@ -515,9 +515,11 @@ function App() {
         return;
       }
       
-      // Notify the api.js waiting system
-      api.notifyBeaconDetection(deviceName);
-      console.log('[App.js] Called api.notifyBeaconDetection');
+      // Notify the api.js waiting system only if there's an active waiting stage
+      if (api.getCurrentWaitingStage()) {
+        api.notifyBeaconDetection(deviceName);
+        console.log('[App.js] Called api.notifyBeaconDetection for waiting stage:', api.getCurrentWaitingStage());
+      }
       
       const currentHotelLoc = hotelLocationRef.current || { lat: -33.8688, lng: 151.2093 };
       const baseLat = currentHotelLoc.lat;
@@ -960,6 +962,9 @@ function App() {
           bleUnsubscribeRef, // Pass bleUnsubscribeRef
           setHasReachedHotel // Pass setHasReachedHotel to be set by Location Verification API
         );
+        
+        // Sequence completed - keep isSequenceRunning true for BLE processing
+        addMessage('Arrival sequence completed. BLE-controlled access now active.');
       } else if (mode === 'departure') {
         const guestName = formState.name ? `${formState.name}` : 'Guest';
         await api.startCheckOutSequence(
