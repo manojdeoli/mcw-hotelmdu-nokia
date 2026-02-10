@@ -802,6 +802,11 @@ function App() {
     setHasReachedHotel(false); // Reset hotel arrival status
     setIdentityIntegrity('Bad'); // Reset identity integrity status
     setRegistrationStatus('Not Registered'); // Reset registration status
+    setCheckInStatus('Not Checked In'); // Reset check-in status
+    setPaymentStatus('Not Paid'); // Reset payment status
+    setRfidStatus('Unverified'); // Reset RFID status
+    setElevatorAccess('No'); // Reset elevator access
+    setRoomAccess('No'); // Reset room access
     setMessages([]); // Reset activity logs
     setApiLogs([]); // Reset API interaction logs
 
@@ -977,25 +982,18 @@ function App() {
             }
             setMuseumMap(null);
           }
+          // Only reset essential flow control states, preserve User Status and Booking Details
           setVerifiedPhoneNumber(null);
           setKycMatchResponse(null);
           setLocation(null);
           setSimulationMode('arrival');
-          setRegistrationStatus('Not Registered');
           setArtificialTime(null);
-          setIdentityIntegrity('Bad');
-          setCheckInStatus('Not Checked In');
-          setPaymentStatus('Not Paid');
-          setRfidStatus('Unverified');
-          setElevatorAccess('No');
-          setRoomAccess('No');
           setHotelLocation(null);
           setUserGps(null);
           setInitialUserLocation(null);
           setLastIntegrityCheckTime(null);
           setBleStatus('Idle');
           setSecondUserGps(null);
-          // Activity logs, API logs, and form data are NOT reset here - they will be reset on next Verify
           setError('');
           setSuccess('');
           setIsSequenceRunning(false);
