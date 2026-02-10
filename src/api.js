@@ -612,56 +612,9 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     await new Promise(resolve => setTimeout(resolve, 1000));
     addGuestMessage('Hotel amenities: Pool (Level 5), Gym (Level 4), Restaurant (Ground Floor)', 'info');
 
-    // STEP 3: Wait for Elevator beacon
-    addMessage("Waiting for guest to reach Elevator...");
-    addGuestMessage('Please proceed to the elevator.', 'info');
-    await waitForBeacon(['Elevator', 'Elevetor', 'Lift'], addMessage, 'elevator');
-    
-    addMessage("Guest at Elevator. Verifying identity...");
-    addGuestMessage('Verifying your identity for elevator access...', 'processing');
-    const elevatorLocation = { lat: hotelLocation.lat + 0.0001, lng: hotelLocation.lng + 0.0001 };
-    setUserGps(elevatorLocation);
-    
-    const simSwapResult = await simSwap(phoneNumber, logApiInteraction);
-    const deviceSwapResult = await deviceSwap(phoneNumber, logApiInteraction);
-    if (simSwapResult.swapped === true || deviceSwapResult.swapped === true) {
-        setElevatorAccess('Yes, Floor 13');
-        addMessage("Access Granted: Elevator to Floor 13 (Demo Mode).");
-        addGuestMessage('Elevator access granted! Proceeding to Floor 13.', 'success');
-    } else {
-        setElevatorAccess('Yes, Floor 13');
-        addMessage("Access Granted: Elevator to Floor 13.");
-        addGuestMessage('Elevator access granted! Proceeding to Floor 13.', 'success');
-    }
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // STEP 4: Wait for Room beacon
-    addMessage("Waiting for guest to reach Room Door...");
-    addGuestMessage('Please proceed to your room (Room 1337).', 'info');
-    await waitForBeacon(['Room', 'Door'], addMessage, 'room');
-    
-    addMessage("Guest at Room Door. Verifying identity...");
-    addGuestMessage('Verifying your identity for room access...', 'processing');
-    const roomLocation = { lat: hotelLocation.lat + 0.0002, lng: hotelLocation.lng + 0.0002 };
-    setUserGps(roomLocation);
-    
-    const simSwapResult2 = await simSwap(phoneNumber, logApiInteraction);
-    const deviceSwapResult2 = await deviceSwap(phoneNumber, logApiInteraction);
-    if (simSwapResult2.swapped === true || deviceSwapResult2.swapped === true) {
-        setRfidStatus("Verified");
-        setRoomAccess('Granted');
-        addMessage("Access Granted: Room 1337 Unlocked (Demo Mode).");
-        addGuestMessage(`Welcome to your room, ${guestName}! Door unlocked. Enjoy your stay!`, 'success');
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        setRfidStatus("Unverified");
-    } else {
-        setRfidStatus("Verified");
-        setRoomAccess('Granted');
-        addMessage("Access Granted: Room 1337 Unlocked.");
-        addGuestMessage(`Welcome to your room, ${guestName}! Door unlocked. Enjoy your stay!`, 'success');
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        setRfidStatus("Unverified");
-    }
+    // After check-in, BLE events for elevator and room will be handled by App.js processBeaconDetection
+    addMessage("Check-in sequence complete. BLE-controlled elevator and room access now active.");
+    addGuestMessage('You can now access the elevator and your room using BLE beacons.', 'info');
 }
 
 export async function startCheckOutSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, generateRoute, setArtificialTime, setPaymentStatus, setElevatorAccess, setRoomAccess, setRfidStatus, guestName, logApiInteraction, addGuestMessage) {
