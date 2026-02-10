@@ -508,6 +508,8 @@ function App() {
   // --- Centralized Beacon Logic (Used by Manual & Auto Scan) ---
   const processBeaconDetection = useCallback(async (deviceName, rssi = null) => {
       console.log('[App.js] processBeaconDetection called with:', deviceName, rssi);
+      console.log('[App.js] isSequenceRunning:', isSequenceRunning, 'hasReachedHotel:', hasReachedHotel);
+      console.log('[App.js] checkInStatus:', checkInStatusRef.current);
       
       // Only process BLE events if arrival sequence is running AND location verification confirms guest is at hotel
       if (!isSequenceRunning || !hasReachedHotel) {
@@ -519,6 +521,8 @@ function App() {
       if (api.getCurrentWaitingStage()) {
         api.notifyBeaconDetection(deviceName);
         console.log('[App.js] Called api.notifyBeaconDetection for waiting stage:', api.getCurrentWaitingStage());
+      } else {
+        console.log('[App.js] No active waiting stage, processing BLE event directly');
       }
       
       const currentHotelLoc = hotelLocationRef.current || { lat: -33.8688, lng: 151.2093 };
@@ -557,12 +561,15 @@ function App() {
         }
 
       } else if (deviceName.includes("Elevator") || deviceName.includes("Lift")) {
+        console.log('[App.js] Detected Elevator beacon:', deviceName);
+        console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'elevatorAccess:', elevatorAccessRef.current);
         locationLabel = "Elevator Lobby";
         newLocation = { lat: baseLat + 0.0001, lng: baseLng + 0.0001 };
         addMessage("Context: User is at the Elevator.");
         
         // BLE-triggered Elevator Access - only after check-in
         if (checkInStatusRef.current === 'Checked In' && elevatorAccessRef.current !== 'Yes, Floor 13') {
+            console.log('[App.js] Triggering elevator access verification');
             addMessage("BLE Trigger: Verifying Identity for Elevator Access...");
             addGuestMessage('Verifying your identity for elevator access...', 'processing');
             const identityResult = await checkIdentityIntegrity(false, 'Checked In', false);
@@ -575,17 +582,23 @@ function App() {
                 addGuestMessage('Elevator access denied. Please contact reception.', 'error');
             }
         } else if (checkInStatusRef.current !== 'Checked In') {
+            console.log('[App.js] Elevator access denied - not checked in');
             addMessage("Elevator access requires check-in completion first.");
             addGuestMessage('Please complete check-in first to access the elevator.', 'info');
+        } else {
+            console.log('[App.js] Elevator access already granted');
         }
 
       } else if (deviceName.includes("Room") || deviceName.includes("Door")) {
+        console.log('[App.js] Detected Room beacon:', deviceName);
+        console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'roomAccess:', roomAccessRef.current);
         locationLabel = "Room 1337";
         newLocation = { lat: baseLat + 0.0002, lng: baseLng + 0.0002 };
         addMessage("Context: User is at the Room Door.");
         
         // BLE-triggered Room Access - only after check-in
         if (checkInStatusRef.current === 'Checked In' && roomAccessRef.current !== 'Granted') {
+             console.log('[App.js] Triggering room access verification');
              addMessage("BLE Trigger: Verifying Identity for Room Access...");
              addGuestMessage('Verifying your identity for room access...', 'processing');
              const identityResult = await checkIdentityIntegrity(false, 'Checked In', false);
@@ -600,8 +613,11 @@ function App() {
                  addGuestMessage('Room access denied. Please contact reception.', 'error');
              }
         } else if (checkInStatusRef.current !== 'Checked In') {
+            console.log('[App.js] Room access denied - not checked in');
             addMessage("Room access requires check-in completion first.");
             addGuestMessage('Please complete check-in first to access your room.', 'info');
+        } else {
+            console.log('[App.js] Room access already granted');
         }
       }
       
