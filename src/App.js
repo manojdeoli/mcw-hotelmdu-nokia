@@ -1054,7 +1054,6 @@ function App() {
             setMuseumMap(null);
           }
           // Only reset essential flow control states, preserve User Status and Booking Details
-          setVerifiedPhoneNumber(null);
           setKycMatchResponse(null);
           setLocation(null);
           setSimulationMode('arrival');
