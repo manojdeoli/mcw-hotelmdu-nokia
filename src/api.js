@@ -584,29 +584,14 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
         await new Promise(resolve => setTimeout(resolve, 500)); // Check every 500ms
     }
     
-    addMessage("Check-in consent received. Waiting for final kiosk confirmation...");
-    addGuestMessage('Consent received. Please wait for check-in processing...', 'processing');
+    addMessage("Check-in consent received. BLE system will handle check-in completion.");
+    addGuestMessage('Consent received. Check-in will complete when you approach the kiosk again.', 'processing');
     
-    // Wait for another Kiosk beacon event AFTER consent is given to complete check-in
-    await waitForBeacon(['Kiosk', 'Lobby'], addMessage, 'kiosk_final');
-    
-    // Clear the current waiting stage since check-in will be processed
+    // Clear the current waiting stage - BLE system will handle check-in
     currentWaitingStage = null;
+    beaconWaiters = []; // Clear all waiters
     
-    addMessage("Final kiosk confirmation received. Processing check-in...");
-    addGuestMessage('Processing your check-in...', 'processing');
-    setCheckInStatus("Checked In");
-    const checkInLocation = { lat: hotelLocation.lat + 0.0001, lng: hotelLocation.lng };
-    setUserGps(checkInLocation);
-    
-    addMessage("Check-in process: RFID scan at kiosk...");
-    setRfidStatus("Verified");
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setRfidStatus("Unverified");
-    addMessage("Check-in complete. RFID activated.");
-    addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    addGuestMessage('Hotel amenities: Pool (Level 5), Gym (Level 4), Restaurant (Ground Floor)', 'info');
+    addMessage("Arrival sequence completed. BLE-controlled check-in now active.");
 
     // After check-in, BLE events for elevator and room will be handled by App.js processBeaconDetection
     addMessage("Check-in sequence complete. BLE-controlled elevator and room access now active.");

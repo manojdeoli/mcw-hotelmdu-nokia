@@ -564,7 +564,8 @@ function App() {
             setCheckInStatus('At Kiosk');
             addMessage('Gate BLE detected - Welcome Overlay now available on kiosk');
         } else if (!hasReachedHotel) {
-            console.log('[App.js] Gate beacon detected but guest location not verified yet');
+            console.log('[App.js] Gate beacon detected but guest location not verified yet - ignoring for status change');
+            addMessage('Gate BLE detected but guest location not verified yet');
         }
         
       } else if (deviceName.toLowerCase().includes("kiosk") || deviceName.toLowerCase().includes("lobby")) {
@@ -582,6 +583,12 @@ function App() {
             addGuestMessage('Processing your check-in...', 'processing');
             setCheckInStatus("Checked In");
             setRfidStatus("Verified");
+            
+            // Skip any waiting beacon in API sequence
+            if (api.getCurrentWaitingStage()) {
+                api.skipCurrentBeacon();
+            }
+            
             setTimeout(() => {
               setRfidStatus("Unverified");
               addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
