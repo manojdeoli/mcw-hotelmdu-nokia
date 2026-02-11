@@ -59,6 +59,18 @@ const generateRoute = (start, end, sections = 10) => {
 
 // --- End of Location Simulation Data ---
 
+// --- Proximity Detection Configuration ---
+const PROXIMITY_THRESHOLDS = {
+  IMMEDIATE: -70,    // ~1 meter (trigger actions)
+  NEAR: -75,         // ~2 meters  
+  FAR: -85,          // ~3+ meters (booth beacons at rest)
+  OUT_OF_RANGE: -90  // Ignore
+};
+
+// Track active beacons for strongest signal priority
+const activeBeacons = new Map();
+// --- End of Proximity Detection Configuration ---
+
 // --- Custom Hook for State Synchronization ---
 const useSyncedState = (key, initialValue) => {
   const [state, setState] = useState(initialValue);
@@ -523,7 +535,7 @@ function App() {
     }
   }, [artificialTime, logApiInteraction, setIdentityIntegrity, setElevatorAccess, setRoomAccess, setLastIntegrityCheckTime, addMessage]);
 
-  // --- Centralized Beacon Logic (Used by Manual & Auto Scan) ---
+  // --- Centralized Beacon Logic with Proximity Detection ---
   const processBeaconDetection = useCallback(async (deviceName, rssi = null) => {
       console.log('[App.js] processBeaconDetection called with:', deviceName, rssi);
       console.log('[App.js] isSequenceRunning:', isSequenceRunning, 'hasReachedHotel:', hasReachedHotel);
@@ -550,6 +562,39 @@ function App() {
         console.log('[App.js] Called api.notifyBeaconDetection for waiting stage:', api.getCurrentWaitingStage());
       }
       
+      // --- PROXIMITY DETECTION LOGIC ---
+      if (rssi !== null) {
+        // Update active beacons list with timestamp
+        activeBeacons.set(deviceName, { rssi, timestamp: Date.now() });
+        
+        // Clean old entries (older than 5 seconds)
+        const now = Date.now();
+        for (const [name, data] of activeBeacons.entries()) {
+          if (now - data.timestamp > 5000) {
+            activeBeacons.delete(name);
+          }
+        }
+        
+        // Find strongest signal that meets proximity requirement
+        const validBeacons = [...activeBeacons.entries()]
+          .filter(([name, data]) => data.rssi > PROXIMITY_THRESHOLDS.IMMEDIATE)
+          .sort((a, b) => b[1].rssi - a[1].rssi);
+        
+        // Only process if this beacon is the closest AND meets proximity requirement
+        if (validBeacons.length === 0) {
+          console.log('[App.js] No beacons meet proximity requirement (RSSI > -70)');
+          return;
+        }
+        
+        const [closestBeacon, closestData] = validBeacons[0];
+        if (closestBeacon !== deviceName) {
+          console.log(`[App.js] ${deviceName} (${rssi}) not closest. Closest: ${closestBeacon} (${closestData.rssi})`);
+          return;
+        }
+        
+        console.log(`[App.js] Processing closest beacon: ${deviceName} (RSSI: ${rssi})`);
+      }
+      
       // Always process BLE events for UI updates (status changes, messages)
       console.log('[App.js] Processing BLE event for UI updates');
       
@@ -562,18 +607,25 @@ function App() {
       let locationLabel = "Unknown Area";
       const guestName = formState.name ? formState.name.split(' ')[0] : 'Guest';
 
-      // --- Decision Logic based on Beacon Name ---
+      // --- Decision Logic based on Beacon Name with Workflow State Guards ---
       if (deviceName.toLowerCase().includes("entry") || deviceName.toLowerCase().includes("gate")) {
         locationLabel = "Hotel Entry Gate";
         newLocation = { lat: baseLat, lng: baseLng };
-        addMessage("Arrived at Hotel Entry Gate");
-        addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the hotel entrance.`, 'info');
         
-        // Only set status to 'At Kiosk' if guest has been verified at hotel location
-        if (checkInStatusRef.current !== 'Checked In' && hasReachedHotel) {
-            console.log('[App.js] Setting checkInStatus to At Kiosk due to Gate beacon (guest verified at hotel)');
-            setCheckInStatus('At Kiosk');
-            addMessage('Gate Access: Kiosk Available');
+        // Gate welcome only shows at start OR after checkout (workflow state guard)
+        if (checkInStatusRef.current === 'Not Checked In' || checkInStatusRef.current === 'Checked Out') {
+          addMessage("Arrived at Hotel Entry Gate");
+          addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the hotel entrance.`, 'info');
+          
+          // Only set status to 'At Kiosk' if guest has been verified at hotel location
+          if (checkInStatusRef.current !== 'Checked In' && hasReachedHotel) {
+              console.log('[App.js] Setting checkInStatus to At Kiosk due to Gate beacon (guest verified at hotel)');
+              setCheckInStatus('At Kiosk');
+              addMessage('Gate Access: Kiosk Available');
+          }
+        } else {
+          console.log('[App.js] Gate beacon ignored - user already checked in');
+          addMessage("At Hotel Entry Gate (already checked in)");
         }
         
       } else if (deviceName.toLowerCase().includes("kiosk") || deviceName.toLowerCase().includes("lobby")) {
@@ -581,7 +633,7 @@ function App() {
         newLocation = { lat: baseLat + 0.0001, lng: baseLng };
         addMessage("At Check-in Kiosk");
         
-        // Only trigger check-in if consent has been given
+        // Only trigger check-in if consent has been given and not already checked in
         if (checkInStatusRef.current !== 'Checked In' && checkInConsent) {
             addMessage("Check-in Process: Starting");
             addGuestMessage('Processing your check-in...', 'processing');
@@ -608,7 +660,7 @@ function App() {
         newLocation = { lat: baseLat + 0.0001, lng: baseLng + 0.0001 };
         addMessage("At Elevator Lobby");
         
-        // BLE-triggered Elevator Access - only after check-in
+        // BLE-triggered Elevator Access - only after check-in and if not already granted
         if (checkInStatusRef.current === 'Checked In' && elevatorAccessRef.current !== 'Yes, Floor 13') {
             console.log('[App.js] Triggering elevator access verification');
             addMessage("Elevator Access: Verifying Identity");
@@ -631,13 +683,13 @@ function App() {
 
       } else if (deviceName.toLowerCase().includes("room") || deviceName.toLowerCase().includes("door")) {
         console.log('[App.js] Detected Room beacon:', deviceName);
-        console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'roomAccess:', roomAccessRef.current);
+        console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'roomAccess:', roomAccessRef.current, 'elevatorAccess:', elevatorAccessRef.current);
         locationLabel = "Room 1337";
         newLocation = { lat: baseLat + 0.0002, lng: baseLng + 0.0002 };
         addMessage("At Room 1337 Door");
         
-        // BLE-triggered Room Access - only after check-in
-        if (checkInStatusRef.current === 'Checked In' && roomAccessRef.current !== 'Granted') {
+        // BLE-triggered Room Access - only after check-in, elevator access granted, and room access not already granted
+        if (checkInStatusRef.current === 'Checked In' && elevatorAccessRef.current === 'Yes, Floor 13' && roomAccessRef.current !== 'Granted') {
              console.log('[App.js] Triggering room access verification');
              addMessage("Room Access: Verifying Identity");
              addGuestMessage('Verifying your identity for room access...', 'processing');
@@ -655,13 +707,16 @@ function App() {
         } else if (checkInStatusRef.current !== 'Checked In') {
             console.log('[App.js] Room access denied - not checked in');
             addGuestMessage('Please complete check-in first to access your room.', 'info');
+        } else if (elevatorAccessRef.current !== 'Yes, Floor 13') {
+            console.log('[App.js] Room access denied - elevator access required first');
+            addGuestMessage('Please obtain elevator access first to reach your floor.', 'info');
         } else {
             console.log('[App.js] Room access already granted');
         }
       }
       
       if (newLocation) setUserGps(newLocation);
-  }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity, isSequenceRunning, hasReachedHotel]);
+  }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity, isSequenceRunning, hasReachedHotel, checkInConsent]);
 
   // Show manual Gate button after 60 seconds if waiting for gate
   useEffect(() => {
@@ -699,23 +754,23 @@ function App() {
       setUserGps(elevatorLocation);
     }
 
-    // 1. Call Identity
+    // 1. Elevator Access First
     addMessage("Elevator Access: Verifying Identity");
     addGuestMessage('Verifying your identity for elevator access...', 'processing');
-    const identityResult = await checkIdentityIntegrity(false, 'Checked In'); // Call without showing main loader
+    const elevatorIdentityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'elevator'); // Only grant elevator access
 
-    // 2. Wait and grant elevator access
+    // 2. Wait and confirm elevator access
     await new Promise(resolve => setTimeout(resolve, 5000));
-    if (identityResult) {
+    if (elevatorIdentityResult) {
       addMessage("Elevator Access: Granted to Floor 13");
       addGuestMessage('Elevator access granted! Proceeding to Floor 13.', 'success');
     } else {
       addMessage("Elevator Access: Denied - Identity Check Failed");
       addGuestMessage('Elevator access denied. Please contact reception.', 'error');
-      return; // Stop sequence if initial checks fail
+      return; // Stop sequence if elevator access fails
     }
 
-    // 3. Simulate room access attempt
+    // 3. Then Room Access
     await new Promise(resolve => setTimeout(resolve, 5000));
     
     if (currentLocation) {
@@ -728,7 +783,7 @@ function App() {
     setRfidStatus('Verified');
 
     await new Promise(resolve => setTimeout(resolve, 5000));
-    const roomAccessIdentityResult = await checkIdentityIntegrity(false, 'Checked In'); // Re-check integrity without main loader
+    const roomAccessIdentityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'room'); // Only grant room access
 
     if (roomAccessIdentityResult) {
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -740,7 +795,7 @@ function App() {
     }
 
     await new Promise(resolve => setTimeout(resolve, 3000));
-    setRfidStatus('Not Verified');
+    setRfidStatus('Unverified');
   };
 
   // --- Identity Integrity Timeout Logic ---
