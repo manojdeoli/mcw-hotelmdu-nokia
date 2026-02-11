@@ -570,8 +570,12 @@ function App() {
         newLocation = { lat: baseLat + 0.0001, lng: baseLng };
         addMessage("Context: User is at the Check-in Kiosk.");
         
+        // Debug logging for consent check
+        const consentGiven = api.isCheckInConsentGiven();
+        console.log('[App.js] Kiosk BLE - Consent given:', consentGiven, 'checkInStatus:', checkInStatusRef.current);
+        
         // Only trigger check-in if consent has been given
-        if (checkInStatusRef.current !== 'Checked In' && api.isCheckInConsentGiven()) {
+        if (checkInStatusRef.current !== 'Checked In' && consentGiven) {
             addMessage("Kiosk BLE + Consent: Initiating Check-in...");
             addGuestMessage('Processing your check-in...', 'processing');
             setCheckInStatus("Checked In");
