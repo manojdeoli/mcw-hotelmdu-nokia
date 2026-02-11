@@ -217,7 +217,11 @@ const GuestTab = ({
             </div>
 
             <div className="kiosk-action">
-              <button className="kiosk-checkin-btn" onClick={onCheckInConsent}>
+              <button className="kiosk-checkin-btn" onClick={() => {
+                console.log('[GuestTab] Button clicked!');
+                alert('Button clicked!');
+                onCheckInConsent();
+              }}>
                 <span className="btn-icon">✓</span>
                 Check In Now
               </button>
