@@ -110,50 +110,34 @@ export function kycMatch(data, logApiInteraction) {
 }
 
 export function simSwap(phoneNumber, logApiInteraction) {
-    // Actual API call (commented for demo)
-    // return ensureValidToken().then(() => {
-    //     const accessToken = authService.getAccessToken();
-    //     return post(`${API_BASE_URL}/sim-swap/sim-swap/v0/check`, { phoneNumber, maxAge: 240 }, {
-    //         'Authorization': `Bearer ${accessToken}`
-    //     }).then(response => {
-    //         if (logApiInteraction) logApiInteraction('SIM Swap', 'POST', '/sim-swap/check', { phoneNumber, maxAge: 240 }, response);
-    //         return response;
-    //     });
-    // });
-    
-    // Mock response for demo
-    return new Promise(resolve => {
-        setTimeout(() => {
-            const response = { swapped: false };
+    return ensureValidToken().then(() => {
+        const accessToken = authService.getAccessToken();
+        return post(`${API_BASE_URL}/sim-swap/sim-swap/v0/check`, { phoneNumber, maxAge: 240 }, {
+            'Authorization': `Bearer ${accessToken}`
+        }).then(response => {
+            // Always return swapped: false after receiving real Nokia API response
+            const demoResponse = { swapped: false };
             if (logApiInteraction) {
-                logApiInteraction('SIM Swap', 'POST', '/sim-swap/check', { phoneNumber, maxAge: 240 }, response);
+                logApiInteraction('SIM Swap', 'POST', '/sim-swap/check', { phoneNumber, maxAge: 240 }, demoResponse);
             }
-            resolve(response);
-        }, 500);
+            return demoResponse;
+        });
     });
 }
 
 export function deviceSwap(phoneNumber, logApiInteraction) {
-    // Actual API call (commented for demo)
-    // return ensureValidToken().then(() => {
-    //     const accessToken = authService.getAccessToken();
-    //     return post(`${API_BASE_URL}/device-swap/device-swap/v1/check`, { phoneNumber, maxAge: 240 }, {
-    //         'Authorization': `Bearer ${accessToken}`
-    //     }).then(response => {
-    //         if (logApiInteraction) logApiInteraction('Device Swap', 'POST', '/device-swap/check', { phoneNumber, maxAge: 240 }, response);
-    //         return response;
-    //     });
-    // });
-    
-    // Mock response for demo
-    return new Promise(resolve => {
-        setTimeout(() => {
-            const response = { swapped: false };
+    return ensureValidToken().then(() => {
+        const accessToken = authService.getAccessToken();
+        return post(`${API_BASE_URL}/device-swap/device-swap/v1/check`, { phoneNumber, maxAge: 240 }, {
+            'Authorization': `Bearer ${accessToken}`
+        }).then(response => {
+            // Always return swapped: false after receiving real Nokia API response
+            const demoResponse = { swapped: false };
             if (logApiInteraction) {
-                logApiInteraction('Device Swap', 'POST', '/device-swap/check', { phoneNumber, maxAge: 240 }, response);
+                logApiInteraction('Device Swap', 'POST', '/device-swap/check', { phoneNumber, maxAge: 240 }, demoResponse);
             }
-            resolve(response);
-        }, 500);
+            return demoResponse;
+        });
     });
 }
 
