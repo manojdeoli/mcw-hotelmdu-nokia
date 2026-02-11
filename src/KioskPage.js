@@ -54,6 +54,7 @@ function KioskPage() {
   const [guestMessages, setGuestMessages] = useSyncedState('guestMessages', []);
   const [rfidStatus, setRfidStatus] = useSyncedState('rfidStatus', 'Unverified');
   const [isSequenceRunning] = useSyncedState('isSequenceRunning', false);
+  const [checkInConsent, setCheckInConsent] = useSyncedState('checkInConsent', false);
   const [museumMap, setMuseumMap] = useState(null);
 
   const addGuestMessage = useCallback((message, type = 'info') => {
@@ -72,20 +73,13 @@ function KioskPage() {
     console.log('[KioskPage] Check-in consent button clicked');
     console.log('[KioskPage] Current check-in status:', checkInStatus);
     
-    // Set consent in API (just a flag)
-    api.setCheckInConsent(true);
-    console.log('[KioskPage] Consent set to true in API');
-    
-    // Also broadcast consent via BroadcastChannel for cross-window sync
-    const channel = new BroadcastChannel('hotel_mdu_sync');
-    channel.postMessage({ key: 'checkInConsent', value: true });
-    console.log('[KioskPage] Consent broadcasted via BroadcastChannel');
-    
+    // Set consent using synced state
+    setCheckInConsent(true);
+    console.log('[KioskPage] Consent set to true via synced state');
     addGuestMessage('Check-in consent received. Waiting for kiosk verification...', 'processing');
     
-    // DO NOT force check-in here - let BLE Kiosk beacon or manual "Complete Check-in" button handle it
     console.log('[KioskPage] Consent given, waiting for Kiosk BLE or manual trigger');
-  }, [checkInStatus, addGuestMessage]);
+  }, [checkInStatus, addGuestMessage, setCheckInConsent]);
 
   return (
     <div className="App" style={{ margin: 0, padding: 0 }}>

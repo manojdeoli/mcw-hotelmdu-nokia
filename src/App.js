@@ -154,6 +154,7 @@ function App() {
   const [formState, setFormState] = useSyncedState('formState',
     formFields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
   );
+  const [checkInConsent, setCheckInConsent] = useSyncedState('checkInConsent', false);
 
   // --- Local State (Specific to this window/monitor) ---
   const [isLoading, setIsLoading] = useState(false);
@@ -173,6 +174,7 @@ function App() {
   const [isAutoScanning, setIsAutoScanning] = useState(false);
   const [museumMap, setMuseumMap] = useState(null);
   const [hasReachedHotel, setHasReachedHotel] = useSyncedState('hasReachedHotel', false);
+  const [processedBeacons, setProcessedBeacons] = useSyncedState('processedBeacons', []);
 
   // OAuth Authentication Effect
   useEffect(() => {
@@ -184,21 +186,6 @@ function App() {
     authCheckExecuted.current = true;
     
     console.log('🚀 App mounted, checking authentication...');
-    
-    // Set up BroadcastChannel listener for consent
-    const consentChannel = new BroadcastChannel('hotel_mdu_sync');
-    const consentHandler = (event) => {
-      if (event.data.key === 'checkInConsent') {
-        console.log('[App] Received consent broadcast:', event.data.value);
-        api.setCheckInConsent(event.data.value);
-      }
-    };
-    consentChannel.addEventListener('message', consentHandler);
-    
-    // Cleanup function will remove the listener
-    const cleanup = () => {
-      consentChannel.removeEventListener('message', consentHandler);
-    };
     
     // Redirect from /redirect to / if no code
     if (window.location.pathname === '/redirect' && !window.location.search.includes('code=')) {
@@ -287,9 +274,6 @@ function App() {
     };
     
     checkAuth();
-    
-    // Return cleanup function
-    return cleanup;
   }, []);
 
   // Token expiry countdown
@@ -592,9 +576,8 @@ function App() {
         addMessage("Context: User is at the Check-in Kiosk.");
         
         // Debug logging for consent check
-        const consentGiven = api.isCheckInConsentGiven();
+        const consentGiven = checkInConsent; // Use synced state instead of API
         console.log('[App.js] Kiosk BLE - Consent given:', consentGiven, 'checkInStatus:', checkInStatusRef.current);
-        console.log('[App.js] Kiosk BLE - Calling api.isCheckInConsentGiven() again:', api.isCheckInConsentGiven());
         addMessage(`Kiosk BLE - Consent status: ${consentGiven}`);
         
         // Only trigger check-in if consent has been given
@@ -1247,10 +1230,10 @@ function App() {
                     {isSequenceRunning && api.getCurrentWaitingStage() === 'gate' && (
                       <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual Gate skip triggered'); setCheckInStatus('At Kiosk'); api.skipCurrentBeacon(); }}>Proceed to Kiosk</button>
                     )}
-                    {(checkInStatus === 'At Kiosk' && isSequenceRunning) && checkInStatus !== 'Checked In' && !api.isCheckInConsentGiven() && (
+                    {(checkInStatus === 'At Kiosk' && isSequenceRunning) && checkInStatus !== 'Checked In' && !checkInConsent && (
                       <span className="ml-2 text-info">Waiting for User Consent for Check-in</span>
                     )}
-                    {(checkInStatus === 'At Kiosk' && isSequenceRunning) && checkInStatus !== 'Checked In' && api.isCheckInConsentGiven() && (
+                    {(checkInStatus === 'At Kiosk' && isSequenceRunning) && checkInStatus !== 'Checked In' && checkInConsent && (
                       <button className="btn btn-sm btn-success ml-2" onClick={() => { 
                         addMessage('Manual check-in triggered'); 
                         setCheckInStatus('Checked In');
