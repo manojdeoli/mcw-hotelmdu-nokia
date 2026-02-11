@@ -373,7 +373,15 @@ export function carrierBilling(phoneNumber, logApiInteraction) {
 let beaconEventQueue = [];
 let beaconWaiters = [];
 let currentWaitingStage = null; // Track which stage is currently waiting
-let checkInConsentGiven = false; // Track if guest has given consent for check-in
+
+// Use localStorage for consent to share between windows
+function getCheckInConsent() {
+    return localStorage.getItem('checkInConsentGiven') === 'true';
+}
+
+function setCheckInConsentStorage(consent) {
+    localStorage.setItem('checkInConsentGiven', consent.toString());
+}
 
 // Function to clear beacon queue (call at start of sequence)
 export function clearBeaconQueue() {
@@ -381,7 +389,7 @@ export function clearBeaconQueue() {
     beaconEventQueue = [];
     beaconWaiters = [];
     currentWaitingStage = null;
-    checkInConsentGiven = false;
+    setCheckInConsentStorage(false);
 }
 
 // Function to set check-in consent
@@ -389,8 +397,8 @@ export function setCheckInConsent(consent) {
     console.log('[API] setCheckInConsent called with:', consent);
     console.log('[API] Current waiting stage:', currentWaitingStage);
     console.log('[API] Current waiters count:', beaconWaiters.length);
-    checkInConsentGiven = consent;
-    console.log('[API] checkInConsentGiven variable set to:', checkInConsentGiven);
+    setCheckInConsentStorage(consent);
+    console.log('[API] checkInConsentGiven stored in localStorage as:', localStorage.getItem('checkInConsentGiven'));
     // Consent is just a flag - it should NOT trigger check-in directly
     // Check-in should only be triggered by Kiosk BLE beacon or manual "Complete Check-in" button
     console.log('[API] Consent flag updated, waiting for Kiosk BLE or manual trigger');
@@ -398,8 +406,9 @@ export function setCheckInConsent(consent) {
 
 // Function to check if consent is given
 export function isCheckInConsentGiven() {
-    console.log('[API] isCheckInConsentGiven called, returning:', checkInConsentGiven);
-    return checkInConsentGiven;
+    const consent = getCheckInConsent();
+    console.log('[API] isCheckInConsentGiven called, returning:', consent);
+    return consent;
 }
 
 // Function to get current waiting stage
@@ -582,7 +591,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addGuestMessage('Please confirm your check-in on the Guest Information tab.', 'info');
     
     // Wait for consent indefinitely - no timeout to ensure Welcome Overlay is shown
-    while (!checkInConsentGiven) {
+    while (!getCheckInConsent()) {
         await new Promise(resolve => setTimeout(resolve, 500)); // Check every 500ms
     }
     
