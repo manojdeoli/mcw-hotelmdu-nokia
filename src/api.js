@@ -484,6 +484,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     // Clear any previous beacon events
     clearBeaconQueue();
     
+    addMessage("Journey: Starting to Hotel Barcelona Sol");
     addMessage("Starting Booking and Arrival sequence...");
     addGuestMessage(`Your journey to Hotel Barcelona Sol is beginning, ${guestName}...`, 'info');
 
@@ -524,7 +525,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
         const currentLocation = route[i];
         const stepTime = new Date(startTime.getTime() + step.minutes * 60 * 1000);
         setArtificialTime(stepTime);
-        addMessage(`Calling Location Retrieval at ${stepTime.toLocaleTimeString()}`);
+        addMessage(`Transport: Location at ${stepTime.toLocaleTimeString()}`);
         
         const locRes = await locationRetrieval(phoneNumber, logApiInteraction, currentLocation);
         setLocation(locRes);
@@ -548,6 +549,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     };
     const verification = await locationVerification(locationVerificationData, logApiInteraction);
     if (verification.verificationResult === "TRUE") {
+        addMessage("Journey: Arrived at Hotel Barcelona Sol");
         addMessage("Location verification successful - guest confirmed at hotel!");
         // Set hasReachedHotel based on Location Verification API result
         if (setHasReachedHotel) {
@@ -631,7 +633,7 @@ export async function startCheckOutSequence(phoneNumber, initialUserLocation, ho
         const currentLocation = route[step.routeIndex];
         const stepTime = new Date(checkoutTime.getTime() + step.minutes * 60 * 1000);
         setArtificialTime(stepTime);
-        addMessage(`Calling Location Retrieval at ${stepTime.toLocaleTimeString()}`);
+        addMessage(`Transport: Location at ${stepTime.toLocaleTimeString()}`);
         
         const locRes = await locationRetrieval(phoneNumber, logApiInteraction, currentLocation);
         setLocation(locRes);

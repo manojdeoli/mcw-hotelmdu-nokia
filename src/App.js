@@ -349,11 +349,10 @@ function App() {
   // Connect to Gateway Server when phone is verified (but don't start BLE tracking yet)
   useEffect(() => {
     if (verifiedPhoneNumber) {
-      addMessage(`Connecting to Gateway Server...`);
+      addMessage(`Connected to Gateway Server`);
       gatewayClient.connect(verifiedPhoneNumber);
       setGatewayConnected(true);
       setBleStatus('Connected');
-      addMessage(`Connected to Gateway: ${gatewayClient.getGatewayUrl()}`);
       
       // Set up BLE subscription that persists across reconnections
       const unsubscribe = gatewayClient.subscribe((data) => {
@@ -361,7 +360,6 @@ function App() {
         console.log('[App.js subscription] BLE Event received:', beaconName, zone, rssi);
         console.log('[App.js subscription] Full data object:', data);
         console.log('[App.js subscription] isSequenceRunning:', isSequenceRunning, 'hasReachedHotel:', hasReachedHotel);
-        addMessage(`BLE Event: ${zone || beaconName} (RSSI: ${rssi})`);
         // Notify api.js waiting system with beaconName
         console.log('[App.js subscription] Calling api.notifyBeaconDetection with:', beaconName);
         api.notifyBeaconDetection(beaconName);
@@ -427,21 +425,21 @@ function App() {
       alert('Please verify your phone number first to start registration.');
       return;
     }
-    addMessage("Starting Registration Sequence...");
+    addMessage("Registration: Starting Process");
     addGuestMessage('Starting your registration process...', 'processing');
 
-    addMessage("Partially populating form with KYC Fill...");
+    addMessage("Registration: Populating Form with KYC Data");
     const kycData = await api.kycFill(verifiedPhoneNumber, logApiInteraction);
     setFormState(kycData);
 
     await new Promise(resolve => setTimeout(resolve, 2000));
     const guestName = kycData.name ? kycData.name.split(' ')[0] : 'Guest';
-    addMessage('Form populated. Please review and click KYC Match to verify.');
+    addMessage('Registration: Form Populated - Ready for Verification');
     addGuestMessage(`Registration form populated, ${guestName}! Please verify your information.`, 'info');
     
     // Set registration status to Registered
     setRegistrationStatus('Registered');
-    addMessage('Registration status updated to: Registered');
+    addMessage('Registration: Status Updated to Registered');
   };
 
   const submitKyc = async () => {
@@ -467,7 +465,7 @@ function App() {
       const allFieldsMatch = !Object.values(kycData).includes('false');
       if (allFieldsMatch) {
         // Don't auto-set registration status - user must click Start Registration
-        addMessage('KYC Match successful. Click Start Registration to register.');
+        addMessage('KYC Match: Successful - Ready for Registration');
         addGuestMessage('Your information has been verified successfully!', 'success');
       } else {
         addGuestMessage('Some information could not be verified. Please check and update.', 'error');
@@ -498,7 +496,7 @@ function App() {
       if (loader || autoGrant) {
         setIdentityIntegrity('Good');
         if (artificialTime) setLastIntegrityCheckTime(new Date(artificialTime.getTime()));
-        addMessage('Identity Integrity Verified - No SIM/Device swap detected');
+        addMessage('Identity Integrity Check: Verified');
         
         if (autoGrant && checkInStatus === 'Checked In') {
           if (accessType === 'elevator' || accessType === 'both') {
@@ -562,32 +560,24 @@ function App() {
       if (deviceName.toLowerCase().includes("entry") || deviceName.toLowerCase().includes("gate")) {
         locationLabel = "Hotel Entry Gate";
         newLocation = { lat: baseLat, lng: baseLng };
-        addMessage("Context: User arrived at Entry Gate.");
+        addMessage("Arrived at Hotel Entry Gate");
         addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the hotel entrance.`, 'info');
         
         // Only set status to 'At Kiosk' if guest has been verified at hotel location
         if (checkInStatusRef.current !== 'Checked In' && hasReachedHotel) {
             console.log('[App.js] Setting checkInStatus to At Kiosk due to Gate beacon (guest verified at hotel)');
             setCheckInStatus('At Kiosk');
-            addMessage('Gate BLE detected - Welcome Overlay now available on kiosk');
-        } else if (!hasReachedHotel) {
-            console.log('[App.js] Gate beacon detected but guest location not verified yet - ignoring for status change');
-            addMessage('Gate BLE detected but guest location not verified yet');
+            addMessage('Gate Access: Kiosk Available');
         }
         
       } else if (deviceName.toLowerCase().includes("kiosk") || deviceName.toLowerCase().includes("lobby")) {
         locationLabel = "Check-in Kiosk";
         newLocation = { lat: baseLat + 0.0001, lng: baseLng };
-        addMessage("Context: User is at the Check-in Kiosk.");
-        
-        // Debug logging for consent check
-        const consentGiven = checkInConsent; // Use synced state instead of API
-        console.log('[App.js] Kiosk BLE - Consent given:', consentGiven, 'checkInStatus:', checkInStatusRef.current);
-        addMessage(`Kiosk BLE - Consent status: ${consentGiven}`);
+        addMessage("At Check-in Kiosk");
         
         // Only trigger check-in if consent has been given
-        if (checkInStatusRef.current !== 'Checked In' && consentGiven) {
-            addMessage("Kiosk BLE + Consent: Initiating Check-in...");
+        if (checkInStatusRef.current !== 'Checked In' && checkInConsent) {
+            addMessage("Check-in Process: Starting");
             addGuestMessage('Processing your check-in...', 'processing');
             setCheckInStatus("Checked In");
             setRfidStatus("Verified");
@@ -602,7 +592,6 @@ function App() {
               addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
             }, 3000);
         } else if (checkInStatusRef.current !== 'Checked In') {
-            addMessage("Kiosk BLE detected but waiting for guest consent...");
             addGuestMessage('Please confirm your check-in on the Guest Information tab.', 'info');
         }
 
@@ -611,25 +600,24 @@ function App() {
         console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'elevatorAccess:', elevatorAccessRef.current);
         locationLabel = "Elevator Lobby";
         newLocation = { lat: baseLat + 0.0001, lng: baseLng + 0.0001 };
-        addMessage("Context: User is at the Elevator.");
+        addMessage("At Elevator Lobby");
         
         // BLE-triggered Elevator Access - only after check-in
         if (checkInStatusRef.current === 'Checked In' && elevatorAccessRef.current !== 'Yes, Floor 13') {
             console.log('[App.js] Triggering elevator access verification');
-            addMessage("BLE Trigger: Verifying Identity for Elevator Access...");
+            addMessage("Elevator Access: Verifying Identity");
             addGuestMessage('Verifying your identity for elevator access...', 'processing');
             const identityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'elevator'); // Only grant elevator access
             if (identityResult) {
                 setElevatorAccess('Yes, Floor 13');
-                addMessage("BLE Access Granted: Elevator to Floor 13.");
+                addMessage("Elevator Access: Granted to Floor 13");
                 addGuestMessage('Elevator access granted! Proceeding to Floor 13.', 'success');
             } else {
-                addMessage("BLE Access Denied: Elevator access failed.");
+                addMessage("Elevator Access: Denied");
                 addGuestMessage('Elevator access denied. Please contact reception.', 'error');
             }
         } else if (checkInStatusRef.current !== 'Checked In') {
             console.log('[App.js] Elevator access denied - not checked in');
-            addMessage("Elevator access requires check-in completion first.");
             addGuestMessage('Please complete check-in first to access the elevator.', 'info');
         } else {
             console.log('[App.js] Elevator access already granted');
@@ -640,27 +628,26 @@ function App() {
         console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'roomAccess:', roomAccessRef.current);
         locationLabel = "Room 1337";
         newLocation = { lat: baseLat + 0.0002, lng: baseLng + 0.0002 };
-        addMessage("Context: User is at the Room Door.");
+        addMessage("At Room 1337 Door");
         
         // BLE-triggered Room Access - only after check-in
         if (checkInStatusRef.current === 'Checked In' && roomAccessRef.current !== 'Granted') {
              console.log('[App.js] Triggering room access verification');
-             addMessage("BLE Trigger: Verifying Identity for Room Access...");
+             addMessage("Room Access: Verifying Identity");
              addGuestMessage('Verifying your identity for room access...', 'processing');
              const identityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'room'); // Only grant room access
              if (identityResult) {
                  setRoomAccess('Granted');
                  setRfidStatus('Verified');
                  setTimeout(() => setRfidStatus('Unverified'), 3000);
-                 addMessage("BLE Access Granted: Room 1337 Unlocked.");
+                 addMessage("Room Access: Granted - Door Unlocked");
                  addGuestMessage(`Welcome to your room, ${guestName}! Door unlocked. Enjoy your stay!`, 'success');
              } else {
-                 addMessage("BLE Access Denied: Room access failed.");
+                 addMessage("Room Access: Denied");
                  addGuestMessage('Room access denied. Please contact reception.', 'error');
              }
         } else if (checkInStatusRef.current !== 'Checked In') {
             console.log('[App.js] Room access denied - not checked in');
-            addMessage("Room access requires check-in completion first.");
             addGuestMessage('Please complete check-in first to access your room.', 'info');
         } else {
             console.log('[App.js] Room access already granted');
@@ -668,11 +655,6 @@ function App() {
       }
       
       if (newLocation) setUserGps(newLocation);
-      if (rssi) {
-        addMessage(`Auto-Tracked: ${locationLabel} (RSSI: ${rssi})`);
-      } else {
-        addMessage(`Location Verified via BLE: ${locationLabel}`);
-      }
   }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity, isSequenceRunning, hasReachedHotel]);
 
   // Show manual Gate button after 60 seconds if waiting for gate
@@ -704,26 +686,25 @@ function App() {
     const currentLocation = (passedLocation && passedLocation.lat) ? passedLocation : hotelLocation;
     const guestName = formState.name ? formState.name.split(' ')[0] : 'Guest';
 
-    addMessage("Starting Elevator and Room Access sequence...");
+    addMessage("Access Sequence: Starting Elevator & Room Access");
     
     if (currentLocation) {
       const elevatorLocation = { lat: currentLocation.lat + 0.0001, lng: currentLocation.lng + 0.0001 };
       setUserGps(elevatorLocation);
-      addMessage("Location updated: Elevator Lobby");
     }
 
     // 1. Call Identity
-    addMessage("Verifying identity for elevator access...");
+    addMessage("Elevator Access: Verifying Identity");
     addGuestMessage('Verifying your identity for elevator access...', 'processing');
     const identityResult = await checkIdentityIntegrity(false, 'Checked In'); // Call without showing main loader
 
     // 2. Wait and grant elevator access
     await new Promise(resolve => setTimeout(resolve, 5000));
     if (identityResult) {
-      addMessage("Identity confirmed. Elevator access granted to floor 13.");
+      addMessage("Elevator Access: Granted to Floor 13");
       addGuestMessage('Elevator access granted! Proceeding to Floor 13.', 'success');
     } else {
-      addMessage("Could not grant elevator access. Identity check failed.");
+      addMessage("Elevator Access: Denied - Identity Check Failed");
       addGuestMessage('Elevator access denied. Please contact reception.', 'error');
       return; // Stop sequence if initial checks fail
     }
@@ -734,29 +715,26 @@ function App() {
     if (currentLocation) {
       const roomLocation = { lat: currentLocation.lat + 0.0002, lng: currentLocation.lng + 0.0002 };
       setUserGps(roomLocation);
-      addMessage("Location updated: Room 1337 Entrance");
     }
 
-    addMessage("Tap phone on room door lock to re-verify...");
+    addMessage("Room Access: Verifying Identity");
     addGuestMessage('Verifying your identity for room access...', 'processing');
     setRfidStatus('Verified');
 
     await new Promise(resolve => setTimeout(resolve, 5000));
-    addMessage("Re-checking identity integrity at the door...");
     const roomAccessIdentityResult = await checkIdentityIntegrity(false, 'Checked In'); // Re-check integrity without main loader
 
     if (roomAccessIdentityResult) {
       await new Promise(resolve => setTimeout(resolve, 2000));
-      addMessage("Identity re-confirmed. Room access granted.");
+      addMessage("Room Access: Granted - Door Unlocked");
       addGuestMessage(`Welcome to your room, ${guestName}! Door unlocked. Enjoy your stay!`, 'success');
     } else {
-      addMessage("Room access denied. Identity check failed at the door.");
+      addMessage("Room Access: Denied - Identity Check Failed");
       addGuestMessage('Room access denied. Please contact reception.', 'error');
     }
 
     await new Promise(resolve => setTimeout(resolve, 3000));
     setRfidStatus('Not Verified');
-    addMessage("RFID status reset.");
   };
 
   // --- Identity Integrity Timeout Logic ---
@@ -926,7 +904,7 @@ function App() {
     try {
       const verificationData = await api.verifyPhoneNumber(fullPhoneNumber, logApiInteraction);
       if (verificationData.devicePhoneNumberVerified === true) {
-        addMessage("Phone number is verified...");
+        addMessage("Phone Number: Verified");
         setSuccess('Phone number is verified.');
         setVerifiedPhoneNumber(fullPhoneNumber);
         addGuestMessage('Welcome! Your phone number has been verified successfully.', 'welcome');
