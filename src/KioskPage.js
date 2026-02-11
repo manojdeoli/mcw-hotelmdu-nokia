@@ -74,6 +74,7 @@ function KioskPage() {
     
     // Set consent in API (just a flag)
     api.setCheckInConsent(true);
+    console.log('[KioskPage] Consent set to true in API');
     addGuestMessage('Check-in consent received. Waiting for kiosk verification...', 'processing');
     
     // DO NOT force check-in here - let BLE Kiosk beacon or manual "Complete Check-in" button handle it
