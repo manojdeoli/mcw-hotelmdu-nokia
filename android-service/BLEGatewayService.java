@@ -35,6 +35,9 @@ public class BLEGatewayService extends Service {
     private static final String CHANNEL_ID = "ble_gateway_channel";
     private static final int WEBSOCKET_PORT = 3001;
     
+    // Fixed demo subscription ID - matches web app
+    private static final String DEMO_SUBSCRIPTION_ID = "hotel-demo-subscription";
+    
     private PowerManager.WakeLock wakeLock;
     private BluetoothLeScanner bleScanner;
     private boolean isScanning = false;
@@ -62,7 +65,7 @@ public class BLEGatewayService extends Service {
                     bleEvent.put("timestamp", System.currentTimeMillis());
                     
                     broadcastToClients(bleEvent.toString());
-                    Log.d(TAG, "BLE Event: " + bleEvent.toString());
+                    Log.d(TAG, "BLE Event (Demo Mode): " + bleEvent.toString());
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error processing scan result", e);
@@ -133,8 +136,8 @@ public class BLEGatewayService extends Service {
         );
         
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Hotel BLE Gateway")
-            .setContentText("Scanning for beacons - Running in background")
+            .setContentTitle("Hotel BLE Gateway (Demo Mode)")
+            .setContentText("Using fixed subscription: " + DEMO_SUBSCRIPTION_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -196,7 +199,7 @@ public class BLEGatewayService extends Service {
                 Selector selector = Selector.open();
                 serverChannel.register(selector, SelectionKey.OP_ACCEPT);
                 
-                Log.d(TAG, "WebSocket server started on port " + WEBSOCKET_PORT);
+                Log.d(TAG, "WebSocket server started on port " + WEBSOCKET_PORT + " (Demo Mode - Fixed Subscription)");
                 
                 while (isServerRunning) {
                     selector.select(1000);

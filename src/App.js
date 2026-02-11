@@ -349,8 +349,8 @@ function App() {
   // Connect to Gateway Server when phone is verified (but don't start BLE tracking yet)
   useEffect(() => {
     if (verifiedPhoneNumber) {
-      addMessage(`Connected to Gateway Server`);
-      gatewayClient.connect(verifiedPhoneNumber);
+      addMessage(`Connected to Gateway Server with demo subscription`);
+      gatewayClient.connect(verifiedPhoneNumber); // Pass phone for logging, but uses fixed demo ID internally
       setGatewayConnected(true);
       setBleStatus('Connected');
       

@@ -10,8 +10,17 @@
         android:id="@+id/statusText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="BLE Gateway Service"
+        android:text="BLE Gateway Service (Demo Mode)"
         android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Fixed Subscription ID: hotel-demo-subscription"
+        android:textSize="14sp"
+        android:textColor="#FF6600"
         android:textStyle="bold"
         android:layout_marginBottom="32dp" />
 
@@ -33,7 +42,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Service will run in background even when phone is locked"
+        android:text="Service will run in background even when phone is locked.\nAll web apps will receive BLE events regardless of phone number."
         android:textSize="12sp"
         android:textColor="#666666"
         android:layout_marginTop="32dp"

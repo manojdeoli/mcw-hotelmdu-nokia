@@ -1,6 +1,9 @@
 // Gateway Server URL - Update this when deployed to cloud
 const GATEWAY_URL = process.env.REACT_APP_GATEWAY_URL || 'http://192.168.1.4:3001';
 
+// Fixed demo subscription ID - all web app instances use this
+const DEMO_SUBSCRIPTION_ID = 'hotel-demo-subscription';
+
 class GatewayClient {
   constructor() {
     this.ws = null;
@@ -9,19 +12,25 @@ class GatewayClient {
     this.userId = null;
   }
 
-  // Connect to Gateway Server
-  connect(userId) {
+  // Connect to Gateway Server with fixed demo subscription
+  connect(userPhoneNumber = null) {
     if (this.ws) {
       this.disconnect();
     }
 
-    this.userId = userId;
+    // Always use the fixed demo subscription ID
+    this.userId = DEMO_SUBSCRIPTION_ID;
+    
     // Convert HTTP URL to WebSocket URL and ensure proper path
     let wsUrl = GATEWAY_URL.replace('http://', 'ws://').replace('https://', 'wss://');
     // Remove trailing slash if present, then add it back for consistency
     wsUrl = wsUrl.replace(/\/$/, '') + '/';
     
     console.log('[Gateway] Connecting to:', wsUrl);
+    console.log('[Gateway] Using demo subscription ID:', this.userId);
+    if (userPhoneNumber) {
+      console.log('[Gateway] User phone number (display only):', userPhoneNumber);
+    }
     
     try {
       this.ws = new WebSocket(wsUrl);
@@ -30,7 +39,7 @@ class GatewayClient {
         console.log('[Gateway] Connected to server');
         this.connected = true;
         
-        // Subscribe to user's BLE events
+        // Subscribe to shared demo BLE events
         this.ws.send(JSON.stringify({ type: 'subscribe', userId: this.userId }));
       };
 
@@ -38,15 +47,11 @@ class GatewayClient {
         console.log('[Gateway] Disconnected from server', event.code, event.reason);
         this.connected = false;
         
-        // Auto-reconnect after 2 seconds if userId is still set
-        if (this.userId) {
-          console.log('[Gateway] Reconnecting in 2 seconds...');
-          setTimeout(() => {
-            if (this.userId) {
-              this.connect(this.userId);
-            }
-          }, 2000);
-        }
+        // Auto-reconnect after 2 seconds
+        console.log('[Gateway] Reconnecting in 2 seconds...');
+        setTimeout(() => {
+          this.connect();
+        }, 2000);
       };
 
       this.ws.onerror = (error) => {
@@ -99,13 +104,11 @@ class GatewayClient {
 
   // Disconnect from Gateway
   disconnect() {
-    this.userId = null; // Clear userId to prevent auto-reconnect
     if (this.ws) {
       this.ws.close();
       this.ws = null;
       this.connected = false;
-      // Don't clear subscribers - they should persist across reconnections
-      // this.subscribers = [];
+      this.userId = null;
     }
   }
 
