@@ -166,7 +166,7 @@ function App() {
       localStorage.setItem('activeTab', activeTab);
     }
   }, [activeTab]);
-  const [isSequenceRunning, setIsSequenceRunning] = useState(false); // Only the driver window runs the sequence logic
+  const [isSequenceRunning, setIsSequenceRunning] = useSyncedState('isSequenceRunning', false);
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -515,7 +515,12 @@ function App() {
       console.log('[App.js] isSequenceRunning:', isSequenceRunning, 'hasReachedHotel:', hasReachedHotel);
       console.log('[App.js] checkInStatus:', checkInStatusRef.current);
       
-      // Only process BLE events if guest has been verified at hotel location OR if it's a Gate beacon
+      // Only process BLE events if arrival sequence is running AND (guest verified at hotel OR it's a Gate beacon)
+      if (!isSequenceRunning) {
+        console.log('[App.js] Ignoring BLE event - arrival sequence not running yet');
+        return;
+      }
+      
       if (!hasReachedHotel && !deviceName.toLowerCase().includes("entry") && !deviceName.toLowerCase().includes("gate")) {
         console.log('[App.js] Ignoring non-Gate BLE event - guest location not verified yet');
         return;
@@ -1195,10 +1200,10 @@ function App() {
                     {isSequenceRunning && api.getCurrentWaitingStage() === 'gate' && (
                       <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual Gate skip triggered'); setCheckInStatus('At Kiosk'); api.skipCurrentBeacon(); }}>Proceed to Kiosk</button>
                     )}
-                    {(checkInStatus === 'At Kiosk' || (isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk')) && checkInStatus !== 'Checked In' && !api.isCheckInConsentGiven() && (
+                    {(checkInStatus === 'At Kiosk' && isSequenceRunning) && checkInStatus !== 'Checked In' && !api.isCheckInConsentGiven() && (
                       <span className="ml-2 text-info">Waiting for User Consent for Check-in</span>
                     )}
-                    {(checkInStatus === 'At Kiosk' || (isSequenceRunning && api.getCurrentWaitingStage() === 'kiosk')) && checkInStatus !== 'Checked In' && api.isCheckInConsentGiven() && (
+                    {(checkInStatus === 'At Kiosk' && isSequenceRunning) && checkInStatus !== 'Checked In' && api.isCheckInConsentGiven() && (
                       <button className="btn btn-sm btn-success ml-2" onClick={() => { 
                         addMessage('Manual check-in triggered'); 
                         setCheckInStatus('Checked In');

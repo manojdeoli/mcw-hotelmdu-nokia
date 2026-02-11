@@ -53,6 +53,7 @@ function KioskPage() {
   const [hasReachedHotel] = useSyncedState('hasReachedHotel', false);
   const [guestMessages, setGuestMessages] = useSyncedState('guestMessages', []);
   const [rfidStatus, setRfidStatus] = useSyncedState('rfidStatus', 'Unverified');
+  const [isSequenceRunning] = useSyncedState('isSequenceRunning', false);
   const [museumMap, setMuseumMap] = useState(null);
 
   const addGuestMessage = useCallback((message, type = 'info') => {
@@ -91,6 +92,7 @@ function KioskPage() {
         hasReachedHotel={hasReachedHotel}
         guestMessages={guestMessages}
         onCheckInConsent={handleCheckInConsent}
+        isSequenceRunning={isSequenceRunning}
       />
     </div>
   );

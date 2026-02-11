@@ -14,7 +14,8 @@ const GuestTab = ({
   setMuseumMap,
   hasReachedHotel,
   onCheckInConsent,
-  guestMessages
+  guestMessages,
+  isSequenceRunning
 }) => {
   
   const mapInitialized = useRef(false);
@@ -181,7 +182,7 @@ const GuestTab = ({
           </div>
         )}
 
-        {verifiedPhoneNumber && checkInStatus === 'At Kiosk' && checkInStatus !== 'Checked In' && checkInStatus !== 'Checked Out' && (
+        {verifiedPhoneNumber && checkInStatus === 'At Kiosk' && isSequenceRunning && checkInStatus !== 'Checked In' && checkInStatus !== 'Checked Out' && (
           <div className="kiosk-checkin-section">
             <div className="kiosk-welcome-message">
               <h3>Welcome, {firstName}!</h3>
