@@ -579,21 +579,15 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addMessage("Waiting for guest consent to proceed with check-in...");
     addGuestMessage('Please confirm your check-in on the Guest Information tab.', 'info');
     
-    // Wait for consent with timeout to prevent infinite loop
-    let consentWaitTime = 0;
-    while (!checkInConsentGiven && consentWaitTime < 60000) { // Max 60 seconds
-        await new Promise(resolve => setTimeout(resolve, 100)); // Check every 100ms instead of 500ms
-        consentWaitTime += 100;
+    // Wait for consent indefinitely - no timeout to ensure Welcome Overlay is shown
+    while (!checkInConsentGiven) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Check every 500ms
     }
     
-    // Clear the current waiting stage since consent is given or timeout reached
+    // Clear the current waiting stage since consent is given
     currentWaitingStage = null;
     
-    if (checkInConsentGiven) {
-        addMessage("Check-in consent received. Processing check-in...");
-    } else {
-        addMessage("Consent timeout reached. Processing check-in automatically...");
-    }
+    addMessage("Check-in consent received. Processing check-in...");
     addGuestMessage('Processing your check-in...', 'processing');
     setCheckInStatus("Checked In");
     const checkInLocation = { lat: hotelLocation.lat + 0.0001, lng: hotelLocation.lng };
