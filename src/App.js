@@ -482,7 +482,7 @@ function App() {
     }
   };
 
-  const checkIdentityIntegrity = useCallback(async (loader, checkInStatus, autoGrant = true) => {
+  const checkIdentityIntegrity = useCallback(async (loader, checkInStatus, autoGrant = true, accessType = 'both') => {
     if (!verifiedPhoneNumberRef.current) {
       alert('Please verify phone number first.');
       return false;
@@ -501,8 +501,12 @@ function App() {
         addMessage('Identity Integrity Verified - No SIM/Device swap detected');
         
         if (autoGrant && checkInStatus === 'Checked In') {
-          setElevatorAccess('Yes, Floor 13');
-          setRoomAccess('Granted');
+          if (accessType === 'elevator' || accessType === 'both') {
+            setElevatorAccess('Yes, Floor 13');
+          }
+          if (accessType === 'room' || accessType === 'both') {
+            setRoomAccess('Granted');
+          }
         }
       }
       return true;
@@ -614,7 +618,7 @@ function App() {
             console.log('[App.js] Triggering elevator access verification');
             addMessage("BLE Trigger: Verifying Identity for Elevator Access...");
             addGuestMessage('Verifying your identity for elevator access...', 'processing');
-            const identityResult = await checkIdentityIntegrity(false, 'Checked In', true); // Set autoGrant=true to update UI
+            const identityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'elevator'); // Only grant elevator access
             if (identityResult) {
                 setElevatorAccess('Yes, Floor 13');
                 addMessage("BLE Access Granted: Elevator to Floor 13.");
@@ -643,7 +647,7 @@ function App() {
              console.log('[App.js] Triggering room access verification');
              addMessage("BLE Trigger: Verifying Identity for Room Access...");
              addGuestMessage('Verifying your identity for room access...', 'processing');
-             const identityResult = await checkIdentityIntegrity(false, 'Checked In', true); // Set autoGrant=true to update UI
+             const identityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'room'); // Only grant room access
              if (identityResult) {
                  setRoomAccess('Granted');
                  setRfidStatus('Verified');
