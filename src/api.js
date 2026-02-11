@@ -584,10 +584,16 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
         await new Promise(resolve => setTimeout(resolve, 500)); // Check every 500ms
     }
     
-    // Clear the current waiting stage since consent is given
+    addMessage("Check-in consent received. Waiting for final kiosk confirmation...");
+    addGuestMessage('Consent received. Please wait for check-in processing...', 'processing');
+    
+    // Wait for another Kiosk beacon event AFTER consent is given to complete check-in
+    await waitForBeacon(['Kiosk', 'Lobby'], addMessage, 'kiosk_final');
+    
+    // Clear the current waiting stage since check-in will be processed
     currentWaitingStage = null;
     
-    addMessage("Check-in consent received. Processing check-in...");
+    addMessage("Final kiosk confirmation received. Processing check-in...");
     addGuestMessage('Processing your check-in...', 'processing');
     setCheckInStatus("Checked In");
     const checkInLocation = { lat: hotelLocation.lat + 0.0001, lng: hotelLocation.lng };
