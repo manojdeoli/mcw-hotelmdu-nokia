@@ -392,7 +392,7 @@ function App() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [verifiedPhoneNumber, addMessage, setGatewayConnected, setBleStatus]);
+  }, [verifiedPhoneNumber, addMessage, setGatewayConnected, setBleStatus, processBeaconDetection]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
