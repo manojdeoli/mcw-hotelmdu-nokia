@@ -558,11 +558,13 @@ function App() {
         addMessage("Context: User arrived at Entry Gate.");
         addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the hotel entrance.`, 'info');
         
-        // ALWAYS set status to 'At Kiosk' when Gate beacon is detected, regardless of waiting stage
-        if (checkInStatusRef.current !== 'Checked In') {
-            console.log('[App.js] Setting checkInStatus to At Kiosk due to Gate beacon');
+        // Only set status to 'At Kiosk' if guest has been verified at hotel location
+        if (checkInStatusRef.current !== 'Checked In' && hasReachedHotel) {
+            console.log('[App.js] Setting checkInStatus to At Kiosk due to Gate beacon (guest verified at hotel)');
             setCheckInStatus('At Kiosk');
             addMessage('Gate BLE detected - Welcome Overlay now available on kiosk');
+        } else if (!hasReachedHotel) {
+            console.log('[App.js] Gate beacon detected but guest location not verified yet');
         }
         
       } else if (deviceName.toLowerCase().includes("kiosk") || deviceName.toLowerCase().includes("lobby")) {
