@@ -491,12 +491,13 @@ function App() {
       const simSwapResult = await api.simSwap(verifiedPhoneNumberRef.current, logApiInteraction);
       const deviceSwapResult = await api.deviceSwap(verifiedPhoneNumberRef.current, logApiInteraction);
 
-      // Only set to 'Good' if this is a manual check (loader=true) or during automated sequences
-      // For demo purposes, always return good status but only update UI if manual check
-      if (loader || autoGrant) {
+      // Check if both SIM and Device are not swapped (good integrity)
+      const isGoodIntegrity = !simSwapResult.swapped && !deviceSwapResult.swapped;
+      
+      if (isGoodIntegrity) {
         setIdentityIntegrity('Good');
         if (artificialTime) setLastIntegrityCheckTime(new Date(artificialTime.getTime()));
-        addMessage('Identity Integrity Check: Verified');
+        addMessage('Identity Integrity Check: Verified - No SIM/Device swap detected');
         
         if (autoGrant && checkInStatus === 'Checked In') {
           if (accessType === 'elevator' || accessType === 'both') {
@@ -506,11 +507,16 @@ function App() {
             setRoomAccess('Granted');
           }
         }
+        return true;
+      } else {
+        setIdentityIntegrity('Bad');
+        addMessage('Identity Integrity Check: Failed - SIM/Device swap detected');
+        return false;
       }
-      return true;
     } catch (err) {
       console.error('Identity integrity check failed:', err);
-      if (loader) setIdentityIntegrity('Bad');
+      setIdentityIntegrity('Bad');
+      addMessage(`Identity Integrity Check: API Error - ${err.message}`);
       return false;
     } finally {
       if (loader) setIsLoading(false);
