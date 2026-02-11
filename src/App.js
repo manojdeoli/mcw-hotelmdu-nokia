@@ -576,6 +576,8 @@ function App() {
         // Debug logging for consent check
         const consentGiven = api.isCheckInConsentGiven();
         console.log('[App.js] Kiosk BLE - Consent given:', consentGiven, 'checkInStatus:', checkInStatusRef.current);
+        console.log('[App.js] Kiosk BLE - Calling api.isCheckInConsentGiven() again:', api.isCheckInConsentGiven());
+        addMessage(`Kiosk BLE - Consent status: ${consentGiven}`);
         
         // Only trigger check-in if consent has been given
         if (checkInStatusRef.current !== 'Checked In' && consentGiven) {

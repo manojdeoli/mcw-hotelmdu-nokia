@@ -386,10 +386,11 @@ export function clearBeaconQueue() {
 
 // Function to set check-in consent
 export function setCheckInConsent(consent) {
-    console.log('[API] Check-in consent set to:', consent);
+    console.log('[API] setCheckInConsent called with:', consent);
     console.log('[API] Current waiting stage:', currentWaitingStage);
     console.log('[API] Current waiters count:', beaconWaiters.length);
     checkInConsentGiven = consent;
+    console.log('[API] checkInConsentGiven variable set to:', checkInConsentGiven);
     // Consent is just a flag - it should NOT trigger check-in directly
     // Check-in should only be triggered by Kiosk BLE beacon or manual "Complete Check-in" button
     console.log('[API] Consent flag updated, waiting for Kiosk BLE or manual trigger');
@@ -397,6 +398,7 @@ export function setCheckInConsent(consent) {
 
 // Function to check if consent is given
 export function isCheckInConsentGiven() {
+    console.log('[API] isCheckInConsentGiven called, returning:', checkInConsentGiven);
     return checkInConsentGiven;
 }
 
