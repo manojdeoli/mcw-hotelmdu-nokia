@@ -341,6 +341,7 @@ function App() {
   useEffect(() => { hotelLocationRef.current = hotelLocation; }, [hotelLocation]);
   useEffect(() => { verifiedPhoneNumberRef.current = verifiedPhoneNumber; }, [verifiedPhoneNumber]);
   const bleUnsubscribeRef = useRef(null);
+  const processBeaconDetectionRef = useRef(null);
 
   // Connect to Gateway Server when phone is verified (but don't start BLE tracking yet)
   useEffect(() => {
@@ -363,7 +364,9 @@ function App() {
         api.notifyBeaconDetection(beaconName);
         // Also call processBeaconDetection for UI updates
         console.log('[App.js subscription] Calling processBeaconDetection with:', beaconName, rssi);
-        processBeaconDetection(beaconName, rssi);
+        if (processBeaconDetectionRef.current) {
+          processBeaconDetectionRef.current(beaconName, rssi);
+        }
       });
       
       // Store unsubscribe function
@@ -392,7 +395,7 @@ function App() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [verifiedPhoneNumber, addMessage, setGatewayConnected, setBleStatus, processBeaconDetection]);
+  }, [verifiedPhoneNumber, addMessage, setGatewayConnected, setBleStatus]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -650,6 +653,11 @@ function App() {
         addMessage(`Location Verified via BLE: ${locationLabel}`);
       }
   }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity, isSequenceRunning, hasReachedHotel]);
+
+  // Update ref whenever processBeaconDetection changes
+  useEffect(() => {
+    processBeaconDetectionRef.current = processBeaconDetection;
+  }, [processBeaconDetection]);
 
 
 
