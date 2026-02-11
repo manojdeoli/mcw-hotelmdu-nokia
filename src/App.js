@@ -185,6 +185,21 @@ function App() {
     
     console.log('🚀 App mounted, checking authentication...');
     
+    // Set up BroadcastChannel listener for consent
+    const consentChannel = new BroadcastChannel('hotel_mdu_sync');
+    const consentHandler = (event) => {
+      if (event.data.key === 'checkInConsent') {
+        console.log('[App] Received consent broadcast:', event.data.value);
+        api.setCheckInConsent(event.data.value);
+      }
+    };
+    consentChannel.addEventListener('message', consentHandler);
+    
+    // Cleanup function will remove the listener
+    const cleanup = () => {
+      consentChannel.removeEventListener('message', consentHandler);
+    };
+    
     // Redirect from /redirect to / if no code
     if (window.location.pathname === '/redirect' && !window.location.search.includes('code=')) {
       console.log('⚠️ On /redirect without code, redirecting to /');
@@ -272,6 +287,9 @@ function App() {
     };
     
     checkAuth();
+    
+    // Return cleanup function
+    return cleanup;
   }, []);
 
   // Token expiry countdown

@@ -75,6 +75,12 @@ function KioskPage() {
     // Set consent in API (just a flag)
     api.setCheckInConsent(true);
     console.log('[KioskPage] Consent set to true in API');
+    
+    // Also broadcast consent via BroadcastChannel for cross-window sync
+    const channel = new BroadcastChannel('hotel_mdu_sync');
+    channel.postMessage({ key: 'checkInConsent', value: true });
+    console.log('[KioskPage] Consent broadcasted via BroadcastChannel');
+    
     addGuestMessage('Check-in consent received. Waiting for kiosk verification...', 'processing');
     
     // DO NOT force check-in here - let BLE Kiosk beacon or manual "Complete Check-in" button handle it
