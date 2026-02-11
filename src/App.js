@@ -526,13 +526,14 @@ function App() {
         return;
       }
       
-      // Notify the api.js waiting system only if there's an active waiting stage
+      // Notify the api.js waiting system if there's an active waiting stage
       if (api.getCurrentWaitingStage()) {
         api.notifyBeaconDetection(deviceName);
         console.log('[App.js] Called api.notifyBeaconDetection for waiting stage:', api.getCurrentWaitingStage());
-      } else {
-        console.log('[App.js] No active waiting stage, processing BLE event directly');
       }
+      
+      // Always process BLE events for UI updates (status changes, messages)
+      console.log('[App.js] Processing BLE event for UI updates');
       
       const currentHotelLoc = hotelLocationRef.current || { lat: -33.8688, lng: 151.2093 };
       const baseLat = currentHotelLoc.lat;
