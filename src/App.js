@@ -175,6 +175,7 @@ function App() {
   const [museumMap, setMuseumMap] = useState(null);
   const [hasReachedHotel, setHasReachedHotel] = useSyncedState('hasReachedHotel', false);
   const [processedBeacons, setProcessedBeacons] = useSyncedState('processedBeacons', []);
+  const [showManualGateButton, setShowManualGateButton] = useState(false);
 
   // OAuth Authentication Effect
   useEffect(() => {
@@ -669,6 +670,19 @@ function App() {
         addMessage(`Location Verified via BLE: ${locationLabel}`);
       }
   }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity, isSequenceRunning, hasReachedHotel]);
+
+  // Show manual Gate button after 60 seconds if waiting for gate
+  useEffect(() => {
+    if (isSequenceRunning && hasReachedHotel && api.getCurrentWaitingStage() === 'gate') {
+      const timer = setTimeout(() => {
+        setShowManualGateButton(true);
+        addMessage('Manual Gate button available - BLE not detected for 60 seconds');
+      }, 60000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowManualGateButton(false);
+    }
+  }, [isSequenceRunning, hasReachedHotel, api.getCurrentWaitingStage(), addMessage]);
 
   // Update ref whenever processBeaconDetection changes
   useEffect(() => {
@@ -1227,9 +1241,9 @@ function App() {
                   <li><strong>Registration Status:</strong> <span style={{ color: registrationStatus === 'Registered' ? 'green' : 'red' }}>{registrationStatus}</span>
                   </li>
                   <li><strong>Check-in Status:</strong> <span style={{ color: checkInStatus === 'Checked In' ? 'green' : 'red' }}>{checkInStatus}</span>
-                    {isSequenceRunning && api.getCurrentWaitingStage() === 'gate' && (
-                      <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual Gate skip triggered'); setCheckInStatus('At Kiosk'); api.skipCurrentBeacon(); }}>Proceed to Kiosk</button>
-                    )}
+                    {(isSequenceRunning && api.getCurrentWaitingStage() === 'gate') || showManualGateButton ? (
+                      <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual Gate skip triggered'); setCheckInStatus('At Kiosk'); api.skipCurrentBeacon(); setShowManualGateButton(false); }}>Proceed to Kiosk</button>
+                    ) : null}
                     {(checkInStatus === 'At Kiosk' && isSequenceRunning) && checkInStatus !== 'Checked In' && !checkInConsent && (
                       <span className="ml-2 text-info">Waiting for User Consent for Check-in</span>
                     )}
