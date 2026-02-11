@@ -516,7 +516,7 @@ function App() {
       console.log('[App.js] checkInStatus:', checkInStatusRef.current);
       
       // Only process BLE events if guest has been verified at hotel location OR if it's a Gate beacon
-      if (!hasReachedHotel && !deviceName.includes("Entry") && !deviceName.includes("Gate")) {
+      if (!hasReachedHotel && !deviceName.toLowerCase().includes("entry") && !deviceName.toLowerCase().includes("gate")) {
         console.log('[App.js] Ignoring non-Gate BLE event - guest location not verified yet');
         return;
       }
@@ -539,7 +539,7 @@ function App() {
       const guestName = formState.name ? formState.name.split(' ')[0] : 'Guest';
 
       // --- Decision Logic based on Beacon Name ---
-      if (deviceName.includes("Entry") || deviceName.includes("Gate")) {
+      if (deviceName.toLowerCase().includes("entry") || deviceName.toLowerCase().includes("gate")) {
         locationLabel = "Hotel Entry Gate";
         newLocation = { lat: baseLat, lng: baseLng };
         addMessage("Context: User arrived at Entry Gate.");
@@ -551,7 +551,7 @@ function App() {
             addMessage('Gate BLE detected - Welcome Overlay now available on kiosk');
         }
         
-      } else if (deviceName.includes("Kiosk") || deviceName.includes("Lobby")) {
+      } else if (deviceName.toLowerCase().includes("kiosk") || deviceName.toLowerCase().includes("lobby")) {
         locationLabel = "Check-in Kiosk";
         newLocation = { lat: baseLat + 0.0001, lng: baseLng };
         addMessage("Context: User is at the Check-in Kiosk.");
@@ -571,7 +571,7 @@ function App() {
             addGuestMessage('Please confirm your check-in on the Guest Information tab.', 'info');
         }
 
-      } else if (deviceName.includes("Elevator") || deviceName.includes("Lift")) {
+      } else if (deviceName.toLowerCase().includes("elevator") || deviceName.toLowerCase().includes("lift")) {
         console.log('[App.js] Detected Elevator beacon:', deviceName);
         console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'elevatorAccess:', elevatorAccessRef.current);
         locationLabel = "Elevator Lobby";
@@ -600,7 +600,7 @@ function App() {
             console.log('[App.js] Elevator access already granted');
         }
 
-      } else if (deviceName.includes("Room") || deviceName.includes("Door")) {
+      } else if (deviceName.toLowerCase().includes("room") || deviceName.toLowerCase().includes("door")) {
         console.log('[App.js] Detected Room beacon:', deviceName);
         console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'roomAccess:', roomAccessRef.current);
         locationLabel = "Room 1337";
