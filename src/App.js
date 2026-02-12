@@ -816,11 +816,12 @@ function App() {
       const oneHourInMs = 60 * 60 * 1000;
       const timeSinceCheck = artificialTime.getTime() - lastIntegrityCheckTime.getTime();
 
-      if (timeSinceCheck > oneHourInMs) {
+      // Don't reset to Bad during checkout - user has already been verified multiple times
+      if (timeSinceCheck > oneHourInMs && checkInStatus !== 'Checked Out') {
         setIdentityIntegrity('Bad');
       }
     }
-  }, [artificialTime, identityIntegrity, lastIntegrityCheckTime, setIdentityIntegrity]);
+  }, [artificialTime, identityIntegrity, lastIntegrityCheckTime, checkInStatus, setIdentityIntegrity]);
 
 
   useEffect(() => {
