@@ -2,7 +2,7 @@ import axios from 'axios';
 import authService from './auth';
 
 const API_BASE_URL = 'https://network-as-code.p-eu.rapidapi.com/passthrough/camara/v1';
-const API_KEY = '5f2dbafafamsh87b419851b02d59p1c9ce3jsncbbd0bf87a70';
+const API_KEY = 'a1dee25b3dmsh933c9f572c08b1cp1e7225jsna6c0a404fd8e';
 
 const defaultHeaders = {
     'Content-Type': 'application/json',
@@ -78,13 +78,58 @@ export function verifyPhoneNumber(phoneNumber, logApiInteraction) {
 }
 
 export function kycMatch(data, logApiInteraction) {
-    const stored = storedKycFillData[data.phoneNumber];
-    if (!stored) {
+    // Real API call to Nokia KYC Match v0.3
+    const requestBody = {
+        phoneNumber: data.phoneNumber,
+        name: data.name,
+        address: data.address,
+        birthdate: data.birthdate,
+        email: data.email
+    };
+    
+    return post(`${API_BASE_URL}/kyc-match/kyc-match/v0.3/match`, requestBody).then(response => {
+        // Real API call succeeded
+        if (logApiInteraction) {
+            const obscuredRequest = {
+                phoneNumber: data.phoneNumber,
+                name: data.name ? 'XXXXX' : '',
+                address: data.address ? 'XXXXX' : '',
+                email: data.email ? 'XXXXX' : '',
+                birthdate: data.birthdate ? 'XXXXX' : ''
+            };
+            logApiInteraction('KYC Match', 'POST', '/kyc-match/kyc-match/v0.3/match', obscuredRequest, response);
+        }
+        return response;
+    }).catch(error => {
+        // Real API call failed - fallback to mock implementation
+        console.warn('KYC Match API call failed, using mock implementation:', error.message);
+        
+        // Mock implementation fallback
+        const stored = storedKycFillData[data.phoneNumber];
+        if (!stored) {
+            const response = {
+                nameMatch: 'not_available',
+                addressMatch: 'not_available',
+                birthdateMatch: 'not_available',
+                emailMatch: 'not_available'
+            };
+            if (logApiInteraction) {
+                const obscuredRequest = {
+                    phoneNumber: data.phoneNumber,
+                    name: data.name ? 'XXXXX' : '',
+                    address: data.address ? 'XXXXX' : '',
+                    email: data.email ? 'XXXXX' : '',
+                    birthdate: data.birthdate ? 'XXXXX' : ''
+                };
+                logApiInteraction('KYC Match (Mock)', 'POST', '/kyc-match/kyc-match/v0.3/match', obscuredRequest, response);
+            }
+            return response;
+        }
         const response = {
-            nameMatch: 'not_available',
-            addressMatch: 'not_available',
-            birthdateMatch: 'not_available',
-            emailMatch: 'not_available'
+            nameMatch: data.name === stored.name ? 'true' : 'false',
+            addressMatch: data.address === stored.address ? 'true' : 'false',
+            birthdateMatch: data.birthdate === stored.birthdate ? 'true' : 'false',
+            emailMatch: data.email === stored.email ? 'true' : 'false'
         };
         if (logApiInteraction) {
             const obscuredRequest = {
@@ -94,27 +139,10 @@ export function kycMatch(data, logApiInteraction) {
                 email: data.email ? 'XXXXX' : '',
                 birthdate: data.birthdate ? 'XXXXX' : ''
             };
-            logApiInteraction('KYC Match', 'POST', '/kyc-match/kyc-match/v0.2/match', obscuredRequest, response);
+            logApiInteraction('KYC Match (Mock)', 'POST', '/kyc-match/kyc-match/v0.3/match', obscuredRequest, response);
         }
-        return Promise.resolve(response);
-    }
-    const response = {
-        nameMatch: data.name === stored.name ? 'true' : 'false',
-        addressMatch: data.address === stored.address ? 'true' : 'false',
-        birthdateMatch: data.birthdate === stored.birthdate ? 'true' : 'false',
-        emailMatch: data.email === stored.email ? 'true' : 'false'
-    };
-    if (logApiInteraction) {
-        const obscuredRequest = {
-            phoneNumber: data.phoneNumber,
-            name: data.name ? 'XXXXX' : '',
-            address: data.address ? 'XXXXX' : '',
-            email: data.email ? 'XXXXX' : '',
-            birthdate: data.birthdate ? 'XXXXX' : ''
-        };
-        logApiInteraction('KYC Match', 'POST', '/kyc-match/kyc-match/v0.2/match', obscuredRequest, response);
-    }
-    return Promise.resolve(response);
+        return response;
+    });
 }
 
 export function simSwap(phoneNumber, logApiInteraction) {
@@ -279,6 +307,32 @@ const defaultKycData = {
 
 let storedKycFillData = {};
 
+// Helper function to convert various date formats to YYYY-MM-DD
+function convertDateFormat(dateString) {
+    if (!dateString) return '';
+    
+    // Handle dd/mm/yyyy format
+    if (dateString.includes('/')) {
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+            const [day, month, year] = parts;
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+    }
+    
+    // Handle dd-mm-yyyy format
+    if (dateString.includes('-') && dateString.length === 10 && !dateString.startsWith('19') && !dateString.startsWith('20')) {
+        const parts = dateString.split('-');
+        if (parts.length === 3) {
+            const [day, month, year] = parts;
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+    }
+    
+    // Already in YYYY-MM-DD format or other format, return as is
+    return dateString;
+}
+
 export async function kycFill(phoneNumber, logApiInteraction) {
     const response = await post(`${API_BASE_URL}/kyc-fill-in/kyc-fill-in/v0.4/fill-in`, { phoneNumber });
     const kycData = {
@@ -287,7 +341,7 @@ export async function kycFill(phoneNumber, logApiInteraction) {
         name: response.name || '',
         address: response.address || '',
         email: response.email || '',
-        birthdate: response.birthdate || '',
+        birthdate: convertDateFormat(response.birthdate) || '',
         _obscured: {
             phoneNumber: response.phoneNumber,
             idDocument: response.idDocument,
