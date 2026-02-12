@@ -61,10 +61,10 @@ const generateRoute = (start, end, sections = 10) => {
 
 // --- Proximity Detection Configuration ---
 const PROXIMITY_THRESHOLDS = {
-  IMMEDIATE: -70,    // ~1 meter (trigger actions)
-  NEAR: -75,         // ~2 meters  
-  FAR: -85,          // ~3+ meters (booth beacons at rest)
-  OUT_OF_RANGE: -90  // Ignore
+  IMMEDIATE: -55,    // ~0.5 meter (trigger actions when RSSI >= -50, very close proximity)
+  NEAR: -65,         // ~1 meter  
+  FAR: -75,          // ~2+ meters 
+  OUT_OF_RANGE: -85  // Ignore
 };
 
 // Track active beacons for strongest signal priority
@@ -577,12 +577,12 @@ function App() {
         
         // Find strongest signal that meets proximity requirement
         const validBeacons = [...activeBeacons.entries()]
-          .filter(([name, data]) => data.rssi > PROXIMITY_THRESHOLDS.IMMEDIATE)
+          .filter(([name, data]) => data.rssi >= PROXIMITY_THRESHOLDS.IMMEDIATE)
           .sort((a, b) => b[1].rssi - a[1].rssi);
         
         // Only process if this beacon is the closest AND meets proximity requirement
         if (validBeacons.length === 0) {
-          console.log('[App.js] No beacons meet proximity requirement (RSSI > -70)');
+          console.log('[App.js] No beacons meet proximity requirement (RSSI >= -50)');
           return;
         }
         
@@ -631,7 +631,11 @@ function App() {
       } else if (deviceName.toLowerCase().includes("kiosk") || deviceName.toLowerCase().includes("lobby")) {
         locationLabel = "Check-in Kiosk";
         newLocation = { lat: baseLat + 0.0001, lng: baseLng };
-        addMessage("At Check-in Kiosk");
+        
+        // Only log kiosk location if user hasn't progressed beyond check-in (no elevator access yet)
+        if (elevatorAccessRef.current === 'No') {
+            addMessage("At Check-in Kiosk");
+        }
         
         // Only trigger check-in if consent has been given and not already checked in
         if (checkInStatusRef.current !== 'Checked In' && checkInConsent) {
@@ -658,7 +662,11 @@ function App() {
         console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'elevatorAccess:', elevatorAccessRef.current);
         locationLabel = "Elevator Lobby";
         newLocation = { lat: baseLat + 0.0001, lng: baseLng + 0.0001 };
-        addMessage("At Elevator Lobby");
+        
+        // Only log location if user is checked in
+        if (checkInStatusRef.current === 'Checked In') {
+            addMessage("At Elevator Lobby");
+        }
         
         // BLE-triggered Elevator Access - only after check-in and if not already granted
         if (checkInStatusRef.current === 'Checked In' && elevatorAccessRef.current !== 'Yes, Floor 13') {
@@ -686,7 +694,11 @@ function App() {
         console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'roomAccess:', roomAccessRef.current, 'elevatorAccess:', elevatorAccessRef.current);
         locationLabel = "Room 1337";
         newLocation = { lat: baseLat + 0.0002, lng: baseLng + 0.0002 };
-        addMessage("At Room 1337 Door");
+        
+        // Only log location if user is checked in
+        if (checkInStatusRef.current === 'Checked In') {
+            addMessage("At Room 1337 Door");
+        }
         
         // BLE-triggered Room Access - only after check-in, elevator access granted, and room access not already granted
         if (checkInStatusRef.current === 'Checked In' && elevatorAccessRef.current === 'Yes, Floor 13' && roomAccessRef.current !== 'Granted') {
