@@ -836,7 +836,7 @@ function App() {
 
 
   useEffect(() => {
-    const mapInstance = L.map('map').setView([-33.8688, 151.2093], 12); // Initial view, will be updated by other useEffect
+    const mapInstance = L.map('map').setView([41.39256127381875, 2.178483834574889], 12); // Barcelona coordinates
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(mapInstance);
