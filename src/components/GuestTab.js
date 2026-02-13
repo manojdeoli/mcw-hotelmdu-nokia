@@ -21,7 +21,47 @@ const GuestTab = ({
   
   const mapInitialized = useRef(false);
   const [showCheckedInContent, setShowCheckedInContent] = useState(false);
+  const [showScrollUp, setShowScrollUp] = useState(false);
+  const [showScrollDown, setShowScrollDown] = useState(false);
+  const scrollContainerRef = useRef(null);
   
+  // Check scroll position to show/hide scroll indicators
+  const checkScrollPosition = () => {
+    if (scrollContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+      setShowScrollUp(scrollTop > 0);
+      setShowScrollDown(scrollTop < scrollHeight - clientHeight - 10);
+    }
+  };
+
+  // Scroll functions
+  const scrollUp = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ top: -200, behavior: 'smooth' });
+    }
+  };
+
+  const scrollDown = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ top: 200, behavior: 'smooth' });
+    }
+  };
+
+  // Check scroll position on mount and content changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkScrollPosition();
+      // Force show scroll down initially if content overflows
+      if (scrollContainerRef.current) {
+        const { scrollHeight, clientHeight } = scrollContainerRef.current;
+        if (scrollHeight > clientHeight) {
+          setShowScrollDown(true);
+        }
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [checkInStatus, showCheckedInContent]);
+
   // Debug logging
   useEffect(() => {
     console.log('[GuestTab] State updated:', {
@@ -53,71 +93,81 @@ const GuestTab = ({
         // Museum Map
         const museumMapElement = document.getElementById('museum-map');
         if (museumMapElement && !museumMap) {
+          console.log('Initializing museum map');
           const museumCoords = [41.3851, 2.1734];
           
-          const museumMapInstance = L.map('museum-map').setView([(museumCoords[0] + hotelCoords[0])/2, (museumCoords[1] + hotelCoords[1])/2], 14);
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-          }).addTo(museumMapInstance);
-          
-          const hotelIcon = L.divIcon({
-            html: '<div style="background: #007bff; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🏨</div>',
-            className: '',
-            iconSize: [30, 30]
-          });
-          L.marker(hotelCoords, { icon: hotelIcon }).addTo(museumMapInstance).bindPopup('Hotel Barcelona Sol');
-          
-          const museumIcon = L.divIcon({
-            html: '<div style="background: #e80074; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🎨</div>',
-            className: '',
-            iconSize: [30, 30]
-          });
-          L.marker(museumCoords, { icon: museumIcon }).addTo(museumMapInstance).bindPopup('Museu Picasso Barcelona');
-          
-          L.polyline([hotelCoords, museumCoords], {
-            color: '#007bff',
-            weight: 3,
-            opacity: 0.7,
-            dashArray: '10, 10'
-          }).addTo(museumMapInstance);
-          
-          setMuseumMap(museumMapInstance);
+          try {
+            const museumMapInstance = L.map('museum-map').setView([(museumCoords[0] + hotelCoords[0])/2, (museumCoords[1] + hotelCoords[1])/2], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(museumMapInstance);
+            
+            const hotelIcon = L.divIcon({
+              html: '<div style="background: #007bff; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🏨</div>',
+              className: '',
+              iconSize: [30, 30]
+            });
+            L.marker(hotelCoords, { icon: hotelIcon }).addTo(museumMapInstance).bindPopup('Hotel Barcelona Sol');
+            
+            const museumIcon = L.divIcon({
+              html: '<div style="background: #e80074; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🎨</div>',
+              className: '',
+              iconSize: [30, 30]
+            });
+            L.marker(museumCoords, { icon: museumIcon }).addTo(museumMapInstance).bindPopup('Museu Picasso Barcelona');
+            
+            L.polyline([hotelCoords, museumCoords], {
+              color: '#007bff',
+              weight: 3,
+              opacity: 0.7,
+              dashArray: '10, 10'
+            }).addTo(museumMapInstance);
+            
+            setMuseumMap(museumMapInstance);
+          } catch (error) {
+            console.error('Error initializing museum map:', error);
+          }
         }
         
         // Beach Map
         const beachMapElement = document.getElementById('beach-map');
         if (beachMapElement) {
+          console.log('Initializing beach map');
           const beachCoords = [41.3806, 2.1896];
           
-          const beachMapInstance = L.map('beach-map').setView([(beachCoords[0] + hotelCoords[0])/2, (beachCoords[1] + hotelCoords[1])/2], 13);
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-          }).addTo(beachMapInstance);
-          
-          const hotelIcon2 = L.divIcon({
-            html: '<div style="background: #007bff; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🏨</div>',
-            className: '',
-            iconSize: [30, 30]
-          });
-          L.marker(hotelCoords, { icon: hotelIcon2 }).addTo(beachMapInstance).bindPopup('Hotel Barcelona Sol');
-          
-          const beachIcon = L.divIcon({
-            html: '<div style="background: #20c997; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🏖️</div>',
-            className: '',
-            iconSize: [30, 30]
-          });
-          L.marker(beachCoords, { icon: beachIcon }).addTo(beachMapInstance).bindPopup('Barceloneta Beach');
-          
-          L.polyline([hotelCoords, beachCoords], {
-            color: '#20c997',
-            weight: 3,
-            opacity: 0.7,
-            dashArray: '10, 10'
-          }).addTo(beachMapInstance);
+          try {
+            const beachMapInstance = L.map('beach-map').setView([(beachCoords[0] + hotelCoords[0])/2, (beachCoords[1] + hotelCoords[1])/2], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(beachMapInstance);
+            
+            const hotelIcon2 = L.divIcon({
+              html: '<div style="background: #007bff; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🏨</div>',
+              className: '',
+              iconSize: [30, 30]
+            });
+            L.marker(hotelCoords, { icon: hotelIcon2 }).addTo(beachMapInstance).bindPopup('Hotel Barcelona Sol');
+            
+            const beachIcon = L.divIcon({
+              html: '<div style="background: #20c997; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🏖️</div>',
+              className: '',
+              iconSize: [30, 30]
+            });
+            L.marker(beachCoords, { icon: beachIcon }).addTo(beachMapInstance).bindPopup('Barceloneta Beach');
+            
+            L.polyline([hotelCoords, beachCoords], {
+              color: '#20c997',
+              weight: 3,
+              opacity: 0.7,
+              dashArray: '10, 10'
+            }).addTo(beachMapInstance);
+          } catch (error) {
+            console.error('Error initializing beach map:', error);
+          }
         }
         
         mapInitialized.current = true;
-      }, 300);
+      }, 1000);
     }
     
     // Cleanup when component unmounts or check-in status changes to not checked in
@@ -141,14 +191,16 @@ const GuestTab = ({
     <div className="kiosk-container">
       <div className="kiosk-background" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/Hotel_entrance.png)`, backgroundPosition: 'center top' }}></div>
       
-      <div className="kiosk-overlay">
-        <div className="kiosk-header">
-          <div className="hotel-logo">
-            <img src={`${process.env.PUBLIC_URL}/hotel_logo.png`} alt="Hotel Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+      {/* Embedded Kiosk Screen */}
+      <div className="kiosk-screen-frame" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/kiosk.png)` }}>
+        <div className="kiosk-screen-content" ref={scrollContainerRef} onScroll={checkScrollPosition}>
+          <div className="kiosk-header">
+            <div className="hotel-logo">
+              <img src={`${process.env.PUBLIC_URL}/hotel_logo.png`} alt="Hotel Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+            <h1 className="kiosk-hotel-name">Hotel Barcelona Sol</h1>
+            <div className="hotel-stars">⭐⭐⭐⭐⭐</div>
           </div>
-          <h1 className="kiosk-hotel-name">Hotel Barcelona Sol</h1>
-          <div className="hotel-stars">⭐⭐⭐⭐⭐</div>
-        </div>
 
         {!verifiedPhoneNumber && (
           <div className="kiosk-welcome-idle kiosk-welcome-compact">
@@ -336,7 +388,20 @@ const GuestTab = ({
             </div>
           </div>
         )}
+        </div>
       </div>
+      
+      {/* Fixed Scroll Buttons */}
+      {showScrollUp && (
+        <button className="scroll-indicator scroll-up" onClick={scrollUp}>
+          ↑
+        </button>
+      )}
+      {showScrollDown && (
+        <button className="scroll-indicator scroll-down" onClick={scrollDown}>
+          ↓
+        </button>
+      )}
       
       {/* Debug Panel */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '5px 10px', fontSize: '10px', zIndex: 9999 }}>
