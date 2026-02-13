@@ -170,6 +170,7 @@ function App() {
 
   // --- Local State (Specific to this window/monitor) ---
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [map, setMap] = useState(null);
   const [activeTab, setActiveTab] = useState('api');
   
@@ -937,6 +938,7 @@ function App() {
     const regex = /^\+\d{10,15}$/
     setError('');
     setSuccess('');
+    setIsVerifying(true); // Set verifying state immediately
 
     // Reset form fields and all status when starting fresh verification with new number
     setFormState(formFields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {}));
@@ -957,6 +959,7 @@ function App() {
 
     if (!regex.test(fullPhoneNumber)) {
       setError('Please enter a valid international phone number (e.g., +61412345678).');
+      setIsVerifying(false);
       return;
     }
 
@@ -974,6 +977,7 @@ function App() {
       setTimeout(() => {
         authService.authenticate(phoneToUse);
       }, 100);
+      setIsVerifying(false);
       return;
     }
 
@@ -995,6 +999,7 @@ function App() {
       addGuestMessage('An error occurred during verification. Please try again.', 'error');
     } finally {
       setIsLoading(false);
+      setIsVerifying(false);
     }
   };
 
@@ -1283,7 +1288,9 @@ function App() {
                     <div className="form-group">
                       <input type="text" id="phone" className="form-control" placeholder="e.g., +61412345678" value={phone} onChange={(e) => setPhone(e.target.value)} />
                     </div>
-                    <button type="submit" id="verifyBtn" className="btn btn-primary">Verify</button>
+                    <button type="submit" id="verifyBtn" className="btn btn-primary" disabled={isVerifying}>
+                      {isVerifying ? 'Verifying...' : 'Verify'}
+                    </button>
                   </div>
                   {error && <div id="error" className="alert alert-danger">{error}</div>}
                   {success && <div id="success" className="alert alert-success">{success}</div>}

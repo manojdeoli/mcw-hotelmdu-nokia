@@ -195,10 +195,10 @@ export function deviceSwap(phoneNumber, logApiInteraction) {
 
 
 const mockKycData = {
-    '1234567890': { name: 'Joe Bloggs', address: 'Av. Joan Carles I, 64, 08908 L\'Hospitalet de Llobregat, Barcelona, Spain', birthdate: '29/08/1865', email: 'oldestperson.alive@anemaildomain.com' },
-    '1234567891': { name: 'John Smith', address: '2 Tower Center Blvd, East Brunswick, NJ 08816, USA', birthdate: '01-01-1970', email: 'smith3463452@anemaildomain.com' },
-    '1234567892': { name: 'Alice Anonymous', address: '425 National Ave # 200, Mountain View, CA 94043, USA', birthdate: '01-01-1980', email: 'alice547345234@anemaildomain.com' },
-    '1234567893': { name: 'Patricia Public', address: 'Wipro Limited, Doddakannelli, Sarjapur Road, Bengaluru - 560 035, India', birthdate: '01-01-1990', email: 'patricia.public23562346@anemaildomain.com' },
+    '1234567890': { name: 'Joe Bloggs', address: 'Av. Joan Carles I, 64, 08908 L\'Hospitalet de Llobregat, Barcelona, Spain', birthdate: '1865-08-29', email: 'oldestperson.alive@anemaildomain.com' },
+    '1234567891': { name: 'John Smith', address: '2 Tower Center Blvd, East Brunswick, NJ 08816, USA', birthdate: '1970-01-01', email: 'smith3463452@anemaildomain.com' },
+    '1234567892': { name: 'Alice Anonymous', address: '425 National Ave # 200, Mountain View, CA 94043, USA', birthdate: '1980-01-01', email: 'alice547345234@anemaildomain.com' },
+    '1234567893': { name: 'Patricia Public', address: 'Wipro Limited, Doddakannelli, Sarjapur Road, Bengaluru - 560 035, India', birthdate: '1990-01-01', email: 'patricia.public23562346@anemaildomain.com' },
     '61400500804': { name: 'Chen Wei', address: '23 North Terrace, Adelaide SA 5000', birthdate: '1979-03-22', email: 'chen22031979@example.com' },
     '61400500805': { name: 'Priya Ramesh Kumar', address: '45 Margaret St, Brisbane QLD 4000', birthdate: '1974-04-12', email: 'priyak12041974@gmail.com' },
     '61400500806': { name: 'Jean-Pierre Dubois', address: '18 Macquarie St, Hobart TAS 7000', birthdate: '1957-05-30', email: 'user3674@yahoo.com' },
@@ -320,8 +320,8 @@ function convertDateFormat(dateString) {
         }
     }
     
-    // Handle dd-mm-yyyy format
-    if (dateString.includes('-') && dateString.length === 10 && !dateString.startsWith('19') && !dateString.startsWith('20')) {
+    // Handle dd-mm-yyyy format (including from API responses)
+    if (dateString.includes('-') && dateString.length === 10 && !dateString.match(/^\d{4}-/)) {
         const parts = dateString.split('-');
         if (parts.length === 3) {
             const [day, month, year] = parts;
@@ -341,7 +341,7 @@ export async function kycFill(phoneNumber, logApiInteraction) {
         name: response.name || '',
         address: response.address || '',
         email: response.email || '',
-        birthdate: convertDateFormat(response.birthdate) || '',
+        birthdate: response.birthdate || '', // KYC-Fill API returns dates in YYYY-MM-DD format
         _obscured: {
             phoneNumber: response.phoneNumber,
             idDocument: response.idDocument,
