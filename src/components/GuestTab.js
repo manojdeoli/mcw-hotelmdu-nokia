@@ -15,7 +15,8 @@ const GuestTab = ({
   hasReachedHotel,
   onCheckInConsent,
   guestMessages,
-  isSequenceRunning
+  isSequenceRunning,
+  checkInConsent
 }) => {
   
   const mapInitialized = useRef(false);
@@ -217,10 +218,19 @@ const GuestTab = ({
             </div>
 
             <div className="kiosk-action">
-              <button className="kiosk-checkin-btn" onClick={onCheckInConsent}>
-                <span className="btn-icon">✓</span>
-                Check In Now
-              </button>
+              {!checkInConsent && (
+                <button className="kiosk-checkin-btn" onClick={onCheckInConsent}>
+                  <span className="btn-icon">✓</span>
+                  Check In Now
+                </button>
+              )}
+              {checkInConsent && (
+                <div className="consent-given-message">
+                  <p style={{ color: '#28a745', fontWeight: 'bold', margin: '20px 0', textAlign: 'center' }}>
+                    ✓ Check-in consent received. Waiting for verification...
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}

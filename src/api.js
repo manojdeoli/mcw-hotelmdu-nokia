@@ -669,9 +669,10 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     console.log('[API] Sequence complete - cleared all waiters and waiting stage');
 }
 
-export async function startCheckOutSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, generateRoute, setArtificialTime, setPaymentStatus, setElevatorAccess, setRoomAccess, setRfidStatus, guestName, logApiInteraction, addGuestMessage) {
+export async function startCheckOutSequence(phoneNumber, initialUserLocation, hotelLocation, addMessage, setLocation, setUserGps, setCheckInStatus, generateRoute, setArtificialTime, setPaymentStatus, setElevatorAccess, setRoomAccess, setRfidStatus, guestName, logApiInteraction, addGuestMessage, setIdentityIntegrity, currentIdentityIntegrity) {
     addMessage("Starting Check-out sequence...");
     addGuestMessage(`Processing your check-out, ${guestName}. Please wait...`, 'processing');
+    
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Use relative time - 15 minutes before checkout
@@ -727,6 +728,13 @@ export async function startCheckOutSequence(phoneNumber, initialUserLocation, ho
 
     addMessage(`Contact guest ${guestName} on ${phoneNumber} to confirm check out.`);
     setCheckInStatus("Checked Out");
+    
+    // Restore Identity Integrity status - user was already verified multiple times during stay
+    if (currentIdentityIntegrity === 'Good') {
+        setIdentityIntegrity('Good');
+        addMessage("Identity Integrity: Preserved as Good (user was verified during stay)");
+    }
+    
     setRfidStatus("Unverified");
     setElevatorAccess("No");
     setRoomAccess("No");

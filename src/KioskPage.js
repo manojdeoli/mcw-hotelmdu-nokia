@@ -94,6 +94,7 @@ function KioskPage() {
         guestMessages={guestMessages}
         onCheckInConsent={handleCheckInConsent}
         isSequenceRunning={isSequenceRunning}
+        checkInConsent={checkInConsent}
       />
     </div>
   );

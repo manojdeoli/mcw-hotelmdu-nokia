@@ -942,7 +942,10 @@ function App() {
     setFormState(formFields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {}));
     setKycMatchResponse(null);
     setHasReachedHotel(false); // Reset hotel arrival status
-    setIdentityIntegrity('Bad'); // Reset identity integrity status
+    // Don't reset identity integrity if user is checked out - they were already verified
+    if (checkInStatus !== 'Checked Out') {
+      setIdentityIntegrity('Bad'); // Reset identity integrity status
+    }
     setRegistrationStatus('Not Registered'); // Reset registration status
     setCheckInStatus('Not Checked In'); // Reset check-in status
     setPaymentStatus('Not Paid'); // Reset payment status
@@ -1115,7 +1118,9 @@ function App() {
           setRfidStatus, // Pass setRfidStatus
           guestName, // Pass guestName to the API call
           logApiInteraction, // Pass logger
-          addGuestMessage // Pass guest message function
+          addGuestMessage, // Pass guest message function
+          setIdentityIntegrity, // Pass setIdentityIntegrity to preserve status
+          identityIntegrity // Pass current Identity Integrity value
         );
 
         setTimeout(() => {
