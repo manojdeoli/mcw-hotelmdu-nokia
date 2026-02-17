@@ -412,7 +412,7 @@ export function carrierBilling(phoneNumber, logApiInteraction) {
             paymentAmount: {
                 chargingInformation: {
                     amount: 299.00,
-                    currency: "AUD"
+                    currency: "EUR"
                 }
             }
         }

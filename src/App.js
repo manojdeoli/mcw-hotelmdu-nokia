@@ -11,6 +11,8 @@ import { formFields } from './formFields';
 import gatewayClient from './gatewayClient';
 import GuestTab from './components/GuestTab';
 import authService from './auth';
+import RSSIProcessor from './rssiProcessor';
+import proximityConfig from './proximityConfig';
 
 
 // --- Fix for Leaflet's default icon ---
@@ -189,6 +191,16 @@ function App() {
   const [hasReachedHotel, setHasReachedHotel] = useSyncedState('hasReachedHotel', false);
   const [processedBeacons, setProcessedBeacons] = useSyncedState('processedBeacons', []);
   const [showManualGateButton, setShowManualGateButton] = useState(false);
+  const [currentWaitingStage, setCurrentWaitingStage] = useState(null);
+
+  // Track current waiting stage from API
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const stage = api.getCurrentWaitingStage();
+      setCurrentWaitingStage(stage);
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   // OAuth Authentication Effect
   useEffect(() => {
@@ -358,6 +370,7 @@ function App() {
   useEffect(() => { verifiedPhoneNumberRef.current = verifiedPhoneNumber; }, [verifiedPhoneNumber]);
   const bleUnsubscribeRef = useRef(null);
   const processBeaconDetectionRef = useRef(null);
+  const rssiProcessorRef = useRef(new RSSIProcessor(proximityConfig.getSmoothedConfig()));
 
   // Connect to Gateway Server when phone is verified (but don't start BLE tracking yet)
   useEffect(() => {
@@ -565,35 +578,47 @@ function App() {
       
       // --- PROXIMITY DETECTION LOGIC ---
       if (rssi !== null) {
-        // Update active beacons list with timestamp
-        activeBeacons.set(deviceName, { rssi, timestamp: Date.now() });
-        
-        // Clean old entries (older than 5 seconds)
-        const now = Date.now();
-        for (const [name, data] of activeBeacons.entries()) {
-          if (now - data.timestamp > 5000) {
-            activeBeacons.delete(name);
+        if (proximityConfig.isDirectMode()) {
+          // DIRECT MODE: Legacy immediate comparison
+          activeBeacons.set(deviceName, { rssi, timestamp: Date.now() });
+          
+          const now = Date.now();
+          for (const [name, data] of activeBeacons.entries()) {
+            if (now - data.timestamp > 5000) {
+              activeBeacons.delete(name);
+            }
           }
+          
+          const validBeacons = [...activeBeacons.entries()]
+            .filter(([name, data]) => data.rssi >= proximityConfig.getDirectThresholds().IMMEDIATE)
+            .sort((a, b) => b[1].rssi - a[1].rssi);
+          
+          if (validBeacons.length === 0) {
+            console.log('[App.js] DIRECT: No beacons meet threshold');
+            return;
+          }
+          
+          const [closestBeacon, closestData] = validBeacons[0];
+          if (closestBeacon !== deviceName) {
+            console.log(`[App.js] DIRECT: ${deviceName} not closest`);
+            return;
+          }
+          
+          console.log(`[App.js] DIRECT: Processing ${deviceName} (RSSI: ${rssi})`);
+          
+        } else {
+          // SMOOTHED MODE: Moving average with stability
+          const result = rssiProcessorRef.current.addReading(deviceName, rssi);
+          
+          console.log(`[App.js] SMOOTHED: ${deviceName} - Raw: ${rssi}, Avg: ${result.avgRssi?.toFixed(1)}, State: ${result.state}`);
+          
+          if (!rssiProcessorRef.current.isDetected(deviceName)) {
+            console.log('[App.js] SMOOTHED: Beacon not in DETECTED state yet');
+            return;
+          }
+          
+          console.log(`[App.js] SMOOTHED: Processing ${deviceName} (stable detection)`);
         }
-        
-        // Find strongest signal that meets proximity requirement
-        const validBeacons = [...activeBeacons.entries()]
-          .filter(([name, data]) => data.rssi >= PROXIMITY_THRESHOLDS.IMMEDIATE)
-          .sort((a, b) => b[1].rssi - a[1].rssi);
-        
-        // Only process if this beacon is the closest AND meets proximity requirement
-        if (validBeacons.length === 0) {
-          console.log('[App.js] No beacons meet proximity requirement (RSSI >= -50)');
-          return;
-        }
-        
-        const [closestBeacon, closestData] = validBeacons[0];
-        if (closestBeacon !== deviceName) {
-          console.log(`[App.js] ${deviceName} (${rssi}) not closest. Closest: ${closestBeacon} (${closestData.rssi})`);
-          return;
-        }
-        
-        console.log(`[App.js] Processing closest beacon: ${deviceName} (RSSI: ${rssi})`);
       }
       
       // Always process BLE events for UI updates (status changes, messages)
@@ -733,7 +758,7 @@ function App() {
 
   // Show manual Gate button after 60 seconds if waiting for gate
   useEffect(() => {
-    if (isSequenceRunning && hasReachedHotel && api.getCurrentWaitingStage() === 'gate') {
+    if (isSequenceRunning && hasReachedHotel && currentWaitingStage === 'gate') {
       const timer = setTimeout(() => {
         setShowManualGateButton(true);
         addMessage('Manual Gate button available - BLE not detected for 60 seconds');
@@ -742,7 +767,7 @@ function App() {
     } else {
       setShowManualGateButton(false);
     }
-  }, [isSequenceRunning, hasReachedHotel, api.getCurrentWaitingStage(), addMessage]);
+  }, [isSequenceRunning, hasReachedHotel, currentWaitingStage, addMessage]);
 
   // Update ref whenever processBeaconDetection changes
   useEffect(() => {
@@ -1308,7 +1333,7 @@ function App() {
                   <li><strong>Registration Status:</strong> <span style={{ color: registrationStatus === 'Registered' ? 'green' : 'red' }}>{registrationStatus}</span>
                   </li>
                   <li><strong>Check-in Status:</strong> <span style={{ color: checkInStatus === 'Checked In' ? 'green' : 'red' }}>{checkInStatus}</span>
-                    {(isSequenceRunning && api.getCurrentWaitingStage() === 'gate') || showManualGateButton ? (
+                    {showManualGateButton ? (
                       <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual Gate skip triggered'); setCheckInStatus('At Kiosk'); api.skipCurrentBeacon(); setShowManualGateButton(false); }}>Proceed to Kiosk</button>
                     ) : null}
                     {(checkInStatus === 'At Kiosk' && isSequenceRunning) && checkInStatus !== 'Checked In' && !checkInConsent && (

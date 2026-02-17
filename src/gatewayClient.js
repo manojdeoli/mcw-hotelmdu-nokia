@@ -1,5 +1,5 @@
 // Gateway Server URL - Update this when deployed to cloud
-const GATEWAY_URL = process.env.REACT_APP_GATEWAY_URL || 'http://192.168.1.4:8080';
+const GATEWAY_URL = process.env.REACT_APP_GATEWAY_URL || 'http://192.168.1.3:8080';
 
 // Fixed demo subscription ID - all web app instances use this
 const DEMO_SUBSCRIPTION_ID = 'hotel-demo-subscription';
