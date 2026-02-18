@@ -15,12 +15,13 @@ export const DIRECT_THRESHOLDS = {
 };
 
 // Smoothed detection configuration (new mode)
+// Can be overridden by environment variables set via CONFIGURE_PROXIMITY.bat
 export const SMOOTHED_CONFIG = {
-  bufferSize: 15,              // Number of readings to average
-  entryStabilityMs: 2000,      // Must stay above threshold for 2s to detect
-  exitStabilityMs: 5000,       // Stay detected for 5s after signal drops
-  entryThreshold: -70,         // RSSI threshold to enter proximity
-  exitThreshold: -75           // RSSI threshold to exit (5dB hysteresis)
+  bufferSize: parseInt(process.env.REACT_APP_BLE_BUFFER_SIZE) || 15,
+  entryStabilityMs: parseInt(process.env.REACT_APP_BLE_ENTRY_STABILITY_MS) || 2000,
+  exitStabilityMs: parseInt(process.env.REACT_APP_BLE_EXIT_STABILITY_MS) || 5000,
+  entryThreshold: parseInt(process.env.REACT_APP_BLE_ENTRY_THRESHOLD) || -70,
+  exitThreshold: parseInt(process.env.REACT_APP_BLE_EXIT_THRESHOLD) || -75
 };
 
 class ProximityConfig {
@@ -29,6 +30,14 @@ class ProximityConfig {
     this.mode = DETECTION_MODES.SMOOTHED;
     this.directThresholds = { ...DIRECT_THRESHOLDS };
     this.smoothedConfig = { ...SMOOTHED_CONFIG };
+    
+    // Log configuration source
+    if (process.env.REACT_APP_BLE_ENTRY_THRESHOLD) {
+      console.log('[ProximityConfig] Using CUSTOM configuration from environment variables');
+    } else {
+      console.log('[ProximityConfig] Using DEFAULT configuration');
+    }
+    console.log('[ProximityConfig] Smoothed config:', this.smoothedConfig);
   }
 
   setMode(mode) {
