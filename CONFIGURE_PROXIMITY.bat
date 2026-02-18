@@ -94,11 +94,41 @@ goto restart
 echo.
 echo === Custom Configuration ===
 echo.
-set /p buffer="Buffer Size (10-20, default 15): "
-set /p entryStab="Entry Stability (ms, default 2000): "
-set /p exitStab="Exit Stability (ms, default 5000): "
-set /p entryThresh="Entry Threshold (dBm, e.g. -70): "
-set /p exitThresh="Exit Threshold (dBm, e.g. -75): "
+echo Current values will be shown. Press ENTER to keep existing value.
+echo.
+
+:: Read current values if .env.proximity exists
+if exist .env.proximity (
+    for /f "tokens=1,2 delims==" %%a in (.env.proximity) do (
+        if "%%a"=="REACT_APP_BLE_BUFFER_SIZE" set current_buffer=%%b
+        if "%%a"=="REACT_APP_BLE_ENTRY_STABILITY_MS" set current_entry=%%b
+        if "%%a"=="REACT_APP_BLE_EXIT_STABILITY_MS" set current_exit=%%b
+        if "%%a"=="REACT_APP_BLE_ENTRY_THRESHOLD" set current_entry_thresh=%%b
+        if "%%a"=="REACT_APP_BLE_EXIT_THRESHOLD" set current_exit_thresh=%%b
+    )
+) else (
+    set current_buffer=3
+    set current_entry=500
+    set current_exit=2000
+    set current_entry_thresh=-55
+    set current_exit_thresh=-60
+)
+
+set /p buffer="Buffer Size (current: %current_buffer%): "
+if "%buffer%"==" " set buffer=%current_buffer%
+
+set /p entryStab="Entry Stability ms (current: %current_entry%): "
+if "%entryStab%"==" " set entryStab=%current_entry%
+
+set /p exitStab="Exit Stability ms (current: %current_exit%): "
+if "%exitStab%"==" " set exitStab=%current_exit%
+
+set /p entryThresh="Entry Threshold dBm (current: %current_entry_thresh%): "
+if "%entryThresh%"==" " set entryThresh=%current_entry_thresh%
+
+set /p exitThresh="Exit Threshold dBm (current: %current_exit_thresh%): "
+if "%exitThresh%"==" " set exitThresh=%current_exit_thresh%
+
 echo.
 (
 echo REACT_APP_BLE_BUFFER_SIZE=%buffer%
@@ -109,6 +139,12 @@ echo REACT_APP_BLE_EXIT_THRESHOLD=%exitThresh%
 ) > .env.proximity
 echo.
 echo ✓ Custom settings applied
+echo   - Buffer Size: %buffer%
+echo   - Entry Stability: %entryStab%ms
+echo   - Exit Stability: %exitStab%ms
+echo   - Entry Threshold: %entryThresh% dBm
+echo   - Exit Threshold: %exitThresh% dBm
+echo.
 goto restart
 
 :view
