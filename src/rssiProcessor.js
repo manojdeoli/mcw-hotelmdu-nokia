@@ -6,8 +6,8 @@ class RSSIProcessor {
     this.bufferSize = config.bufferSize || 15;
     this.entryStabilityMs = config.entryStabilityMs || 2000;
     this.exitStabilityMs = config.exitStabilityMs || 5000;
-    this.entryThreshold = config.entryThreshold || -70;  // Fixed: Match proximityConfig.js
-    this.exitThreshold = config.exitThreshold || -75;    // Fixed: Match proximityConfig.js
+    this.entryThreshold = config.entryThreshold || -55;  // Strict: Only very close proximity (~1 meter)
+    this.exitThreshold = config.exitThreshold || -60;    // Hysteresis: 5dB gap
     
     // Per-beacon data storage
     this.beaconData = new Map();

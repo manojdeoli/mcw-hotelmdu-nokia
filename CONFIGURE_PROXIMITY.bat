@@ -7,9 +7,9 @@ echo.
 :menu
 echo Current Settings:
 echo.
-echo 1. Default (Balanced)      - Entry: -70, Stability: 2s
-echo 2. Aggressive (Fast)       - Entry: -65, Stability: 1.5s
-echo 3. Conservative (Stable)   - Entry: -75, Stability: 2.5s
+echo 1. Default (MWC Booth)     - Entry: -55, Very Close (~1m)
+echo 2. Relaxed (Larger Area)  - Entry: -65, Close (~2m)
+echo 3. Very Relaxed (Testing) - Entry: -70, Medium (~3m)
 echo 4. Custom Settings
 echo 5. View Current Config
 echo 6. Reset to Default
@@ -29,7 +29,49 @@ goto menu
 
 :default
 echo.
-echo Setting DEFAULT configuration...
+echo Setting DEFAULT configuration (MWC Booth)...
+(
+echo REACT_APP_BLE_BUFFER_SIZE=15
+echo REACT_APP_BLE_ENTRY_STABILITY_MS=2000
+echo REACT_APP_BLE_EXIT_STABILITY_MS=5000
+echo REACT_APP_BLE_ENTRY_THRESHOLD=-55
+echo REACT_APP_BLE_EXIT_THRESHOLD=-60
+) > .env.proximity
+echo.
+echo ✓ Default settings applied (MWC Booth)
+echo   - Buffer Size: 15 readings
+echo   - Entry Stability: 2000ms
+echo   - Exit Stability: 5000ms
+echo   - Entry Threshold: -55 dBm (~1 meter, VERY CLOSE)
+echo   - Exit Threshold: -60 dBm
+echo   - Use Case: Small booth, avoid detecting all beacons
+echo.
+goto restart
+
+:aggressive
+echo.
+echo Setting RELAXED configuration (Larger Area)...
+(
+echo REACT_APP_BLE_BUFFER_SIZE=15
+echo REACT_APP_BLE_ENTRY_STABILITY_MS=2000
+echo REACT_APP_BLE_EXIT_STABILITY_MS=5000
+echo REACT_APP_BLE_ENTRY_THRESHOLD=-65
+echo REACT_APP_BLE_EXIT_THRESHOLD=-70
+) > .env.proximity
+echo.
+echo ✓ Relaxed settings applied
+echo   - Buffer Size: 15 readings
+echo   - Entry Stability: 2000ms
+echo   - Exit Stability: 5000ms
+echo   - Entry Threshold: -65 dBm (~2 meters, CLOSE)
+echo   - Exit Threshold: -70 dBm
+echo   - Use Case: Larger booth or testing
+echo.
+goto restart
+
+:conservative
+echo.
+echo Setting VERY RELAXED configuration (Testing)...
 (
 echo REACT_APP_BLE_BUFFER_SIZE=15
 echo REACT_APP_BLE_ENTRY_STABILITY_MS=2000
@@ -38,52 +80,13 @@ echo REACT_APP_BLE_ENTRY_THRESHOLD=-70
 echo REACT_APP_BLE_EXIT_THRESHOLD=-75
 ) > .env.proximity
 echo.
-echo ✓ Default settings applied
+echo ✓ Very Relaxed settings applied
 echo   - Buffer Size: 15 readings
 echo   - Entry Stability: 2000ms
 echo   - Exit Stability: 5000ms
-echo   - Entry Threshold: -70 dBm (~2-3 meters)
+echo   - Entry Threshold: -70 dBm (~3 meters, MEDIUM)
 echo   - Exit Threshold: -75 dBm
-echo.
-goto restart
-
-:aggressive
-echo.
-echo Setting AGGRESSIVE configuration...
-(
-echo REACT_APP_BLE_BUFFER_SIZE=10
-echo REACT_APP_BLE_ENTRY_STABILITY_MS=1500
-echo REACT_APP_BLE_EXIT_STABILITY_MS=5000
-echo REACT_APP_BLE_ENTRY_THRESHOLD=-65
-echo REACT_APP_BLE_EXIT_THRESHOLD=-70
-) > .env.proximity
-echo.
-echo ✓ Aggressive settings applied
-echo   - Buffer Size: 10 readings (faster)
-echo   - Entry Stability: 1500ms (quicker)
-echo   - Exit Stability: 5000ms
-echo   - Entry Threshold: -65 dBm (~1-2 meters, closer)
-echo   - Exit Threshold: -70 dBm
-echo.
-goto restart
-
-:conservative
-echo.
-echo Setting CONSERVATIVE configuration...
-(
-echo REACT_APP_BLE_BUFFER_SIZE=20
-echo REACT_APP_BLE_ENTRY_STABILITY_MS=2500
-echo REACT_APP_BLE_EXIT_STABILITY_MS=6000
-echo REACT_APP_BLE_ENTRY_THRESHOLD=-75
-echo REACT_APP_BLE_EXIT_THRESHOLD=-80
-) > .env.proximity
-echo.
-echo ✓ Conservative settings applied
-echo   - Buffer Size: 20 readings (more stable)
-echo   - Entry Stability: 2500ms (longer)
-echo   - Exit Stability: 6000ms
-echo   - Entry Threshold: -75 dBm (~3-4 meters, further)
-echo   - Exit Threshold: -80 dBm
+echo   - Use Case: Testing or large open area
 echo.
 goto restart
 
