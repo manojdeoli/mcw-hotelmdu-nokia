@@ -29,22 +29,22 @@ goto menu
 
 :default
 echo.
-echo Setting DEFAULT configuration (MWC Booth)...
+echo Setting DEFAULT configuration (MWC Demo - Fast)...
 (
-echo REACT_APP_BLE_BUFFER_SIZE=15
-echo REACT_APP_BLE_ENTRY_STABILITY_MS=2000
-echo REACT_APP_BLE_EXIT_STABILITY_MS=5000
+echo REACT_APP_BLE_BUFFER_SIZE=8
+echo REACT_APP_BLE_ENTRY_STABILITY_MS=1000
+echo REACT_APP_BLE_EXIT_STABILITY_MS=3000
 echo REACT_APP_BLE_ENTRY_THRESHOLD=-55
 echo REACT_APP_BLE_EXIT_THRESHOLD=-60
 ) > .env.proximity
 echo.
-echo ✓ Default settings applied (MWC Booth)
-echo   - Buffer Size: 15 readings
-echo   - Entry Stability: 2000ms
-echo   - Exit Stability: 5000ms
+echo ✓ Default settings applied (MWC Demo - Fast)
+echo   - Buffer Size: 8 readings (FAST)
+echo   - Entry Stability: 1000ms (1 second - FAST)
+echo   - Exit Stability: 3000ms (3 seconds)
 echo   - Entry Threshold: -55 dBm (~1 meter, VERY CLOSE)
 echo   - Exit Threshold: -60 dBm
-echo   - Use Case: Small booth, avoid detecting all beacons
+echo   - Detection Time: ~1 second
 echo.
 goto restart
 

@@ -3,9 +3,9 @@
 
 class RSSIProcessor {
   constructor(config = {}) {
-    this.bufferSize = config.bufferSize || 15;
-    this.entryStabilityMs = config.entryStabilityMs || 2000;
-    this.exitStabilityMs = config.exitStabilityMs || 5000;
+    this.bufferSize = config.bufferSize || 8;       // Reduced: Faster response for demo
+    this.entryStabilityMs = config.entryStabilityMs || 1000;  // Reduced: 1 second for demo
+    this.exitStabilityMs = config.exitStabilityMs || 3000;    // Reduced: 3 seconds
     this.entryThreshold = config.entryThreshold || -55;  // Strict: Only very close proximity (~1 meter)
     this.exitThreshold = config.exitThreshold || -60;    // Hysteresis: 5dB gap
     
