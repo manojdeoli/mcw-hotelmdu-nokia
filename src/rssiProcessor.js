@@ -3,9 +3,9 @@
 
 class RSSIProcessor {
   constructor(config = {}) {
-    this.bufferSize = config.bufferSize || 8;       // Reduced: Faster response for demo
-    this.entryStabilityMs = config.entryStabilityMs || 1000;  // Reduced: 1 second for demo
-    this.exitStabilityMs = config.exitStabilityMs || 3000;    // Reduced: 3 seconds
+    this.bufferSize = config.bufferSize || 3;       // Ultra-fast: 3 readings for demo
+    this.entryStabilityMs = config.entryStabilityMs || 500;  // Ultra-fast: 0.5 second
+    this.exitStabilityMs = config.exitStabilityMs || 2000;    // 2 seconds
     this.entryThreshold = config.entryThreshold || -55;  // Strict: Only very close proximity (~1 meter)
     this.exitThreshold = config.exitThreshold || -60;    // Hysteresis: 5dB gap
     
@@ -110,6 +110,22 @@ class RSSIProcessor {
   isDetected(beaconName) {
     const data = this.beaconData.get(beaconName);
     return data ? data.state === 'DETECTED' : false;
+  }
+
+  // Get strongest beacon (highest RSSI) that meets threshold
+  getStrongestBeacon() {
+    let strongest = null;
+    let highestRssi = -Infinity;
+    
+    for (const [beaconName, data] of this.beaconData.entries()) {
+      const avgRssi = this.getMovingAverage(beaconName);
+      if (avgRssi && avgRssi >= this.entryThreshold && avgRssi > highestRssi) {
+        highestRssi = avgRssi;
+        strongest = beaconName;
+      }
+    }
+    
+    return strongest;
   }
 
   getState(beaconName) {

@@ -16,11 +16,11 @@ export const DIRECT_THRESHOLDS = {
 
 // Smoothed detection configuration (new mode)
 // Can be overridden by environment variables set via CONFIGURE_PROXIMITY.bat
-// DEFAULT: Optimized for MWC demo - fast detection, strict proximity
+// DEFAULT: Ultra-fast for MWC demo - 3 readings, 0.5s stability
 export const SMOOTHED_CONFIG = {
-  bufferSize: parseInt(process.env.REACT_APP_BLE_BUFFER_SIZE) || 8,        // Fast: 8 readings
-  entryStabilityMs: parseInt(process.env.REACT_APP_BLE_ENTRY_STABILITY_MS) || 1000,  // Fast: 1 second
-  exitStabilityMs: parseInt(process.env.REACT_APP_BLE_EXIT_STABILITY_MS) || 3000,    // 3 seconds
+  bufferSize: parseInt(process.env.REACT_APP_BLE_BUFFER_SIZE) || 3,        // Ultra-fast: 3 readings
+  entryStabilityMs: parseInt(process.env.REACT_APP_BLE_ENTRY_STABILITY_MS) || 500,  // Ultra-fast: 0.5s
+  exitStabilityMs: parseInt(process.env.REACT_APP_BLE_EXIT_STABILITY_MS) || 2000,    // 2 seconds
   entryThreshold: parseInt(process.env.REACT_APP_BLE_ENTRY_THRESHOLD) || -55,  // Strict: ~1 meter
   exitThreshold: parseInt(process.env.REACT_APP_BLE_EXIT_THRESHOLD) || -60     // Hysteresis
 };
