@@ -5,13 +5,28 @@ echo ========================================
 echo.
 
 :menu
-echo Current Settings:
+echo Configuration Presets:
 echo.
-echo 1. Default (MWC Booth)     - Entry: -55, Very Close (~1m)
-echo 2. Relaxed (Larger Area)  - Entry: -65, Close (~2m)
-echo 3. Very Relaxed (Testing) - Entry: -70, Medium (~3m)
-echo 4. Custom Settings
-echo 5. View Current Config
+echo 1. FAST DETECTION (Small Booth)
+echo    - Best for: Small MWC booth, strict proximity required
+echo    - Detection: ~1 second, very close range (~1 meter)
+echo    - Settings: Buffer=3, Stability=500ms, Threshold=-55dBm
+echo.
+echo 2. BALANCED DETECTION (Medium Area)
+echo    - Best for: Larger booth, more forgiving proximity
+echo    - Detection: ~2 seconds, close range (~2 meters)
+echo    - Settings: Buffer=15, Stability=2s, Threshold=-65dBm
+echo.
+echo 3. RELAXED DETECTION (Testing/Large Area)
+echo    - Best for: Testing or large open area
+echo    - Detection: ~2 seconds, medium range (~3 meters)
+echo    - Settings: Buffer=15, Stability=2s, Threshold=-70dBm
+echo.
+echo 4. CUSTOM (Manual Configuration)
+echo    - Set each parameter individually
+echo    - Configure: Buffer Size, Stability Times, RSSI Thresholds
+echo.
+echo 5. View Current Configuration
 echo 6. Reset to Default
 echo 7. Exit
 echo.
@@ -29,19 +44,19 @@ goto menu
 
 :default
 echo.
-echo Setting DEFAULT configuration (MWC Demo - Fast)...
+echo Setting FAST DETECTION configuration...
 (
-echo REACT_APP_BLE_BUFFER_SIZE=8
-echo REACT_APP_BLE_ENTRY_STABILITY_MS=1000
-echo REACT_APP_BLE_EXIT_STABILITY_MS=3000
+echo REACT_APP_BLE_BUFFER_SIZE=3
+echo REACT_APP_BLE_ENTRY_STABILITY_MS=500
+echo REACT_APP_BLE_EXIT_STABILITY_MS=2000
 echo REACT_APP_BLE_ENTRY_THRESHOLD=-55
 echo REACT_APP_BLE_EXIT_THRESHOLD=-60
 ) > .env.proximity
 echo.
-echo ✓ Default settings applied (MWC Demo - Fast)
-echo   - Buffer Size: 8 readings (FAST)
-echo   - Entry Stability: 1000ms (1 second - FAST)
-echo   - Exit Stability: 3000ms (3 seconds)
+echo ✓ Fast Detection settings applied
+echo   - Buffer Size: 3 readings
+echo   - Entry Stability: 500ms
+echo   - Exit Stability: 2000ms
 echo   - Entry Threshold: -55 dBm (~1 meter, VERY CLOSE)
 echo   - Exit Threshold: -60 dBm
 echo   - Detection Time: ~1 second
@@ -92,7 +107,29 @@ goto restart
 
 :custom
 echo.
-echo === Custom Configuration ===
+echo ========================================
+echo   CUSTOM CONFIGURATION
+echo ========================================
+echo.
+echo Configure all BLE detection parameters manually:
+echo.
+echo   1. Buffer Size: Number of RSSI readings to average (1-50)
+echo      - Smaller = Faster detection, more noise
+echo      - Larger = Slower detection, less noise
+echo.
+echo   2. Entry Stability: How long signal must be strong (ms)
+echo      - Shorter = Faster detection, risk of false positives
+echo      - Longer = Slower detection, more reliable
+echo.
+echo   3. Exit Stability: How long signal must be weak (ms)
+echo      - Controls how quickly detection ends
+echo.
+echo   4. Entry Threshold: RSSI level to trigger detection (dBm)
+echo      - Higher (e.g., -50) = Closer range, stricter
+echo      - Lower (e.g., -70) = Farther range, more sensitive
+echo.
+echo   5. Exit Threshold: RSSI level to end detection (dBm)
+echo      - Creates hysteresis zone to prevent flapping
 echo.
 echo Current values will be shown. Press ENTER to keep existing value.
 echo.
@@ -115,21 +152,22 @@ if exist .env.proximity (
 )
 
 set /p buffer="Buffer Size (current: %current_buffer%): "
-if "%buffer%"==" " set buffer=%current_buffer%
+if "%buffer%"=="" set buffer=%current_buffer%
 
 set /p entryStab="Entry Stability ms (current: %current_entry%): "
-if "%entryStab%"==" " set entryStab=%current_entry%
+if "%entryStab%"=="" set entryStab=%current_entry%
 
 set /p exitStab="Exit Stability ms (current: %current_exit%): "
-if "%exitStab%"==" " set exitStab=%current_exit%
+if "%exitStab%"=="" set exitStab=%current_exit%
 
 set /p entryThresh="Entry Threshold dBm (current: %current_entry_thresh%): "
-if "%entryThresh%"==" " set entryThresh=%current_entry_thresh%
+if "%entryThresh%"=="" set entryThresh=%current_entry_thresh%
 
 set /p exitThresh="Exit Threshold dBm (current: %current_exit_thresh%): "
-if "%exitThresh%"==" " set exitThresh=%current_exit_thresh%
+if "%exitThresh%"=="" set exitThresh=%current_exit_thresh%
 
 echo.
+echo Writing configuration to .env.proximity file...
 (
 echo REACT_APP_BLE_BUFFER_SIZE=%buffer%
 echo REACT_APP_BLE_ENTRY_STABILITY_MS=%entryStab%
@@ -138,22 +176,40 @@ echo REACT_APP_BLE_ENTRY_THRESHOLD=%entryThresh%
 echo REACT_APP_BLE_EXIT_THRESHOLD=%exitThresh%
 ) > .env.proximity
 echo.
-echo ✓ Custom settings applied
-echo   - Buffer Size: %buffer%
+echo ✓ Configuration file created successfully!
+echo.
+echo === Configuration Summary ===
+echo   - Buffer Size: %buffer% readings
 echo   - Entry Stability: %entryStab%ms
 echo   - Exit Stability: %exitStab%ms
 echo   - Entry Threshold: %entryThresh% dBm
 echo   - Exit Threshold: %exitThresh% dBm
 echo.
+echo File location: .env.proximity
+echo.
 goto restart
 
 :view
 echo.
-echo === Current Configuration ===
+echo ========================================
+echo   CURRENT CONFIGURATION
+echo ========================================
+echo.
 if exist .env.proximity (
+    echo Custom configuration from .env.proximity:
+    echo ----------------------------------------
     type .env.proximity
+    echo ----------------------------------------
 ) else (
-    echo No custom configuration found. Using defaults from proximityConfig.js
+    echo No custom configuration file found.
+    echo Using DEFAULT values from proximityConfig.js:
+    echo ----------------------------------------
+    echo REACT_APP_BLE_BUFFER_SIZE=3
+    echo REACT_APP_BLE_ENTRY_STABILITY_MS=500
+    echo REACT_APP_BLE_EXIT_STABILITY_MS=2000
+    echo REACT_APP_BLE_ENTRY_THRESHOLD=-55
+    echo REACT_APP_BLE_EXIT_THRESHOLD=-60
+    echo ----------------------------------------
 )
 echo.
 pause
@@ -172,6 +228,15 @@ echo.
 echo ========================================
 echo   Configuration Updated!
 echo ========================================
+echo.
+echo Verifying .env.proximity file contents:
+echo ----------------------------------------
+if exist .env.proximity (
+    type .env.proximity
+) else (
+    echo ERROR: .env.proximity file was not created!
+)
+echo ----------------------------------------
 echo.
 echo IMPORTANT: Restart the React app for changes to take effect:
 echo   1. Stop the app (Ctrl+C in terminal)

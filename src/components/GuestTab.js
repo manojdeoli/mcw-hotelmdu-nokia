@@ -24,6 +24,7 @@ const GuestTab = ({
   const [showScrollUp, setShowScrollUp] = useState(false);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const scrollContainerRef = useRef(null);
+  const [showAttribution, setShowAttribution] = useState(false);
   
   // Check scroll position to show/hide scroll indicators
   const checkScrollPosition = () => {
@@ -191,6 +192,68 @@ const GuestTab = ({
     <div className="kiosk-container">
       {/* Static Background Image - Hotel Entrance */}
       <div className="kiosk-background" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/Hotel_entrance.png)`, backgroundPosition: 'center top', backgroundSize: 'cover' }}></div>
+      
+      {/* Attribution Button */}
+      <button
+        onClick={() => setShowAttribution(!showAttribution)}
+        style={{
+          position: 'fixed',
+          bottom: '10px',
+          left: '10px',
+          background: 'rgba(0, 0, 0, 0.6)',
+          color: 'white',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          borderRadius: '4px',
+          padding: '5px 10px',
+          fontSize: '0.7rem',
+          cursor: 'pointer',
+          zIndex: 10
+        }}
+      >
+        ℹ️ Image Attribution
+      </button>
+
+      {/* Attribution Popup */}
+      {showAttribution && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '50px',
+            left: '10px',
+            background: 'rgba(255, 255, 255, 0.95)',
+            border: '2px solid #007bff',
+            borderRadius: '8px',
+            padding: '15px',
+            maxWidth: '350px',
+            zIndex: 11,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            fontSize: '0.75rem',
+            color: '#000'
+          }}
+        >
+          <button
+            onClick={() => setShowAttribution(false)}
+            style={{
+              position: 'absolute',
+              top: '5px',
+              right: '10px',
+              background: 'none',
+              border: 'none',
+              fontSize: '1.2rem',
+              cursor: 'pointer',
+              color: '#666'
+            }}
+          >
+            ×
+          </button>
+          <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Image Source:</div>
+          <div style={{ marginBottom: '10px' }}>AI-generated using OpenAI DALL·E</div>
+          <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Generation Method:</div>
+          <div style={{ marginBottom: '10px' }}>Created from a custom prompt describing a photorealistic hospital emergency room management environment designed for UI overlay demonstrations.</div>
+          <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Content Note:</div>
+          <div>The image is fully synthetic and created for internal demonstration and visualization purposes.</div>
+        </div>
+      )}
       
       {/* Embedded Kiosk Screen */}
       <div className="kiosk-screen-frame" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/kiosk.png)` }}>
@@ -403,11 +466,6 @@ const GuestTab = ({
           ↓
         </button>
       )}
-      
-      {/* Debug Panel */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '5px 10px', fontSize: '10px', zIndex: 9999 }}>
-        Debug: Phone={verifiedPhoneNumber ? 'Yes' : 'No'} | Reached={hasReachedHotel ? 'Yes' : 'No'} | Status={checkInStatus} | Name={firstName}
-      </div>
     </div>
   );
 };
