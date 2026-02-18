@@ -189,22 +189,8 @@ const GuestTab = ({
 
   return (
     <div className="kiosk-container">
-      {/* Full Screen Video Background */}
-      <video 
-        className="kiosk-background-video" 
-        autoPlay 
-        loop 
-        muted 
-        playsInline
-      >
-        <source src={`${process.env.PUBLIC_URL}/Hotel_video.mp4`} type="video/mp4" />
-      </video>
-      
-      {/* Watermark to cover LUMA text */}
-      <div className="video-watermark-overlay"></div>
-      
-      {/* Fallback background if video fails */}
-      <div className="kiosk-background" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/Hotel_entrance.png)`, backgroundPosition: 'center top' }}></div>
+      {/* Static Background Image - Hotel Entrance */}
+      <div className="kiosk-background" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/Hotel_entrance.png)`, backgroundPosition: 'center top', backgroundSize: 'cover' }}></div>
       
       {/* Embedded Kiosk Screen */}
       <div className="kiosk-screen-frame" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/kiosk.png)` }}>
