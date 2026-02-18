@@ -6,11 +6,20 @@ class RSSIProcessor {
     this.bufferSize = config.bufferSize || 15;
     this.entryStabilityMs = config.entryStabilityMs || 2000;
     this.exitStabilityMs = config.exitStabilityMs || 5000;
-    this.entryThreshold = config.entryThreshold || -55;
-    this.exitThreshold = config.exitThreshold || -60; // Hysteresis
+    this.entryThreshold = config.entryThreshold || -70;  // Fixed: Match proximityConfig.js
+    this.exitThreshold = config.exitThreshold || -75;    // Fixed: Match proximityConfig.js
     
     // Per-beacon data storage
     this.beaconData = new Map();
+    
+    // Log configuration for debugging
+    console.log('[RSSIProcessor] Initialized with config:', {
+      bufferSize: this.bufferSize,
+      entryStabilityMs: this.entryStabilityMs,
+      exitStabilityMs: this.exitStabilityMs,
+      entryThreshold: this.entryThreshold,
+      exitThreshold: this.exitThreshold
+    });
   }
 
   addReading(beaconName, rssi) {
