@@ -740,13 +740,11 @@ body {
   z-index: 2;
 }
 
-/* Embedded Kiosk Screen Frame */
+/* Embedded Kiosk Screen Frame - Fixed dimensions for consistency */
 .kiosk-screen-frame {
   position: fixed;
-  bottom: 1%;
-  right: 1%;
-  width: 30%;
-  height: 60%;
+  width: 576px;  /* Fixed width for 1920x1080 (30% of 1920) */
+  height: 648px; /* Fixed height for 1920x1080 (60% of 1080) */
   background-size: 100% 100%;
   background-repeat: no-repeat;
   background-position: center;
@@ -755,6 +753,32 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  transform-origin: bottom right;
+}
+
+/* Dynamic scaling based on viewport */
+@media (max-width: 1920px) {
+  .kiosk-screen-frame {
+    transform: scale(calc(100vw / 1920));
+  }
+}
+
+@media (max-height: 1080px) {
+  .kiosk-screen-frame {
+    transform: scale(calc(100vh / 1080));
+  }
+}
+
+@media (max-width: 1920px) and (max-height: 1080px) {
+  .kiosk-screen-frame {
+    transform: scale(min(calc(100vw / 1920), calc(100vh / 1080)));
+  }
+}
+
+/* Position at bottom-right with fixed offset */
+.kiosk-screen-frame {
+  bottom: 19.2px;  /* 1% of 1920 */
+  right: 19.2px;   /* 1% of 1920 */
 }
 
 .kiosk-screen-content {
@@ -780,7 +804,6 @@ body {
 
 .scroll-indicator {
   position: fixed;
-  right: calc(1% + 5px);
   width: 30px;
   height: 30px;
   background: rgba(0, 123, 255, 0.8);
@@ -795,6 +818,7 @@ body {
   z-index: 25;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transform-origin: center;
 }
 
 .scroll-indicator:hover {
@@ -802,12 +826,55 @@ body {
   transform: scale(1.1);
 }
 
+/* Fixed positioning for scroll buttons relative to kiosk frame */
 .scroll-up {
-  bottom: calc(1% + 65% * 0.8);
+  right: 24px;  /* 19.2px (frame offset) + 5px spacing */
+  bottom: calc(19.2px + 648px * 0.8);  /* Frame bottom + 80% of frame height */
 }
 
 .scroll-down {
-  bottom: calc(1% + 65% * 0.2);
+  right: 24px;  /* 19.2px (frame offset) + 5px spacing */
+  bottom: calc(19.2px + 648px * 0.2);  /* Frame bottom + 20% of frame height */
+}
+
+/* Scale scroll buttons with kiosk frame */
+@media (max-width: 1920px) {
+  .scroll-up {
+    transform: scale(calc(100vw / 1920));
+    right: calc(24px * (100vw / 1920));
+    bottom: calc((19.2px + 648px * 0.8) * (100vw / 1920));
+  }
+  .scroll-down {
+    transform: scale(calc(100vw / 1920));
+    right: calc(24px * (100vw / 1920));
+    bottom: calc((19.2px + 648px * 0.2) * (100vw / 1920));
+  }
+}
+
+@media (max-height: 1080px) {
+  .scroll-up {
+    transform: scale(calc(100vh / 1080));
+    right: calc(24px * (100vh / 1080));
+    bottom: calc((19.2px + 648px * 0.8) * (100vh / 1080));
+  }
+  .scroll-down {
+    transform: scale(calc(100vh / 1080));
+    right: calc(24px * (100vh / 1080));
+    bottom: calc((19.2px + 648px * 0.2) * (100vh / 1080));
+  }
+}
+
+@media (max-width: 1920px) and (max-height: 1080px) {
+  .scroll-up {
+    transform: scale(min(calc(100vw / 1920), calc(100vh / 1080)));
+    right: calc(24px * min(calc(100vw / 1920), calc(100vh / 1080)));
+    bottom: calc((19.2px + 648px * 0.8) * min(calc(100vw / 1920), calc(100vh / 1080)));
+  }
+  .scroll-down {
+    transform: scale(min(calc(100vw / 1920), calc(100vh / 1080)));
+    right: calc(24px * min(calc(100vw / 1920), calc(100vh / 1080)));
+    bottom: calc((19.2px + 648px * 0.2) * min(calc(100vw / 1920), calc(100vh / 1080)));
+  }
 }
 
 .kiosk-overlay {
