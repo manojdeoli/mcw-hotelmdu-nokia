@@ -1273,11 +1273,11 @@ function App() {
                           <div className="row">
                             <div className="col-md-6">
                                 <strong>Request:</strong>
-                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto'}}>{JSON.stringify(log.request, null, 2)}</pre>
+                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto', whiteSpace: 'pre-wrap', wordWrap: 'break-word'}}>{JSON.stringify(log.request, null, 2)}</pre>
                             </div>
                             <div className="col-md-6">
                                 <strong>Response:</strong>
-                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto'}}>{JSON.stringify(log.response, null, 2)}</pre>
+                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto', whiteSpace: 'pre-wrap', wordWrap: 'break-word'}}>{JSON.stringify(log.response, null, 2)}</pre>
                             </div>
                           </div>
                         </div>
@@ -1465,11 +1465,11 @@ function App() {
                           <div className="row">
                             <div className="col-md-6">
                                 <strong>Request:</strong>
-                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto'}}>{JSON.stringify(log.request, null, 2)}</pre>
+                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto', whiteSpace: 'pre-wrap', wordWrap: 'break-word'}}>{JSON.stringify(log.request, null, 2)}</pre>
                             </div>
                             <div className="col-md-6">
                                 <strong>Response:</strong>
-                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto'}}>{JSON.stringify(log.response, null, 2)}</pre>
+                                <pre className="bg-light p-2 border rounded small" style={{maxHeight: '200px', overflow: 'auto', whiteSpace: 'pre-wrap', wordWrap: 'break-word'}}>{JSON.stringify(log.response, null, 2)}</pre>
                             </div>
                           </div>
                         </div>
