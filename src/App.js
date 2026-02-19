@@ -865,6 +865,7 @@ function App() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(mapInstance);
+    
     setMap(mapInstance);
 
     return () => {
@@ -888,6 +889,17 @@ function App() {
           map.removeLayer(layer);
         }
       });
+
+      // Always show hotel marker with custom icon
+      const defaultHotelCoords = { lat: 41.355633, lng: 2.127911 };
+      const currentHotelLoc = hotelLocation || defaultHotelCoords;
+      const hotelIcon = L.icon({
+        iconUrl: `${process.env.PUBLIC_URL}/hotel_logo.png`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+      });
+      L.marker([currentHotelLoc.lat, currentHotelLoc.lng], { icon: hotelIcon }).addTo(map).bindPopup('Hotel Barcelona Sol');
 
       if (userGps && !mapUpdateThrottle.current) {
         mapUpdateThrottle.current = setTimeout(() => {
@@ -922,8 +934,6 @@ function App() {
       }
 
       if (hotelLocation && hotelLocation.lat && hotelLocation.lng) {
-        L.marker([hotelLocation.lat, hotelLocation.lng]).addTo(map).bindPopup('Hotel Barcelona Sol');
-
         L.circle([hotelLocation.lat, hotelLocation.lng], {
           color: 'green',
           fillColor: '#28a745',
