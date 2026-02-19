@@ -756,13 +756,13 @@ function App() {
       if (newLocation) setUserGps(newLocation);
   }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity, isSequenceRunning, hasReachedHotel, checkInConsent]);
 
-  // Show manual Gate button after 60 seconds if waiting for gate
+  // Show manual Gate button after 5 seconds if waiting for gate
   useEffect(() => {
     if (isSequenceRunning && hasReachedHotel && currentWaitingStage === 'gate') {
       const timer = setTimeout(() => {
         setShowManualGateButton(true);
-        addMessage('Manual Gate button available - BLE not detected for 60 seconds');
-      }, 60000);
+        addMessage('Manual Gate button available - BLE not detected for 5 seconds');
+      }, 5000);
       return () => clearTimeout(timer);
     } else {
       setShowManualGateButton(false);
@@ -1230,13 +1230,13 @@ function App() {
           {/* Navigation Tabs */}
           <ul className="nav nav-tabs mb-3" style={{ paddingLeft: '15px', paddingRight: '15px' }}>
             <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'api' ? 'active' : ''}`} onClick={() => setActiveTab('api')}>API Interaction</button>
+              <button className={`nav-link ${activeTab === 'api' ? 'active' : ''}`} onClick={() => setActiveTab('api')}>API Interactions</button>
             </li>
             <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>Hotel Dashboard</button>
+              <button className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>Management Dashboard</button>
             </li>
             <li className="nav-item">
-              <button className={`nav-link ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')}>All Details</button>
+              <button className={`nav-link ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')}>Management Dashboard (Detailed Version)</button>
             </li>
           </ul>
 
@@ -1291,11 +1291,11 @@ function App() {
                   <div className="api-buttons">
                     <button className="btn btn-info" onClick={() => window.open(window.location.origin + '/kiosk', '_blank')}>
                       <img src={`${process.env.PUBLIC_URL}/hotel_logo.png`} alt="Hotel" style={{ width: '20px', height: '20px', marginRight: '8px', verticalAlign: 'middle' }} />
-                      Open Hotel Kiosk
+                      Open Hotel Kiosk View
                     </button>
-                    <button className="btn btn-primary" onClick={handleRegistrationSequence}>Start Registration</button>
+                    <button className="btn btn-primary" onClick={handleRegistrationSequence}>Registration Routine</button>
                     {checkInStatus !== 'Checked In' && (
-                      <button className="btn btn-primary" onClick={() => handleStartSequence('arrival')}>Booking & Arrival</button>
+                      <button className="btn btn-primary" onClick={() => handleStartSequence('arrival')}>Booking and Arrival Routine</button>
                     )}
                     {checkInStatus === 'Checked In' && <>
                       <button className="btn btn-primary" onClick={handleAccessSequence}>Elevator & Room Access</button>
@@ -1381,10 +1381,10 @@ function App() {
               <div id="bookingDetails" className="card">
                 <h2 className="card-header">Booking Details</h2>
                 <ul className="details-list">
-                  <li><strong>Hotel:</strong> <span>{verifiedPhoneNumber ? 'Hotel Barcelona Sol' : '--'}</span></li>
-                  <li><strong>Room:</strong> <span>{verifiedPhoneNumber ? '1337' : '--'}</span></li>
-                  <li><strong>Check-in:</strong> <span>{verifiedPhoneNumber ? format(CHECK_IN_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>
-                  <li><strong>Check-out:</strong> <span>{verifiedPhoneNumber ? format(CHECK_OUT_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>
+                  <li><strong>Hotel:</strong> <span>{isSequenceRunning ? 'Hotel Barcelona Sol' : '--'}</span></li>
+                  <li><strong>Room:</strong> <span>{isSequenceRunning ? '1337' : '--'}</span></li>
+                  <li><strong>Check-in:</strong> <span>{isSequenceRunning ? format(CHECK_IN_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>
+                  <li><strong>Check-out:</strong> <span>{isSequenceRunning ? format(CHECK_OUT_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>
                 </ul>
               </div>
               

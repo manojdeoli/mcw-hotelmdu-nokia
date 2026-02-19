@@ -249,7 +249,7 @@ const GuestTab = ({
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Image Source:</div>
           <div style={{ marginBottom: '10px' }}>AI-generated using OpenAI DALL·E</div>
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Generation Method:</div>
-          <div style={{ marginBottom: '10px' }}>Created from a custom prompt describing a photorealistic hospital emergency room management environment designed for UI overlay demonstrations.</div>
+          <div style={{ marginBottom: '10px' }}>Created from a custom prompt describing a photorealistic hotel entrance and lobby environment designed for UI overlay demonstrations.</div>
           <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Content Note:</div>
           <div>The image is fully synthetic and created for internal demonstration and visualization purposes.</div>
         </div>
@@ -269,14 +269,13 @@ const GuestTab = ({
         {!verifiedPhoneNumber && (
           <div className="kiosk-welcome-idle kiosk-welcome-compact">
             <h3>Welcome to Hotel Barcelona Sol</h3>
-            <p>Please verify your phone number in the Hotel Dashboard to begin</p>
           </div>
         )}
 
         {verifiedPhoneNumber && !hasReachedHotel && checkInStatus !== 'Checked Out' && (
           <div className="kiosk-welcome-idle">
             <h3>Welcome, {firstName}!</h3>
-            <p>Your booking is confirmed. Approaching hotel entrance...</p>
+            <p>Approaching hotel entrance...</p>
           </div>
         )}
 

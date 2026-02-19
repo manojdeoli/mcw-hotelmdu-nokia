@@ -78,7 +78,6 @@ export function verifyPhoneNumber(phoneNumber, logApiInteraction) {
 }
 
 export function kycMatch(data, logApiInteraction) {
-    // Real API call to Nokia KYC Match v0.3
     const requestBody = {
         phoneNumber: data.phoneNumber,
         name: data.name,
@@ -88,23 +87,13 @@ export function kycMatch(data, logApiInteraction) {
     };
     
     return post(`${API_BASE_URL}/kyc-match/kyc-match/v0.3/match`, requestBody).then(response => {
-        // Real API call succeeded
         if (logApiInteraction) {
-            const obscuredRequest = {
-                phoneNumber: data.phoneNumber,
-                name: data.name ? 'XXXXX' : '',
-                address: data.address ? 'XXXXX' : '',
-                email: data.email ? 'XXXXX' : '',
-                birthdate: data.birthdate ? 'XXXXX' : ''
-            };
-            logApiInteraction('KYC Match', 'POST', '/kyc-match/kyc-match/v0.3/match', obscuredRequest, response);
+            logApiInteraction('KYC Match', 'POST', '/kyc-match/kyc-match/v0.3/match', requestBody, response);
         }
         return response;
     }).catch(error => {
-        // Real API call failed - fallback to mock implementation
         console.warn('KYC Match API call failed, using mock implementation:', error.message);
         
-        // Mock implementation fallback
         const stored = storedKycFillData[data.phoneNumber];
         if (!stored) {
             const response = {
@@ -114,14 +103,7 @@ export function kycMatch(data, logApiInteraction) {
                 emailMatch: 'not_available'
             };
             if (logApiInteraction) {
-                const obscuredRequest = {
-                    phoneNumber: data.phoneNumber,
-                    name: data.name ? 'XXXXX' : '',
-                    address: data.address ? 'XXXXX' : '',
-                    email: data.email ? 'XXXXX' : '',
-                    birthdate: data.birthdate ? 'XXXXX' : ''
-                };
-                logApiInteraction('KYC Match (Mock)', 'POST', '/kyc-match/kyc-match/v0.3/match', obscuredRequest, response);
+                logApiInteraction('KYC Match (Mock)', 'POST', '/kyc-match/kyc-match/v0.3/match', requestBody, response);
             }
             return response;
         }
@@ -132,14 +114,7 @@ export function kycMatch(data, logApiInteraction) {
             emailMatch: data.email === stored.email ? 'true' : 'false'
         };
         if (logApiInteraction) {
-            const obscuredRequest = {
-                phoneNumber: data.phoneNumber,
-                name: data.name ? 'XXXXX' : '',
-                address: data.address ? 'XXXXX' : '',
-                email: data.email ? 'XXXXX' : '',
-                birthdate: data.birthdate ? 'XXXXX' : ''
-            };
-            logApiInteraction('KYC Match (Mock)', 'POST', '/kyc-match/kyc-match/v0.3/match', obscuredRequest, response);
+            logApiInteraction('KYC Match (Mock)', 'POST', '/kyc-match/kyc-match/v0.3/match', requestBody, response);
         }
         return response;
     });
@@ -341,19 +316,11 @@ export async function kycFill(phoneNumber, logApiInteraction) {
         name: response.name || '',
         address: response.address || '',
         email: response.email || '',
-        birthdate: response.birthdate || '', // KYC-Fill API returns dates in YYYY-MM-DD format
-        _obscured: {
-            phoneNumber: response.phoneNumber,
-            idDocument: response.idDocument,
-            name: response.name ? 'XXXXX' : '',
-            address: response.address ? 'XXXXX' : '',
-            email: response.email ? 'XXXXX' : '',
-            birthdate: response.birthdate ? 'XXXXX' : ''
-        }
+        birthdate: convertDateFormat(response.birthdate) || ''
     };
     storedKycFillData[phoneNumber] = kycData;
     if (logApiInteraction) {
-        logApiInteraction('KYC Fill', 'POST', '/kyc-fill-in/kyc-fill-in/v0.4/fill-in', { phoneNumber }, kycData._obscured);
+        logApiInteraction('KYC Fill', 'POST', '/kyc-fill-in/kyc-fill-in/v0.4/fill-in', { phoneNumber }, kycData);
     }
     return kycData;
 }
@@ -550,7 +517,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     addMessage("Starting Booking and Arrival sequence...");
     addGuestMessage(`Your journey to Hotel Barcelona Sol is beginning, ${guestName}...`, 'info');
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
     addMessage("Pre-populating booking information...");
     const bookingInfo = {
         checkIn: "2026-01-16T15:00:00",
@@ -558,28 +525,28 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     };
     addMessage(`Check-in: ${bookingInfo.checkIn}, Check-out: ${bookingInfo.checkOut}`);
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
     const checkInDate = new Date();
     checkInDate.setHours(15, 0, 0, 0);
     const startTime = new Date(checkInDate.getTime() - 3 * 60 * 60 * 1000);
     setArtificialTime(startTime);
     addMessage(`Artificial clock set to ${startTime.toLocaleTimeString()}.`);
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
     const route = generateRoute(initialUserLocation, hotelLocation);
     const timeSteps = [
-        { minutes: 0, delay: 2000 },
-        { minutes: 30, delay: 2000 },
-        { minutes: 60, delay: 2000 },
-        { minutes: 90, delay: 2000 },
-        { minutes: 120, delay: 2000 },
-        { minutes: 150, delay: 2000 },
-        { minutes: 180, delay: 2000 },
-        { minutes: 185, delay: 1000 },
-        { minutes: 190, delay: 1000 },
-        { minutes: 195, delay: 1000 },
-        { minutes: 200, delay: 1000 },
+        { minutes: 0, delay: 200 },
+        { minutes: 30, delay: 200 },
+        { minutes: 60, delay: 200 },
+        { minutes: 90, delay: 200 },
+        { minutes: 120, delay: 200 },
+        { minutes: 150, delay: 200 },
+        { minutes: 180, delay: 200 },
+        { minutes: 185, delay: 200 },
+        { minutes: 190, delay: 200 },
+        { minutes: 195, delay: 200 },
+        { minutes: 200, delay: 200 },
     ];
 
     for (let i = 0; i < timeSteps.length; i++) {
@@ -743,8 +710,8 @@ export async function startCheckOutSequence(phoneNumber, initialUserLocation, ho
     addMessage("Calling Carrier Billing API to finalise payment...");
     const billingRes = await carrierBilling(phoneNumber, logApiInteraction);
     if (billingRes.paymentStatus === 'succeeded') {
-        addMessage("Carrier Billing Successful. Amount: 299.00 AUD");
-        addGuestMessage('Payment successful! Amount charged: $299.00 AUD', 'success');
+        addMessage("Carrier Billing Successful. Amount: 299.00 EUR");
+        addGuestMessage('Payment successful! Amount charged: €299.00 EUR', 'success');
         setPaymentStatus("Paid");
     } else {
         addMessage("Carrier Billing Failed.");
