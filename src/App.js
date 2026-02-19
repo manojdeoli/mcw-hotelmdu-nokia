@@ -1104,9 +1104,9 @@ function App() {
         };
         setHotelLocation(actualHotelCoords);
 
-        // Set initial user location slightly away from the hotel
-        const userStartLat = actualHotelCoords.lat + 0.05; // 0.05 degrees ~ 5.5 km
-        const userStartLng = actualHotelCoords.lng + 0.05;
+        // Set initial user location slightly away from the hospital (south-east)
+        const userStartLat = actualHotelCoords.lat - 0.05; // Start south of hospital
+        const userStartLng = actualHotelCoords.lng + 0.05; // Start east of hospital
         const initialUserCoords = { lat: userStartLat, lng: userStartLng };
 
         setInitialUserLocation(initialUserCoords);
