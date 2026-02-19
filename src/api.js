@@ -336,10 +336,10 @@ export function locationRetrieval(phoneNumber, logApiInteraction, mockCoordinate
                     longitude: mockCoordinates.lng || mockCoordinates.longitude
                 };
             } else {
-                // Default Hotel Location (Barcelona - same as healthcare)
+                // Default Hospital Location (Barcelona)
                 center = {
-                    latitude: 41.355633,
-                    longitude: 2.127911
+                    latitude: 41.40104,
+                    longitude: 2.1394
                 };
             }
             const response = {
@@ -513,9 +513,9 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     // Clear any previous beacon events
     clearBeaconQueue();
     
-    addMessage("Journey: Starting to Hotel Barcelona Sol");
+    addMessage("Journey: Starting to Hospital de Llobregat");
     addMessage("Starting Booking and Arrival sequence...");
-    addGuestMessage(`Your journey to Hotel Barcelona Sol is beginning, ${guestName}...`, 'info');
+    addGuestMessage(`Your journey to Hospital de Llobregat is beginning, ${guestName}...`, 'info');
 
     await new Promise(resolve => setTimeout(resolve, 3000));
     addMessage("Pre-populating booking information...");
@@ -564,7 +564,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     }
 
     addMessage("User has arrived within the vicinity.");
-    addGuestMessage(`You are approaching Hotel Barcelona Sol, ${guestName}. Check-in will be available soon!`, 'info');
+    addGuestMessage(`You are approaching Hospital de Llobregat, ${guestName}. Check-in will be available soon!`, 'info');
 
     // Verify location before check-in
     addMessage("Calling Location Verification to confirm arrival...");
@@ -578,12 +578,12 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     };
     const verification = await locationVerification(locationVerificationData, logApiInteraction);
     if (verification.verificationResult === "TRUE") {
-        addMessage("Journey: Arrived at Hotel Barcelona Sol");
-        addMessage("Location verification successful - guest confirmed at hotel!");
+        addMessage("Journey: Arrived at Hospital de Llobregat");
+        addMessage("Location verification successful - guest confirmed at hospital!");
         // Set hasReachedHotel based on Location Verification API result
         if (setHasReachedHotel) {
             setHasReachedHotel(true);
-            addMessage("Guest arrival confirmed by Location Verification API - BLE processing enabled");
+            addMessage("Patient arrival confirmed by Location Verification API - BLE processing enabled");
         }
     } else {
         addMessage("Location verification failed.");
@@ -597,19 +597,19 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     setIsAutoScanning(true);
 
     // STEP 1: Wait for Entry Gate beacon
-    addMessage("Waiting for guest to reach Entry Gate...");
-    addGuestMessage(`Please proceed to the hotel entrance, ${guestName}.`, 'info');
-    await waitForBeacon(['Gate', 'Hotel'], addMessage, 'gate');
-    addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the hotel entrance.`, 'success');
+    addMessage("Waiting for patient to reach Entry Gate...");
+    addGuestMessage(`Please proceed to the hospital entrance, ${guestName}.`, 'info');
+    await waitForBeacon(['Gate', 'Hospital'], addMessage, 'gate');
+    addGuestMessage(`Welcome to Hospital de Llobregat, ${guestName}! You have arrived at the hospital entrance.`, 'success');
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // STEP 2: Wait for Kiosk beacon
-    addMessage("Waiting for guest to reach Check-in Kiosk...");
+    addMessage("Waiting for patient to reach Check-in Kiosk...");
     addGuestMessage('Please proceed to the check-in kiosk.', 'info');
     await waitForBeacon(['Kiosk', 'Lobby'], addMessage, 'kiosk');
     
-    // Wait for guest consent before proceeding with check-in
-    addMessage("Waiting for guest consent to proceed with check-in...");
+    // Wait for patient consent before proceeding with check-in
+    addMessage("Waiting for patient consent to proceed with check-in...");
     addGuestMessage('Please confirm your check-in on the Guest Information tab.', 'info');
     
     // Wait for consent indefinitely - no timeout to ensure Welcome Overlay is shown

@@ -624,7 +624,7 @@ function App() {
       // Always process BLE events for UI updates (status changes, messages)
       console.log('[App.js] Processing BLE event for UI updates');
       
-      const currentHotelLoc = hotelLocationRef.current || { lat: -33.8688, lng: 151.2093 };
+      const currentHotelLoc = hotelLocationRef.current || { lat: 41.40104, lng: 2.1394 };
       const baseLat = currentHotelLoc.lat;
       const baseLng = currentHotelLoc.lng;
       if (!hotelLocationRef.current) setHotelLocation(currentHotelLoc);
@@ -640,18 +640,18 @@ function App() {
         
         // Gate welcome only shows at start OR after checkout (workflow state guard)
         if (checkInStatusRef.current === 'Not Checked In' || checkInStatusRef.current === 'Checked Out') {
-          addMessage("Arrived at Hotel Entry Gate");
-          addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the hotel entrance.`, 'info');
+          addMessage("Arrived at Hospital Entry Gate");
+          addGuestMessage(`Welcome to Hospital de Llobregat, ${guestName}! You have arrived at the hospital entrance.`, 'info');
           
-          // Only set status to 'At Kiosk' if guest has been verified at hotel location
+          // Only set status to 'At Kiosk' if patient has been verified at hospital location
           if (checkInStatusRef.current !== 'Checked In' && hasReachedHotel) {
-              console.log('[App.js] Setting checkInStatus to At Kiosk due to Gate beacon (guest verified at hotel)');
+              console.log('[App.js] Setting checkInStatus to At Kiosk due to Gate beacon (patient verified at hospital)');
               setCheckInStatus('At Kiosk');
               addMessage('Gate Access: Kiosk Available');
           }
         } else {
           console.log('[App.js] Gate beacon ignored - user already checked in');
-          addMessage("At Hotel Entry Gate (already checked in)");
+          addMessage("At Hospital Entry Gate (already checked in)");
         }
         
       } else if (deviceName.toLowerCase().includes("kiosk") || deviceName.toLowerCase().includes("lobby")) {
@@ -890,8 +890,8 @@ function App() {
         }
       });
 
-      // Always show hotel marker with custom icon
-      const defaultHotelCoords = { lat: 41.355633, lng: 2.127911 };
+      // Always show hospital marker with custom icon
+      const defaultHotelCoords = { lat: 41.40104, lng: 2.1394 };
       const currentHotelLoc = hotelLocation || defaultHotelCoords;
       const hotelIcon = L.icon({
         iconUrl: `${process.env.PUBLIC_URL}/hotel_logo.png`,
@@ -899,7 +899,7 @@ function App() {
         iconAnchor: [16, 32],
         popupAnchor: [0, -32]
       });
-      L.marker([currentHotelLoc.lat, currentHotelLoc.lng], { icon: hotelIcon }).addTo(map).bindPopup('Hotel Barcelona Sol');
+      L.marker([currentHotelLoc.lat, currentHotelLoc.lng], { icon: hotelIcon }).addTo(map).bindPopup('Hospital de Llobregat');
 
       if (userGps && !mapUpdateThrottle.current) {
         mapUpdateThrottle.current = setTimeout(() => {
