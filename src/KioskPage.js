@@ -73,13 +73,28 @@ function KioskPage() {
     console.log('[KioskPage] Check-in consent button clicked');
     console.log('[KioskPage] Current check-in status:', checkInStatus);
     
-    // Set consent using synced state
+    // Set consent and complete check-in immediately
     setCheckInConsent(true);
     console.log('[KioskPage] Consent set to true via synced state');
-    addGuestMessage('Check-in consent received. Waiting for kiosk verification...', 'processing');
+    addGuestMessage('Processing your check-in...', 'processing');
     
-    console.log('[KioskPage] Consent given, waiting for Kiosk BLE or manual trigger');
-  }, [checkInStatus, addGuestMessage, setCheckInConsent]);
+    // Complete check-in immediately
+    setCheckInStatus('Checked In');
+    setRfidStatus('Verified');
+    
+    // Skip any waiting beacon in API sequence
+    if (api.getCurrentWaitingStage() === 'kiosk') {
+      api.skipCurrentBeacon();
+    }
+    
+    const guestName = formState.name ? formState.name.split(' ')[0] : 'Guest';
+    setTimeout(() => {
+      setRfidStatus('Unverified');
+      addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
+    }, 3000);
+    
+    console.log('[KioskPage] Check-in completed');
+  }, [checkInStatus, addGuestMessage, setCheckInConsent, setCheckInStatus, setRfidStatus, formState.name]);
 
   return (
     <div className="App" style={{ margin: 0, padding: 0 }}>

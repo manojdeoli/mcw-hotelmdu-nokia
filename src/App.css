@@ -743,10 +743,11 @@ body {
 /* Embedded Kiosk Screen Frame - Fixed dimensions for consistency */
 .kiosk-screen-frame {
   position: fixed;
-  bottom: 1%;
-  right: 1%;
+  bottom: 10px;
+  right: 10px;
   width: 576px;  /* Fixed width for 1920x1080 (30% of 1920) */
   height: 648px; /* Fixed height for 1920x1080 (60% of 1080) */
+  max-height: calc(100vh - 20px);
   background-size: 100% 100%;
   background-repeat: no-repeat;
   background-position: center;
@@ -756,7 +757,7 @@ body {
   align-items: center;
   justify-content: center;
   transform-origin: bottom right;
-  transform: scale(min(calc(100vw / 1920), calc(100vh / 1080)));
+  transform: scale(min(calc((100vw - 20px) / 576), calc((100vh - 20px) / 648)));
 }
 
 .kiosk-screen-content {
@@ -781,8 +782,8 @@ body {
 }
 
 .scroll-indicator {
-  position: fixed;
-  right: calc(1% + 5px);
+  position: absolute;
+  right: 15px;
   width: 30px;
   height: 30px;
   background: rgba(0, 123, 255, 0.8);
@@ -805,11 +806,11 @@ body {
 }
 
 .scroll-up {
-  bottom: calc(1% + 648px * 0.8 * min(calc(100vw / 1920), calc(100vh / 1080)));
+  top: 20px;
 }
 
 .scroll-down {
-  bottom: calc(1% + 648px * 0.2 * min(calc(100vw / 1920), calc(100vh / 1080)));
+  bottom: 20px;
 }
 
 .kiosk-overlay {

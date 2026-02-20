@@ -451,6 +451,13 @@ function App() {
       alert('Please verify your phone number first to start registration.');
       return;
     }
+    
+    // Reset all workflow flags for fresh demo run
+    setCheckInConsent(false);
+    setHasReachedHotel(false);
+    setCheckInStatus('Not Checked In');
+    setIsSequenceRunning(false);
+    
     addMessage("Registration: Starting Process");
     addGuestMessage('Starting your registration process...', 'processing');
 
@@ -525,12 +532,47 @@ function App() {
         if (artificialTime) setLastIntegrityCheckTime(new Date(artificialTime.getTime()));
         addMessage('Identity Integrity Check: Verified - No SIM/Device swap detected');
         
-        if (autoGrant && checkInStatus === 'Checked In') {
+        // Location Verification after Identity Integrity checks
+        if (autoGrant && checkInStatus === 'Checked In' && hotelLocationRef.current) {
           if (accessType === 'elevator' || accessType === 'both') {
-            setElevatorAccess('Yes, Floor 13');
+            const elevatorRadius = 100;
+            addMessage(`Location Verification: Checking elevator access (${elevatorRadius}m radius)...`);
+            const elevatorLocationData = {
+              device: { phoneNumber: verifiedPhoneNumberRef.current },
+              area: {
+                areaType: "CIRCLE",
+                center: { latitude: hotelLocationRef.current.lat, longitude: hotelLocationRef.current.lng },
+                radius: elevatorRadius
+              }
+            };
+            const elevatorVerification = await api.locationVerification(elevatorLocationData, logApiInteraction);
+            if (elevatorVerification.verificationResult === "TRUE") {
+              addMessage('Location Verification: Elevator access confirmed');
+              setElevatorAccess('Yes, Floor 13');
+            } else {
+              addMessage('Location Verification: Elevator access denied - outside range');
+              return false;
+            }
           }
           if (accessType === 'room' || accessType === 'both') {
-            setRoomAccess('Granted');
+            const roomRadius = 50;
+            addMessage(`Location Verification: Checking room access (${roomRadius}m radius)...`);
+            const roomLocationData = {
+              device: { phoneNumber: verifiedPhoneNumberRef.current },
+              area: {
+                areaType: "CIRCLE",
+                center: { latitude: hotelLocationRef.current.lat, longitude: hotelLocationRef.current.lng },
+                radius: roomRadius
+              }
+            };
+            const roomVerification = await api.locationVerification(roomLocationData, logApiInteraction);
+            if (roomVerification.verificationResult === "TRUE") {
+              addMessage('Location Verification: Room access confirmed');
+              setRoomAccess('Granted');
+            } else {
+              addMessage('Location Verification: Room access denied - outside range');
+              return false;
+            }
           }
         }
         return true;
@@ -656,7 +698,7 @@ function App() {
         
       } else if (deviceName.toLowerCase().includes("kiosk") || deviceName.toLowerCase().includes("lobby")) {
         locationLabel = "Check-in Kiosk";
-        newLocation = { lat: baseLat + 0.0001, lng: baseLng };
+        newLocation = { lat: baseLat + 0.00005, lng: baseLng + 0.00003 };
         
         // Only log kiosk location if user hasn't progressed beyond check-in (no elevator access yet)
         if (elevatorAccessRef.current === 'No') {
@@ -687,7 +729,7 @@ function App() {
         console.log('[App.js] Detected Elevator beacon:', deviceName);
         console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'elevatorAccess:', elevatorAccessRef.current);
         locationLabel = "Elevator Lobby";
-        newLocation = { lat: baseLat + 0.0001, lng: baseLng + 0.0001 };
+        newLocation = { lat: baseLat + 0.00008, lng: baseLng + 0.00005 };
         
         // Only log location if user is checked in
         if (checkInStatusRef.current === 'Checked In') {
@@ -719,7 +761,7 @@ function App() {
         console.log('[App.js] Detected Room beacon:', deviceName);
         console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'roomAccess:', roomAccessRef.current, 'elevatorAccess:', elevatorAccessRef.current);
         locationLabel = "Room 1337";
-        newLocation = { lat: baseLat + 0.0002, lng: baseLng + 0.0002 };
+        newLocation = { lat: baseLat + 0.00012, lng: baseLng + 0.00008 };
         
         // Only log location if user is checked in
         if (checkInStatusRef.current === 'Checked In') {
@@ -756,13 +798,13 @@ function App() {
       if (newLocation) setUserGps(newLocation);
   }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity, isSequenceRunning, hasReachedHotel, checkInConsent]);
 
-  // Show manual Gate button after 5 seconds if waiting for gate
+  // Show manual Gate button after 3 seconds if waiting for gate
   useEffect(() => {
     if (isSequenceRunning && hasReachedHotel && currentWaitingStage === 'gate') {
       const timer = setTimeout(() => {
         setShowManualGateButton(true);
-        addMessage('Manual Gate button available - BLE not detected for 5 seconds');
-      }, 5000);
+        addMessage('Manual Gate button available - BLE not detected for 3 seconds');
+      }, 3000);
       return () => clearTimeout(timer);
     } else {
       setShowManualGateButton(false);
@@ -781,47 +823,47 @@ function App() {
 
 
   const handleAccessSequence = async (passedLocation) => {
-    // Use passed location if available (from API callback), otherwise fallback to state
     const currentLocation = (passedLocation && passedLocation.lat) ? passedLocation : hotelLocation;
     const guestName = formState.name ? formState.name.split(' ')[0] : 'Guest';
 
     addMessage("Access Sequence: Starting Elevator & Room Access");
     
+    // 1. Move to elevator and verify
     if (currentLocation) {
-      const elevatorLocation = { lat: currentLocation.lat + 0.0001, lng: currentLocation.lng + 0.0001 };
+      const elevatorLocation = { lat: currentLocation.lat + 0.00008, lng: currentLocation.lng + 0.00005 };
       setUserGps(elevatorLocation);
+      await new Promise(resolve => setTimeout(resolve, 1500));
     }
 
-    // 1. Elevator Access First
     addMessage("Elevator Access: Verifying Identity");
     addGuestMessage('Verifying your identity for elevator access...', 'processing');
-    const elevatorIdentityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'elevator'); // Only grant elevator access
+    const elevatorIdentityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'elevator');
 
-    // 2. Wait and confirm elevator access
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
     if (elevatorIdentityResult) {
       addMessage("Elevator Access: Granted to Floor 13");
       addGuestMessage('Elevator access granted! Proceeding to Floor 13.', 'success');
     } else {
       addMessage("Elevator Access: Denied - Identity Check Failed");
       addGuestMessage('Elevator access denied. Please contact reception.', 'error');
-      return; // Stop sequence if elevator access fails
+      return;
     }
 
-    // 3. Then Room Access
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    // 2. Move to room and verify
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     if (currentLocation) {
-      const roomLocation = { lat: currentLocation.lat + 0.0002, lng: currentLocation.lng + 0.0002 };
+      const roomLocation = { lat: currentLocation.lat + 0.00012, lng: currentLocation.lng + 0.00008 };
       setUserGps(roomLocation);
+      await new Promise(resolve => setTimeout(resolve, 1500));
     }
 
     addMessage("Room Access: Verifying Identity");
     addGuestMessage('Verifying your identity for room access...', 'processing');
     setRfidStatus('Verified');
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    const roomAccessIdentityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'room'); // Only grant room access
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    const roomAccessIdentityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'room');
 
     if (roomAccessIdentityResult) {
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -885,12 +927,11 @@ function App() {
   useEffect(() => {
     if (map) {
       map.eachLayer((layer) => {
-        if (layer instanceof L.Marker || layer instanceof L.Circle || layer instanceof L.Polyline || !layer._url) { // Keep tile layer
+        if (layer instanceof L.Marker || layer instanceof L.Circle || layer instanceof L.Polyline || !layer._url) {
           map.removeLayer(layer);
         }
       });
 
-      // Always show hospital marker with custom icon
       const defaultHotelCoords = { lat: 41.40104, lng: 2.1394 };
       const currentHotelLoc = hotelLocation || defaultHotelCoords;
       const hotelIcon = L.icon({
@@ -901,48 +942,48 @@ function App() {
       });
       L.marker([currentHotelLoc.lat, currentHotelLoc.lng], { icon: hotelIcon }).addTo(map).bindPopup('Hospital de Llobregat');
 
-      if (userGps && !mapUpdateThrottle.current) {
-        mapUpdateThrottle.current = setTimeout(() => {
-          mapUpdateThrottle.current = null;
-        }, 1000); // Shorter throttle for smoother updates
-
-        const updateMapView = () => {
-          if (hotelLocation) {
-            const distance = getDistance(userGps, hotelLocation);
-            const ZOOM_START_RADIUS = 2000; // Start zooming within 4km
-            const MIN_ZOOM = 12;
-            const MAX_ZOOM = 18;
-
-            let newZoom;
-            if (distance >= ZOOM_START_RADIUS) {
-              newZoom = MIN_ZOOM;
-            } else {
-              const zoomProgress = 1 - (distance / ZOOM_START_RADIUS);
-              newZoom = MIN_ZOOM + (MAX_ZOOM - MIN_ZOOM) * zoomProgress;
-            }
-
-            const midLat = (userGps.lat + hotelLocation.lat) / 2;
-            const midLng = (userGps.lng + hotelLocation.lng) / 2;
-
-            map.setView([midLat, midLng], newZoom, { animate: true, pan: { duration: 2.5 } });
-          } else {
-            // If no hotel location, just center on user
-            map.setView([userGps.lat, userGps.lng], 15, { animate: true, pan: { duration: 1.0 } });
-          }
-        }
-        updateMapView();
-      }
-
       if (hotelLocation && hotelLocation.lat && hotelLocation.lng) {
         L.circle([hotelLocation.lat, hotelLocation.lng], {
           color: 'green',
           fillColor: '#28a745',
           fillOpacity: 0.2,
-          radius: 100 // CHECK_IN_RADIUS
+          radius: 100
         }).addTo(map).bindPopup('Hotel Check-in Area');
       }
 
       if (userGps) {
+        const distance = hotelLocation ? getDistance(userGps, hotelLocation) : null;
+        
+        const updateMapView = () => {
+          if (hotelLocation && distance !== null) {
+            const ZOOM_START_RADIUS = 2000;
+            const MIN_ZOOM = 12;
+            const MAX_ZOOM = 15;
+            const HOTEL_ZOOM = 16.5;
+
+            let newZoom;
+            if (distance >= ZOOM_START_RADIUS) {
+              newZoom = MIN_ZOOM;
+            } else if (distance <= 100) {
+              newZoom = HOTEL_ZOOM;
+            } else {
+              const zoomProgress = 1 - (distance / ZOOM_START_RADIUS);
+              newZoom = MIN_ZOOM + (MAX_ZOOM - MIN_ZOOM) * zoomProgress;
+            }
+
+            if (distance <= 100) {
+              map.setView([hotelLocation.lat, hotelLocation.lng], newZoom, { animate: true, pan: { duration: 2.5 } });
+            } else {
+              const midLat = (userGps.lat + hotelLocation.lat) / 2;
+              const midLng = (userGps.lng + hotelLocation.lng) / 2;
+              map.setView([midLat, midLng], newZoom, { animate: true, pan: { duration: 2.5 } });
+            }
+          } else {
+            map.setView([userGps.lat, userGps.lng], 15, { animate: true, pan: { duration: 1.0 } });
+          }
+        }
+        updateMapView();
+
         const userIcon = L.divIcon({
           html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#1E90FF" width="32px" height="32px"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/><path d="M0 0h24v24H0z" fill="none"/></svg>`,
           className: 'user-location-icon',
@@ -1090,6 +1131,12 @@ function App() {
       return;
     }
 
+    // Reset workflow flags when starting new sequence
+    setCheckInConsent(false);
+    setHasReachedHotel(false);
+    setShowManualGateButton(false);
+    setCheckInStatus('Not Checked In');
+
     setIsSequenceRunning(true);
     try {
       setArtificialTime(getInitialArtificialTime(mode));
@@ -1104,10 +1151,8 @@ function App() {
         };
         setHotelLocation(actualHotelCoords);
 
-        // Set initial user location slightly away from the hospital (south-east)
-        const userStartLat = actualHotelCoords.lat - 0.05; // Start south of hospital
-        const userStartLng = actualHotelCoords.lng + 0.05; // Start east of hospital
-        const initialUserCoords = { lat: userStartLat, lng: userStartLng };
+        // Set initial user location at Sants-Montjuïc (on land)
+        const initialUserCoords = { lat: 41.37544, lng: 2.13551 };
 
         setInitialUserLocation(initialUserCoords);
         setUserGps(initialUserCoords);
@@ -1317,7 +1362,7 @@ function App() {
 
               {/* Phone Verification */}
               <div id="verification-container" className="card">
-                <h2 className="card-header">1. Phone Verification</h2>
+                <h2 className="card-header">1. Number Verification</h2>
                 <form onSubmit={validatePhone} className="p-3">
                   <div className="verify-form-container">
                     <div className="form-group">
@@ -1346,15 +1391,17 @@ function App() {
                     {showManualGateButton ? (
                       <button className="btn btn-sm btn-primary ml-2" onClick={() => { addMessage('Manual Gate skip triggered'); setCheckInStatus('At Kiosk'); api.skipCurrentBeacon(); setShowManualGateButton(false); }}>Proceed to Kiosk</button>
                     ) : null}
-                    {(checkInStatus === 'At Kiosk' && isSequenceRunning) && checkInStatus !== 'Checked In' && !checkInConsent && (
-                      <span className="ml-2 text-info">Waiting for User Consent for Check-in</span>
-                    )}
-                    {(checkInStatus === 'At Kiosk' && isSequenceRunning) && checkInStatus !== 'Checked In' && checkInConsent && (
+                    {(checkInStatus === 'At Kiosk' && isSequenceRunning) && checkInStatus !== 'Checked In' && (
                       <button className="btn btn-sm btn-success ml-2" onClick={() => { 
-                        addMessage('Manual check-in triggered'); 
+                        addMessage('Manual check-in triggered from Management Dashboard'); 
+                        setCheckInConsent(true);
                         setCheckInStatus('Checked In');
                         setRfidStatus('Verified');
-                        setTimeout(() => setRfidStatus('Unverified'), 3000);
+                        const guestName = formState.name ? formState.name.split(' ')[0] : 'Guest';
+                        setTimeout(() => {
+                          setRfidStatus('Unverified');
+                          addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
+                        }, 3000);
                         if (api.getCurrentWaitingStage() === 'kiosk') api.skipCurrentBeacon(); 
                       }}>Complete Check-in</button>
                     )}
@@ -1368,37 +1415,7 @@ function App() {
                 </ul>
               </div>
 
-              {/* BLE Status Display (Hidden - can be enabled later if needed) */}
-              <div id="bleSection" className="d-none">
-                <h2 className="card-header">BLE Auto-Tracking</h2>
-                <div className="p-3">
-                  <p>BLE tracking is automatically enabled when phone is verified.</p>
-                  <div className="mt-2">
-                    <strong>Status: </strong>
-                    <span style={{ color: bleStatus === 'Connected' ? 'green' : (bleStatus === 'Failed' ? 'red' : 'black') }}>
-                      {bleStatus}
-                    </span>
-                    {isAutoScanning && <span className="ml-2">(Tracking Active)</span>}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Tab 3 & 4: Dashboard & Details - Right Column */}
-            <div className={`dashboard-column ${activeTab === 'dashboard' || activeTab === 'details' ? '' : 'd-none'}`} style={{ flex: '1', minWidth: '300px' }}>
-              
-              {/* Booking Details (Moved from User Status) */}
-              <div id="bookingDetails" className="card">
-                <h2 className="card-header">Booking Details</h2>
-                <ul className="details-list">
-                  <li><strong>Hotel:</strong> <span>{isSequenceRunning ? 'Hotel Barcelona Sol' : '--'}</span></li>
-                  <li><strong>Room:</strong> <span>{isSequenceRunning ? '1337' : '--'}</span></li>
-                  <li><strong>Check-in:</strong> <span>{isSequenceRunning ? format(CHECK_IN_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>
-                  <li><strong>Check-out:</strong> <span>{isSequenceRunning ? format(CHECK_OUT_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>
-                </ul>
-              </div>
-              
-              {/* User Profile Section (Full-width) */}
+              {/* User Profile Section */}
               <div id="userDetails" className="card" ref={userProfileRef}>
                 <h2 className="card-header">3. User Profile Details</h2>
                 <form id="user-form" className="user-profile-form p-3">
@@ -1436,9 +1453,39 @@ function App() {
                 </form>
               </div>
 
+              {/* BLE Status Display (Hidden - can be enabled later if needed) */}
+              <div id="bleSection" className="d-none">
+                <h2 className="card-header">BLE Auto-Tracking</h2>
+                <div className="p-3">
+                  <p>BLE tracking is automatically enabled when phone is verified.</p>
+                  <div className="mt-2">
+                    <strong>Status: </strong>
+                    <span style={{ color: bleStatus === 'Connected' ? 'green' : (bleStatus === 'Failed' ? 'red' : 'black') }}>
+                      {bleStatus}
+                    </span>
+                    {isAutoScanning && <span className="ml-2">(Tracking Active)</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tab 3 & 4: Dashboard & Details - Right Column */}
+            <div className={`dashboard-column ${activeTab === 'dashboard' || activeTab === 'details' ? '' : 'd-none'}`} style={{ flex: '1', minWidth: '300px' }}>
+              
+              {/* Booking Details */}
+              <div id="bookingDetails" className="card">
+                <h2 className="card-header">4. Booking Details</h2>
+                <ul className="details-list">
+                  <li><strong>Hotel:</strong> <span>{isSequenceRunning ? 'Hotel Barcelona Sol' : '--'}</span></li>
+                  <li><strong>Room:</strong> <span>{isSequenceRunning ? '1337' : '--'}</span></li>
+                  <li><strong>Check-in:</strong> <span>{isSequenceRunning ? format(CHECK_IN_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>
+                  <li><strong>Check-out:</strong> <span>{isSequenceRunning ? format(CHECK_OUT_DATE, 'yyyy-MM-dd HH:mm') : '--'}</span></li>
+                </ul>
+              </div>
+              
               {/* Activity Logs */}
               <div id="activityLogs" className={`card ${(activeTab === 'details') ? '' : 'd-none'}`}>
-                <h2 className="card-header">Activity Logs</h2>
+                <h2 className="card-header">5. Activity Log</h2>
                 <div className="p-3">
                   <div id="response-container" ref={responseContainerRef} style={{ maxHeight: '200px', overflowY: 'auto', backgroundColor: 'black', border: '1px solid #dee2e6', padding: '10px' }}>
                     <pre id="api-response" style={{ margin: 0, whiteSpace: 'pre-wrap', color: 'white' }}>{messages.join('\n')}</pre>
@@ -1448,7 +1495,7 @@ function App() {
 
               {/* API Logs (Details Only) */}
               <div id="apiLogsDetails" className={`card ${(activeTab === 'details') ? '' : 'd-none'}`}>
-                <h2 className="card-header">Network API Request-Response</h2>
+                <h2 className="card-header">6. Network API Request-Response</h2>
                 <div className="p-3" style={{ maxHeight: '600px', overflowY: 'auto' }}>
                   {apiLogs.length === 0 ? <p>No API interactions recorded.</p> : (
                     <div className="api-log-list">
@@ -1481,7 +1528,7 @@ function App() {
 
               {/* Location Tracker */}
               <div id="locationTracker" className="card">
-                <h2 className="card-header">Location Tracker</h2>
+                <h2 className="card-header">{activeTab === 'details' ? '7. Location Tracker' : '5. Location Tracker'}</h2>
                 <div id="map" style={{ height: '400px', width: '100%' }}></div>
               </div>
             </div>
