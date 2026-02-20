@@ -25,6 +25,7 @@ const GuestTab = ({
   const [showScrollDown, setShowScrollDown] = useState(false);
   const scrollContainerRef = useRef(null);
   const [showAttribution, setShowAttribution] = useState(false);
+  const [showCheckoutMessage, setShowCheckoutMessage] = useState(true);
   const [backgroundVideo, setBackgroundVideo] = useState(() => {
     const videos = ['Hotel_Entrance_Veo_1.mp4', 'Hotel_Entrance_Veo_2.mp4', 'Hotel_Entrance_Veo_3.mp4'];
     return videos[Math.floor(Math.random() * videos.length)];
@@ -99,6 +100,17 @@ const GuestTab = ({
       setShowCheckedInContent(false);
     }
   }, [checkInStatus, showCheckedInContent]);
+
+  // Auto-dismiss checkout message after 30 seconds
+  useEffect(() => {
+    if (checkInStatus === 'Checked Out') {
+      setShowCheckoutMessage(true);
+      const timer = setTimeout(() => {
+        setShowCheckoutMessage(false);
+      }, 30000);
+      return () => clearTimeout(timer);
+    }
+  }, [checkInStatus]);
   
   // Initialize maps when tab is active and checked in
   useEffect(() => {
@@ -297,7 +309,7 @@ const GuestTab = ({
           </div>
         )}
 
-        {checkInStatus === 'Checked Out' && (
+        {checkInStatus === 'Checked Out' && showCheckoutMessage && (
           <div className="kiosk-success-section">
             <div className="success-header">
               <div className="success-icon">👋</div>
@@ -313,6 +325,12 @@ const GuestTab = ({
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {checkInStatus === 'Checked Out' && !showCheckoutMessage && (
+          <div className="kiosk-welcome-idle kiosk-welcome-compact">
+            <h3>Welcome to Hotel Barcelona Sol</h3>
           </div>
         )}
 
