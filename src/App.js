@@ -1135,7 +1135,10 @@ function App() {
     setCheckInConsent(false);
     setHasReachedHotel(false);
     setShowManualGateButton(false);
-    setCheckInStatus('Not Checked In');
+    // Only reset check-in status for arrival mode, not for departure
+    if (mode === 'arrival') {
+      setCheckInStatus('Not Checked In');
+    }
 
     setIsSequenceRunning(true);
     try {
@@ -1271,12 +1274,6 @@ function App() {
       }
       <header className="header">
         <h1><a href="/" className="header-link">Hotels/MDUs Use Case Demo</a></h1>
-        <div className="artificial-clock">
-          {isAuthenticated && tokenExpirySeconds > 0 && (
-            <p style={{ fontSize: '0.9em', marginRight: '20px' }}>Token expires in: {Math.floor(tokenExpirySeconds / 60)}:{(tokenExpirySeconds % 60).toString().padStart(2, '0')}</p>
-          )}
-          {verifiedPhoneNumber && artificialTime && renderCountdown()}
-        </div>
       </header>
 
       <main className="main-content">

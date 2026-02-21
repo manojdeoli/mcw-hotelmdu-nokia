@@ -26,21 +26,29 @@ const GuestTab = ({
   const scrollContainerRef = useRef(null);
   const [showAttribution, setShowAttribution] = useState(false);
   const [showCheckoutMessage, setShowCheckoutMessage] = useState(true);
+  const [displayStatus, setDisplayStatus] = useState(checkInStatus);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [backgroundVideo, setBackgroundVideo] = useState(() => {
     const videos = ['Hotel_Entrance_Veo_1.mp4', 'Hotel_Entrance_Veo_2.mp4', 'Hotel_Entrance_Veo_3.mp4'];
     return videos[Math.floor(Math.random() * videos.length)];
   });
   const videoRef = useRef(null);
+  const playPromiseRef = useRef(null);
+  const [nextVideo, setNextVideo] = useState(null);
   
-  // Change video when checkInStatus or isSequenceRunning changes
-  useEffect(() => {
+  // Handle video end - play random video with crossfade
+  const handleVideoEnd = () => {
     const videos = ['Hotel_Entrance_Veo_1.mp4', 'Hotel_Entrance_Veo_2.mp4', 'Hotel_Entrance_Veo_3.mp4'];
-    const newVideo = videos[Math.floor(Math.random() * videos.length)];
-    setBackgroundVideo(newVideo);
-    if (videoRef.current) {
-      videoRef.current.load();
-    }
-  }, [checkInStatus, isSequenceRunning]);
+    let newVideo;
+    do {
+      newVideo = videos[Math.floor(Math.random() * videos.length)];
+    } while (newVideo === backgroundVideo && videos.length > 1);
+    setNextVideo(newVideo);
+    setTimeout(() => {
+      setBackgroundVideo(newVideo);
+      setNextVideo(null);
+    }, 500);
+  };
   
   // Check scroll position to show/hide scroll indicators
   const checkScrollPosition = () => {
@@ -83,21 +91,30 @@ const GuestTab = ({
   useEffect(() => {
     console.log('[GuestTab] State updated:', {
       checkInStatus,
+      displayStatus,
+      showCheckedInContent,
       verifiedPhoneNumber,
       hasReachedHotel,
       firstName: formState.firstName || formState.name
     });
-  }, [checkInStatus, verifiedPhoneNumber, hasReachedHotel, formState]);
+  }, [checkInStatus, displayStatus, showCheckedInContent, verifiedPhoneNumber, hasReachedHotel, formState]);
   
-  // Show checked-in content with delay after check-in
+  // Update display status only when new content is ready
   useEffect(() => {
     if (checkInStatus === 'Checked In' && !showCheckedInContent) {
       const timer = setTimeout(() => {
         setShowCheckedInContent(true);
+        setDisplayStatus('Checked In');
       }, 3000);
       return () => clearTimeout(timer);
-    } else if (checkInStatus !== 'Checked In') {
+    } else if (checkInStatus === 'Checked In' && showCheckedInContent) {
+      setDisplayStatus('Checked In');
+    } else if (checkInStatus === 'Checked Out') {
+      setDisplayStatus('Checked Out');
+      // Don't set showCheckedInContent to false - keep content visible
+    } else if (checkInStatus !== 'Checked In' && checkInStatus !== 'Checked Out') {
       setShowCheckedInContent(false);
+      setDisplayStatus(checkInStatus);
     }
   }, [checkInStatus, showCheckedInContent]);
 
@@ -199,7 +216,8 @@ const GuestTab = ({
     }
     
     // Cleanup when component unmounts or check-in status changes to not checked in
-    if (checkInStatus !== 'Checked In' && mapInitialized.current && museumMap) {
+    // Don't cleanup during checkout transition - wait for displayStatus to update
+    if (checkInStatus !== 'Checked In' && checkInStatus !== 'Checked Out' && mapInitialized.current && museumMap) {
       try {
         museumMap.remove();
       } catch (e) {
@@ -218,9 +236,16 @@ const GuestTab = ({
   return (
     <div className="kiosk-container">
       {/* Background Video - Changes on status updates */}
-      <video ref={videoRef} className="kiosk-background-video" autoPlay loop muted playsInline key={backgroundVideo}>
+      <video key={backgroundVideo} ref={videoRef} className="kiosk-background-video" autoPlay muted playsInline onEnded={handleVideoEnd} style={{ opacity: nextVideo ? 0 : 1, transition: 'opacity 0.5s' }}>
         <source src={`${process.env.PUBLIC_URL}/${backgroundVideo}`} type="video/mp4" />
       </video>
+      
+      {/* Preload next video for smooth transition */}
+      {nextVideo && (
+        <video key={nextVideo} className="kiosk-background-video" autoPlay muted playsInline style={{ opacity: 1, transition: 'opacity 0.5s' }}>
+          <source src={`${process.env.PUBLIC_URL}/${nextVideo}`} type="video/mp4" />
+        </video>
+      )}
       
       {/* Attribution Button */}
       <button
@@ -302,14 +327,14 @@ const GuestTab = ({
           </div>
         )}
 
-        {verifiedPhoneNumber && hasReachedHotel && checkInStatus !== 'Checked In' && checkInStatus !== 'At Kiosk' && checkInStatus !== 'Checked Out' && (
+        {verifiedPhoneNumber && hasReachedHotel && displayStatus !== 'Checked In' && displayStatus !== 'At Kiosk' && displayStatus !== 'Checked Out' && (
           <div className="kiosk-welcome-idle">
             <h3>Welcome, {firstName}!</h3>
             <p>Please proceed to the kiosk to check in</p>
           </div>
         )}
 
-        {checkInStatus === 'Checked Out' && showCheckoutMessage && (
+        {displayStatus === 'Checked Out' && showCheckoutMessage && (
           <div className="kiosk-success-section">
             <div className="success-header">
               <div className="success-icon">👋</div>
@@ -328,13 +353,13 @@ const GuestTab = ({
           </div>
         )}
 
-        {checkInStatus === 'Checked Out' && !showCheckoutMessage && (
+        {displayStatus === 'Checked Out' && !showCheckoutMessage && (
           <div className="kiosk-welcome-idle kiosk-welcome-compact">
             <h3>Welcome to Hotel Barcelona Sol</h3>
           </div>
         )}
 
-        {verifiedPhoneNumber && checkInStatus === 'At Kiosk' && isSequenceRunning && checkInStatus !== 'Checked In' && checkInStatus !== 'Checked Out' && (
+        {verifiedPhoneNumber && displayStatus === 'At Kiosk' && isSequenceRunning && displayStatus !== 'Checked In' && displayStatus !== 'Checked Out' && (
           <div className="kiosk-checkin-section">
             <div className="kiosk-welcome-message">
               <h3>Welcome, {firstName}!</h3>
@@ -386,7 +411,7 @@ const GuestTab = ({
           </div>
         )}
 
-        {checkInStatus === 'Checked In' && showCheckedInContent && (
+        {((displayStatus === 'Checked In' && showCheckedInContent) || (checkInStatus === 'Checked In' && displayStatus === 'Checked Out')) && (
           <div className="kiosk-success-section">
             <div className="success-header">
               <div className="success-icon">✓</div>

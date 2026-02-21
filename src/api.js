@@ -694,6 +694,10 @@ export async function startCheckOutSequence(phoneNumber, initialUserLocation, ho
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     addMessage(`Contact guest ${guestName} on ${phoneNumber} to confirm check out.`);
+    
+    // Wait a bit before changing status to allow kiosk to prepare
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    
     setCheckInStatus("Checked Out");
     
     // Restore Identity Integrity status - user was already verified multiple times during stay
