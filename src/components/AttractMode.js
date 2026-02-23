@@ -6,9 +6,19 @@ const AttractMode = () => {
   const [kioskAvailable, setKioskAvailable] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Determine healthcare port based on environment
+  const getHealthcarePort = () => {
+    // Check if running in production (built app) by checking if we're on port 4002
+    const currentPort = window.location.port;
+    if (currentPort === '4002') {
+      return '3003'; // Production port
+    }
+    return '3000'; // Development port
+  };
+
   const views = [
     { url: `${window.location.origin}/kiosk`, name: 'Hotel Kiosk' },
-    { url: 'http://localhost:3000/#/er-dashboard', name: 'ER Dashboard' }
+    { url: `http://localhost:${getHealthcarePort()}/#/er-dashboard`, name: 'ER Dashboard' }
   ];
 
   useEffect(() => {

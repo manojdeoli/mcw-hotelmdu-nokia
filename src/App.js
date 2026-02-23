@@ -1290,6 +1290,9 @@ function App() {
             <li className="nav-item">
               <button className={`nav-link ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')}>Management Dashboard (Detailed Version)</button>
             </li>
+            <li className="nav-item">
+              <button className="nav-link" onClick={() => window.open(window.location.origin + '/attract-mode', '_blank')}>Open Presentation View</button>
+            </li>
           </ul>
 
           {/* Main Content Area */}
