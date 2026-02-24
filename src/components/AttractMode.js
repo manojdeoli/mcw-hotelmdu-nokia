@@ -35,9 +35,8 @@ const AttractMode = () => {
     const checkKiosk = async () => {
       const port = getHealthcarePort();
       try {
-        const res = await fetch(`http://localhost:${port}/`, { mode: 'no-cors', cache: 'no-store' });
-        // no-cors always resolves (opaque response) — means server is up
-        setKioskAvailable(true);
+        const res = await fetch(`http://localhost:${port}/hospital_logo.png`, { cache: 'no-store' });
+        setKioskAvailable(res.ok);
       } catch {
         setKioskAvailable(false);
       }
