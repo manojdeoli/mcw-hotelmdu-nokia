@@ -164,10 +164,10 @@ const AttractMode = () => {
           ))
         ) : (
           <iframe
-            ref={el => iframeRefs.current[1] = el}
-            src={views[1].url}
+            ref={el => iframeRefs.current[0] = el}
+            src={views[0].url}
             className="attract-iframe active"
-            title={views[1].name}
+            title={views[0].name}
             allow="autoplay"
             frameBorder="0"
           />
