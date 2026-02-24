@@ -350,7 +350,7 @@ const GuestTab = ({
         onClick={() => setShowAttribution(!showAttribution)}
         style={{
           position: 'fixed',
-          bottom: '10px',
+          top: '10px',
           left: '10px',
           background: 'rgba(0, 0, 0, 0.6)',
           color: 'white',
@@ -359,7 +359,7 @@ const GuestTab = ({
           padding: '5px 10px',
           fontSize: '0.7rem',
           cursor: 'pointer',
-          zIndex: 10
+          zIndex: 16
         }}
       >
         ℹ️ Video Attribution
@@ -370,14 +370,14 @@ const GuestTab = ({
         <div
           style={{
             position: 'fixed',
-            bottom: '50px',
+            top: '45px',
             left: '10px',
             background: 'rgba(255, 255, 255, 0.95)',
             border: '2px solid #007bff',
             borderRadius: '8px',
             padding: '15px',
             maxWidth: '400px',
-            zIndex: 11,
+            zIndex: 17,
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
             fontSize: '0.75rem',
             color: '#000'
@@ -450,6 +450,25 @@ const GuestTab = ({
           <div>• Automates registration, arrival detection, check in, elevator and room access.</div>
           <div>• Delivers personalized guest information throughout the stay.</div>
           <div>• Supports automated check out and billing without manual intervention.</div>
+          {isInIframe && (
+            <button
+              onClick={() => window.parent.postMessage({ type: 'TRY_NOW' }, '*')}
+              style={{
+                marginTop: '8px',
+                background: 'rgba(232, 0, 116, 0.85)',
+                color: 'white',
+                border: '1px solid rgba(255,255,255,0.6)',
+                borderRadius: '20px',
+                padding: '5px 16px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                textShadow: 'none'
+              }}
+            >
+              ▶ Try Now
+            </button>
+          )}
         </div>
       )}
       
