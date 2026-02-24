@@ -408,21 +408,25 @@ const GuestTab = ({
           onClick={toggleAudio}
           style={{
             position: 'fixed',
-            bottom: '20px',
+            top: '20px',
             right: '20px',
             background: audioEnabled ? '#28a745' : '#6c757d',
             color: 'white',
             border: 'none',
-            borderRadius: '25px',
-            padding: '12px 24px',
+            borderRadius: '50%',
+            width: '36px',
+            height: '36px',
             cursor: 'pointer',
             zIndex: 1000,
-            fontSize: '16px',
-            fontWeight: 'bold',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+            fontSize: '18px',
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
+          title={audioEnabled ? 'Mute' : 'Unmute'}
         >
-          {audioEnabled ? '🔊' : '🔇'} Hotel Sound
+          {audioEnabled ? '🔊' : '🔇'}
         </button>
       )}
       
