@@ -72,13 +72,13 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 15px 30px;
-  font-size: 16px;
+  padding: 6px 14px;
+  font-size: 13px;
   font-weight: bold;
-  border-radius: 8px;
+  border-radius: 20px;
   cursor: pointer;
   z-index: 10001;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
 
