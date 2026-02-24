@@ -31,33 +31,44 @@ const AttractMode = () => {
     { url: `http://localhost:${getHealthcarePort()}/#/er-dashboard`, name: 'ER Dashboard' }
   ];
 
+  const kioskAvailableRef = useRef(false);
+
   useEffect(() => {
     const checkKiosk = async () => {
       const port = getHealthcarePort();
       try {
         const res = await fetch(`http://localhost:${port}/hospital_logo.png`, { cache: 'no-store' });
-        setKioskAvailable(res.ok);
+        const available = res.ok;
+        kioskAvailableRef.current = available;
+        setKioskAvailable(available);
       } catch {
+        kioskAvailableRef.current = false;
         setKioskAvailable(false);
       }
     };
     checkKiosk();
+    // Re-check every 30s so Healthcare coming online is detected
+    const poll = setInterval(checkKiosk, 30000);
+    return () => clearInterval(poll);
   }, []);
 
-  // Tell ER iframe it's inactive as soon as it's available (presentation view + fullscreen)
+  // Send initial VIEW_CHANGED so Hotel iframe starts playing immediately
   useEffect(() => {
-    if (!kioskAvailable) return;
     const timer = setTimeout(() => {
-      iframeRefs.current[1]?.contentWindow?.postMessage({ type: 'VIEW_CHANGED', activeView: 0, activeTarget: 'hotel' }, '*');
+      channelRef.current?.postMessage({ type: 'VIEW_CHANGED', activeView: 0, activeTarget: 'hotel' });
     }, 500);
     return () => clearTimeout(timer);
-  }, [kioskAvailable]);
+  }, []);
 
+  // Always rotate — when Healthcare unavailable, stay on view 0 (Hotel only)
   useEffect(() => {
-    if (!kioskAvailable) return;
-
     const interval = setInterval(() => {
       setCurrentView(prev => {
+        if (!kioskAvailableRef.current) {
+          // Hotel-only: keep view 0, just re-trigger VIEW_CHANGED so GuestTab rotates its video
+          channelRef.current?.postMessage({ type: 'VIEW_CHANGED', activeView: 0, activeTarget: 'hotel' });
+          return 0;
+        }
         const newView = (prev + 1) % views.length;
         const activeTarget = newView === 0 ? 'hotel' : 'er';
         if (activeTarget === 'hotel') {
@@ -70,7 +81,7 @@ const AttractMode = () => {
     }, 9000);
 
     return () => clearInterval(interval);
-  }, [kioskAvailable, views.length]);
+  }, [views.length]);
 
   // Handle TRY_NOW from iframe — exit fullscreen, focus opener, close presentation tab
   useEffect(() => {
