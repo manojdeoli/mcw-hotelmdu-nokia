@@ -38,7 +38,7 @@ const GuestTab = ({
   const currentVideoRef = useRef(backgroundVideo);
   
   const isInIframe = window !== window.top;
-  const isAttractMode = window.location.hash === '#/attract-mode' || isInIframe;
+  const isAttractMode = window.location.hash === '#/attract-mode' || window.location.pathname === '/kiosk' || isInIframe;
   const isActiveRef = useRef(true); // true by default; set to false only when VIEW_CHANGED says hotel is inactive
 
   // Listen for VIEW_CHANGED and SOUND_TOGGLE from AttractMode parent
@@ -430,8 +430,8 @@ const GuestTab = ({
         </button>
       )}
       
-      {/* Demo Banner - Show in attract mode */}
-      {isAttractMode && (
+      {/* Demo Banner - Show in presentation/fullscreen (iframe) only, not in kiosk view */}
+      {isInIframe && (
         <div style={{
           position: 'fixed',
           bottom: 0,
@@ -473,7 +473,7 @@ const GuestTab = ({
       )}
       
       {/* Embedded Kiosk Screen */}
-      <div className="kiosk-screen-frame" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/kiosk.png)` }}>
+      <div className={`kiosk-screen-frame${isAttractMode ? ' kiosk-screen-frame--scene' : ''}`} style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/kiosk.png)` }}>
         <div className="kiosk-screen-content" ref={scrollContainerRef} onScroll={checkScrollPosition}>
           <div className="kiosk-header">
             <div className="hotel-logo">
