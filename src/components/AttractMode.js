@@ -32,11 +32,15 @@ const AttractMode = () => {
   ];
 
   useEffect(() => {
-    const checkKiosk = () => {
-      const img = new Image();
-      img.onload = () => setKioskAvailable(true);
-      img.onerror = () => setKioskAvailable(false);
-      img.src = `${window.location.origin}/hotel_logo.png?` + Date.now();
+    const checkKiosk = async () => {
+      const port = getHealthcarePort();
+      try {
+        const res = await fetch(`http://localhost:${port}/`, { mode: 'no-cors', cache: 'no-store' });
+        // no-cors always resolves (opaque response) — means server is up
+        setKioskAvailable(true);
+      } catch {
+        setKioskAvailable(false);
+      }
     };
     checkKiosk();
   }, []);
@@ -68,6 +72,25 @@ const AttractMode = () => {
 
     return () => clearInterval(interval);
   }, [kioskAvailable, views.length]);
+
+  // Handle TRY_NOW from iframe — exit fullscreen, focus opener, close presentation tab
+  useEffect(() => {
+    const handler = (event) => {
+      if (event.data?.type !== 'TRY_NOW') return;
+      const close = async () => {
+        try { if (document.fullscreenElement) await document.exitFullscreen(); } catch {}
+        if (window.opener) {
+          window.opener.focus();
+          window.close();
+        } else {
+          window.location.hash = '#/';
+        }
+      };
+      close();
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -168,50 +191,50 @@ const AttractMode = () => {
       {isFullscreen ? (
         null
       ) : (
-        <button className="fullscreen-button" onClick={enterFullscreen}>
-          Fullscreen Mode
-        </button>
+        <>
+          <button
+            onClick={toggleErSound}
+            style={{
+              position: 'fixed',
+              top: '20px',
+              right: '290px',
+              background: erSoundEnabled ? '#28a745' : 'rgba(0,0,0,0.7)',
+              color: 'white',
+              border: '2px solid #007bff',
+              borderRadius: '20px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              zIndex: 10002,
+              fontSize: '13px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+            }}
+          >
+            {erSoundEnabled ? '🔊' : '🔇'} ER Sound
+          </button>
+          <button
+            onClick={toggleSound}
+            style={{
+              position: 'fixed',
+              top: '20px',
+              right: '160px',
+              background: soundEnabled ? '#28a745' : 'rgba(0,0,0,0.7)',
+              color: 'white',
+              border: '2px solid #e80074',
+              borderRadius: '20px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              zIndex: 10002,
+              fontSize: '13px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+            }}
+          >
+            {soundEnabled ? '🔊' : '🔇'} Hotel Sound
+          </button>
+          <button className="fullscreen-button" onClick={enterFullscreen}>
+            Fullscreen Mode
+          </button>
+        </>
       )}
-      <button
-        onClick={toggleSound}
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          background: soundEnabled ? '#28a745' : '#6c757d',
-          color: 'white',
-          border: 'none',
-          borderRadius: '25px',
-          padding: '12px 20px',
-          cursor: 'pointer',
-          zIndex: 10002,
-          fontSize: '14px',
-          fontWeight: 'bold',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
-        }}
-      >
-        {soundEnabled ? '🔊' : '🔇'} Hotel Sound
-      </button>
-      <button
-        onClick={toggleErSound}
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '170px',
-          background: erSoundEnabled ? '#28a745' : '#6c757d',
-          color: 'white',
-          border: 'none',
-          borderRadius: '25px',
-          padding: '12px 20px',
-          cursor: 'pointer',
-          zIndex: 10002,
-          fontSize: '14px',
-          fontWeight: 'bold',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
-        }}
-      >
-        {erSoundEnabled ? '🔊' : '🔇'} ER Sound
-      </button>
     </div>
   );
 };
