@@ -33,21 +33,128 @@ const GuestTab = ({
     return videos[Math.floor(Math.random() * videos.length)];
   });
   const videoRef = useRef(null);
-  const playPromiseRef = useRef(null);
-  const [nextVideo, setNextVideo] = useState(null);
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  const audioEnabledRef = useRef(false);
+  const currentVideoRef = useRef(backgroundVideo);
   
-  // Handle video end - play random video with crossfade
+  const isInIframe = window !== window.top;
+  const isAttractMode = window.location.hash === '#/attract-mode' || isInIframe;
+  const isActiveRef = useRef(true); // true by default; set to false only when VIEW_CHANGED says hotel is inactive
+
+  // Listen for VIEW_CHANGED and SOUND_TOGGLE from AttractMode parent
+  useEffect(() => {
+    if (!isInIframe) return;
+
+    const handleMsg = (data) => {
+      const video = videoRef.current;
+      if (!video) return;
+      if (data.type === 'VIEW_CHANGED') {
+        const isHotelActive = data.activeTarget
+          ? data.activeTarget === 'hotel'
+          : data.activeView === 0;
+        isActiveRef.current = isHotelActive;
+        if (isHotelActive) {
+          const v = videoRef.current;
+          const videos = ['Hotel_Entrance_Veo_1.mp4', 'Hotel_Entrance_Veo_2.mp4', 'Hotel_Entrance_Veo_3.mp4'];
+          let newVideo;
+          do {
+            newVideo = videos[Math.floor(Math.random() * videos.length)];
+          } while (newVideo === currentVideoRef.current && videos.length > 1);
+          currentVideoRef.current = newVideo;
+          v.muted = !audioEnabledRef.current;
+          const onCanPlay = () => { v.removeEventListener('canplay', onCanPlay); if (isActiveRef.current) v.play().catch(() => {}); };
+          v.addEventListener('canplay', onCanPlay);
+          v.src = `${process.env.PUBLIC_URL}/${newVideo}`;
+          v.load();
+        } else {
+          video.pause();
+          video.muted = true;
+        }
+      } else if (data.type === 'SOUND_TOGGLE') {
+        if (data.target && data.target !== 'hotel') return;
+        audioEnabledRef.current = data.enabled;
+        setAudioEnabled(data.enabled);
+        // Only unmute if hotel is the currently active view; always allow muting
+        video.muted = !data.enabled || !isActiveRef.current;
+      } else if (data.type === 'PAUSE_ALL') {
+        video.pause();
+        video.muted = true;
+      }
+    };
+
+    // Same-origin (Hotel's own AttractMode): BroadcastChannel
+    const channel = new BroadcastChannel('attract_mode_sync');
+    channel.onmessage = (event) => handleMsg(event.data);
+
+    // Cross-origin (Healthcare's AttractMode): postMessage
+    const onPostMessage = (event) => {
+      if (event.data && event.data.source === 'attract_mode') handleMsg(event.data);
+    };
+    window.addEventListener('message', onPostMessage);
+
+    return () => {
+      channel.close();
+      window.removeEventListener('message', onPostMessage);
+    };
+  }, [isInIframe]);
+  
+  // Sync audioEnabledRef and apply mute directly to DOM element (React muted prop doesn't update after mount)
+  useEffect(() => {
+    audioEnabledRef.current = audioEnabled;
+    if (videoRef.current) videoRef.current.muted = !audioEnabled;
+  }, [audioEnabled]);
+
+  const toggleAudio = () => setAudioEnabled(prev => !prev);
+
+  // On video change, update src directly without remounting the element
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    // In iframe mode, VIEW_CHANGED controls all playback — never auto-play here
+    if (isInIframe) return;
+    const onCanPlay = () => {
+      video.removeEventListener('canplay', onCanPlay);
+      video.muted = !audioEnabledRef.current;
+      video.play().catch(() => {});
+    };
+    video.addEventListener('canplay', onCanPlay);
+    video.src = `${process.env.PUBLIC_URL}/${backgroundVideo}`;
+    video.load();
+  }, [backgroundVideo, isInIframe]);
+
+  // Watchdog: resume video if browser suspends/stalls it while hotel view is active
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const resume = () => {
+      if (isActiveRef.current && video.paused && !video.ended) {
+        video.play().catch(() => {});
+      }
+    };
+    video.addEventListener('stalled', resume);
+    video.addEventListener('suspend', resume);
+    video.addEventListener('waiting', resume);
+    return () => {
+      video.removeEventListener('stalled', resume);
+      video.removeEventListener('suspend', resume);
+      video.removeEventListener('waiting', resume);
+    };
+  }, []);
+
   const handleVideoEnd = () => {
+    // In iframe mode: just stop (pause) — VIEW_CHANGED will start a fresh video when hotel gets its turn
+    // In standalone mode: rotate to next video
+    if (isInIframe) {
+      videoRef.current?.pause();
+      return;
+    }
     const videos = ['Hotel_Entrance_Veo_1.mp4', 'Hotel_Entrance_Veo_2.mp4', 'Hotel_Entrance_Veo_3.mp4'];
     let newVideo;
     do {
       newVideo = videos[Math.floor(Math.random() * videos.length)];
-    } while (newVideo === backgroundVideo && videos.length > 1);
-    setNextVideo(newVideo);
-    setTimeout(() => {
-      setBackgroundVideo(newVideo);
-      setNextVideo(null);
-    }, 500);
+    } while (newVideo === currentVideoRef.current && videos.length > 1);
+    currentVideoRef.current = newVideo;
+    setBackgroundVideo(newVideo);
   };
   
   // Check scroll position to show/hide scroll indicators
@@ -235,17 +342,8 @@ const GuestTab = ({
 
   return (
     <div className="kiosk-container">
-      {/* Background Video - Changes on status updates */}
-      <video key={backgroundVideo} ref={videoRef} className="kiosk-background-video" autoPlay muted playsInline onEnded={handleVideoEnd} style={{ opacity: nextVideo ? 0 : 1, transition: 'opacity 0.5s' }}>
-        <source src={`${process.env.PUBLIC_URL}/${backgroundVideo}`} type="video/mp4" />
-      </video>
-      
-      {/* Preload next video for smooth transition */}
-      {nextVideo && (
-        <video key={nextVideo} className="kiosk-background-video" autoPlay muted playsInline style={{ opacity: 1, transition: 'opacity 0.5s' }}>
-          <source src={`${process.env.PUBLIC_URL}/${nextVideo}`} type="video/mp4" />
-        </video>
-      )}
+      {/* Background Video - Single video at a time, controlled via ref */}
+      <video ref={videoRef} className="kiosk-background-video" autoPlay muted playsInline src={`${process.env.PUBLIC_URL}/${backgroundVideo}`} onEnded={handleVideoEnd} />
       
       {/* Attribution Button */}
       <button
@@ -301,6 +399,53 @@ const GuestTab = ({
             ×
           </button>
           <div>Video generated by Oliver Holland using Google Gemini (Veo 3.1), 19 February 2026, using the prompt: "Create a 20 second video of a hotel entrance hall and reception from the stationary camera perspective of just inside the entrance door. Don't focus on any specific individuals or interactions"</div>
+        </div>
+      )}
+      
+      {/* Audio Control Button - only show when not embedded in AttractMode */}
+      {!isInIframe && (
+        <button
+          onClick={toggleAudio}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            background: audioEnabled ? '#28a745' : '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '25px',
+            padding: '12px 24px',
+            cursor: 'pointer',
+            zIndex: 1000,
+            fontSize: '16px',
+            fontWeight: 'bold',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+          }}
+        >
+          {audioEnabled ? '🔊' : '🔇'} Hotel Sound
+        </button>
+      )}
+      
+      {/* Demo Banner - Show in attract mode */}
+      {isAttractMode && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: 'rgba(0, 0, 0, 0.3)',
+          color: 'white',
+          padding: '15px 20px',
+          fontSize: '0.75rem',
+          lineHeight: '1.4',
+          zIndex: 15,
+          textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)'
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '0.8rem' }}>Enhanced Premises Access Systems Using Network APIs</div>
+          <div style={{ marginBottom: '5px' }}>Demonstrates a fully automated hotel guest journey—from arrival to check out. Leverages CAMARA Network APIs and aggregators to enable secure, seamless processes.</div>
+          <div>• Automates registration, arrival detection, check in, elevator and room access.</div>
+          <div>• Delivers personalized guest information throughout the stay.</div>
+          <div>• Supports automated check out and billing without manual intervention.</div>
         </div>
       )}
       
