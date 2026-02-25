@@ -64,14 +64,16 @@ const AttractMode = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       console.log('[AttractMode] Sending initial VIEW_CHANGED for hotel');
+      // Send VIEW_CHANGED to hotel iframe
       channelRef.current?.postMessage({ type: 'VIEW_CHANGED', activeView: 0, activeTarget: 'hotel' });
-      // Ensure ER iframe is paused initially since hotel is active
-      if (kioskAvailable && iframeRefs.current[1]?.contentWindow) {
+      // Immediately pause ER iframe since hotel is active initially
+      if (iframeRefs.current[1]?.contentWindow) {
+        console.log('[AttractMode] Pausing ER iframe initially');
         iframeRefs.current[1].contentWindow.postMessage({ type: 'PAUSE_ALL' }, '*');
       }
-    }, 500);
+    }, 1000); // Increased delay to ensure iframes are loaded
     return () => clearTimeout(timer);
-  }, [kioskAvailable]);
+  }, []);
 
   // Always rotate — when Healthcare unavailable, stay on view 0 (Hotel only)
   useEffect(() => {
