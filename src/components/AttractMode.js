@@ -6,8 +6,10 @@ const AttractMode = () => {
   const [kioskAvailable, setKioskAvailable] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [erSoundEnabled, setErSoundEnabled] = useState(false);
   const channelRef = useRef(null);
   const soundEnabledRef = useRef(false);
+  const iframeRefs = useRef([]);
 
   // Keep a persistent channel for sound toggles (not tied to fullscreen)
   useEffect(() => {
@@ -137,23 +139,20 @@ const AttractMode = () => {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  const [erSoundEnabled, setErSoundEnabled] = useState(false);
-
   const toggleSound = () => {
     setSoundEnabled(prev => {
       const next = !prev;
       soundEnabledRef.current = next;
+      // Send to hotel iframe via BroadcastChannel (same origin)
       channelRef.current?.postMessage({ type: 'SOUND_TOGGLE', target: 'hotel', enabled: next });
       return next;
     });
   };
 
-  const iframeRefs = useRef([]);
-
   const toggleErSound = () => {
     setErSoundEnabled(prev => {
       const next = !prev;
-      // ER iframe is index 1 (healthcare, different origin) - must use postMessage
+      // Send to ER iframe via postMessage (cross-origin)
       const erIframe = iframeRefs.current[1];
       if (erIframe?.contentWindow) {
         erIframe.contentWindow.postMessage({ type: 'SOUND_TOGGLE', target: 'er', enabled: next }, '*');
