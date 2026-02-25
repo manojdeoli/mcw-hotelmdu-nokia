@@ -65,9 +65,13 @@ const AttractMode = () => {
     const timer = setTimeout(() => {
       console.log('[AttractMode] Sending initial VIEW_CHANGED for hotel');
       channelRef.current?.postMessage({ type: 'VIEW_CHANGED', activeView: 0, activeTarget: 'hotel' });
+      // Ensure ER iframe is paused initially since hotel is active
+      if (kioskAvailable && iframeRefs.current[1]?.contentWindow) {
+        iframeRefs.current[1].contentWindow.postMessage({ type: 'PAUSE_ALL' }, '*');
+      }
     }, 500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [kioskAvailable]);
 
   // Always rotate — when Healthcare unavailable, stay on view 0 (Hotel only)
   useEffect(() => {
