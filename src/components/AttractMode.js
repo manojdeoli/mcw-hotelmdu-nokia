@@ -39,9 +39,11 @@ const AttractMode = () => {
       try {
         const res = await fetch(`http://localhost:${port}/hospital_logo.png`, { cache: 'no-store' });
         const available = res.ok;
+        console.log(`[AttractMode] Healthcare app check: port ${port}, available: ${available}`);
         kioskAvailableRef.current = available;
         setKioskAvailable(available);
-      } catch {
+      } catch (error) {
+        console.log(`[AttractMode] Healthcare app check failed: ${error.message}`);
         kioskAvailableRef.current = false;
         setKioskAvailable(false);
       }
@@ -55,6 +57,7 @@ const AttractMode = () => {
   // Send initial VIEW_CHANGED so Hotel iframe starts playing immediately
   useEffect(() => {
     const timer = setTimeout(() => {
+      console.log('[AttractMode] Sending initial VIEW_CHANGED for hotel');
       channelRef.current?.postMessage({ type: 'VIEW_CHANGED', activeView: 0, activeTarget: 'hotel' });
     }, 500);
     return () => clearTimeout(timer);
@@ -64,18 +67,30 @@ const AttractMode = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentView(prev => {
+        console.log(`[AttractMode] Rotation tick: prev=${prev}, healthcare available=${kioskAvailableRef.current}`);
         if (!kioskAvailableRef.current) {
           // Hotel-only: keep view 0, just re-trigger VIEW_CHANGED so GuestTab rotates its video
+          console.log('[AttractMode] Hotel-only mode: staying on view 0');
           channelRef.current?.postMessage({ type: 'VIEW_CHANGED', activeView: 0, activeTarget: 'hotel' });
           return 0;
         }
+        // Both apps available: rotate between views
         const newView = (prev + 1) % views.length;
         const activeTarget = newView === 0 ? 'hotel' : 'er';
+        console.log(`[AttractMode] Switching to view ${newView} (${activeTarget})`);
+        
+        // Pause the inactive iframe
         if (activeTarget === 'hotel') {
           iframeRefs.current[1]?.contentWindow?.postMessage({ type: 'PAUSE_ALL' }, '*');
+        } else {
+          // When switching to ER, pause hotel video
+          channelRef.current?.postMessage({ type: 'PAUSE_ALL' });
         }
+        
+        // Send VIEW_CHANGED to both hotel (via BroadcastChannel) and ER (via postMessage)
         channelRef.current?.postMessage({ type: 'VIEW_CHANGED', activeView: newView, activeTarget });
         iframeRefs.current[1]?.contentWindow?.postMessage({ type: 'VIEW_CHANGED', activeView: newView, activeTarget }, '*');
+        
         return newView;
       });
     }, 9000);
