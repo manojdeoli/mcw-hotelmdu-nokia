@@ -139,12 +139,21 @@ const AttractMode = () => {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Send via BroadcastChannel (same-origin Hotel iframe) + postMessage (cross-origin ER iframe)
+  const broadcast = (msg) => {
+    // Hotel is same-origin: use BroadcastChannel
+    channelRef.current?.postMessage(msg);
+    // ER is cross-origin: use postMessage (index 1 when ER available)
+    if (kioskAvailable && iframeRefs.current[1]?.contentWindow) {
+      iframeRefs.current[1].contentWindow.postMessage({ ...msg, source: 'attract_mode' }, '*');
+    }
+  };
+
   const toggleSound = () => {
     setSoundEnabled(prev => {
       const next = !prev;
       soundEnabledRef.current = next;
-      // Send to hotel iframe via BroadcastChannel (same origin)
-      channelRef.current?.postMessage({ type: 'SOUND_TOGGLE', target: 'hotel', enabled: next });
+      broadcast({ type: 'SOUND_TOGGLE', target: 'hotel', enabled: next });
       return next;
     });
   };
@@ -152,11 +161,7 @@ const AttractMode = () => {
   const toggleErSound = () => {
     setErSoundEnabled(prev => {
       const next = !prev;
-      // Send to ER iframe via postMessage (cross-origin)
-      const erIframe = iframeRefs.current[1];
-      if (erIframe?.contentWindow) {
-        erIframe.contentWindow.postMessage({ type: 'SOUND_TOGGLE', target: 'er', enabled: next }, '*');
-      }
+      broadcast({ type: 'SOUND_TOGGLE', target: 'er', enabled: next });
       return next;
     });
   };
