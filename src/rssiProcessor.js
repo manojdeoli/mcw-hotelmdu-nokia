@@ -1,8 +1,15 @@
 // RSSI Signal Processing with Moving Average and State Stability
 // Based on Oliver's recommendations for stable proximity detection
 
+import proximityConfig from './proximityConfig.js';
+
 class RSSIProcessor {
   constructor(config = {}) {
+    // Use proximity config if no explicit config provided
+    if (Object.keys(config).length === 0) {
+      config = proximityConfig.getSmoothedConfig();
+    }
+    
     this.bufferSize = config.bufferSize || 3;       // Ultra-fast: 3 readings for demo
     this.entryStabilityMs = config.entryStabilityMs || 500;  // Ultra-fast: 0.5 second
     this.exitStabilityMs = config.exitStabilityMs || 2000;    // 2 seconds
@@ -20,6 +27,30 @@ class RSSIProcessor {
       entryThreshold: this.entryThreshold,
       exitThreshold: this.exitThreshold
     });
+  }
+  
+  // Update configuration at runtime
+  updateConfig(config = null) {
+    if (!config) {
+      config = proximityConfig.getSmoothedConfig();
+    }
+    
+    this.bufferSize = config.bufferSize || this.bufferSize;
+    this.entryStabilityMs = config.entryStabilityMs || this.entryStabilityMs;
+    this.exitStabilityMs = config.exitStabilityMs || this.exitStabilityMs;
+    this.entryThreshold = config.entryThreshold || this.entryThreshold;
+    this.exitThreshold = config.exitThreshold || this.exitThreshold;
+    
+    console.log('[RSSIProcessor] Configuration updated:', {
+      bufferSize: this.bufferSize,
+      entryStabilityMs: this.entryStabilityMs,
+      exitStabilityMs: this.exitStabilityMs,
+      entryThreshold: this.entryThreshold,
+      exitThreshold: this.exitThreshold
+    });
+    
+    // Reset all beacon data to apply new thresholds
+    this.beaconData.clear();
   }
 
   addReading(beaconName, rssi) {

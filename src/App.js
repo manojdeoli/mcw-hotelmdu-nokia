@@ -174,7 +174,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [map, setMap] = useState(null);
-  const [activeTab, setActiveTab] = useState('api');
+  const [activeTab, setActiveTab] = useState('dashboard');
   
   // Save activeTab to localStorage whenever it changes
   useEffect(() => {
@@ -371,6 +371,45 @@ function App() {
   const bleUnsubscribeRef = useRef(null);
   const processBeaconDetectionRef = useRef(null);
   const rssiProcessorRef = useRef(new RSSIProcessor(proximityConfig.getSmoothedConfig()));
+  
+  // Function to refresh proximity configuration at runtime
+  const refreshProximityConfig = useCallback(async () => {
+    console.log('[App] Refreshing proximity configuration...');
+    await proximityConfig.refreshConfig();
+    rssiProcessorRef.current.updateConfig();
+    addMessage('Proximity configuration updated from runtime settings');
+  }, [addMessage]);
+  
+  // Check for proximity configuration updates periodically
+  useEffect(() => {
+    if (verifiedPhoneNumber) {
+      const interval = setInterval(async () => {
+        // Check if runtime config has changed
+        await proximityConfig.refreshConfig();
+        const currentConfig = proximityConfig.smoothedConfig;
+        const processorConfig = {
+          bufferSize: rssiProcessorRef.current.bufferSize,
+          entryStabilityMs: rssiProcessorRef.current.entryStabilityMs,
+          exitStabilityMs: rssiProcessorRef.current.exitStabilityMs,
+          entryThreshold: rssiProcessorRef.current.entryThreshold,
+          exitThreshold: rssiProcessorRef.current.exitThreshold
+        };
+        
+        // Compare configurations
+        const configChanged = Object.keys(currentConfig).some(key => 
+          currentConfig[key] !== processorConfig[key]
+        );
+        
+        if (configChanged) {
+          console.log('[App] Proximity configuration change detected');
+          rssiProcessorRef.current.updateConfig(currentConfig);
+          addMessage('Proximity configuration updated from runtime settings');
+        }
+      }, 2000); // Check every 2 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [verifiedPhoneNumber, addMessage]);
 
   // Connect to Gateway Server when phone is verified (but don't start BLE tracking yet)
   useEffect(() => {

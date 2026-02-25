@@ -1,5 +1,17 @@
-// Gateway Server URL - Update this when deployed to cloud
-const GATEWAY_URL = process.env.REACT_APP_GATEWAY_URL || 'http://10.247.130.116:8080';
+// Gateway Server URL - Check for runtime override first
+let GATEWAY_URL = 'http://localhost:8080'; // fallback
+
+// Check for runtime override from server injection
+if (typeof window !== 'undefined' && window.GATEWAY_URL_OVERRIDE) {
+  GATEWAY_URL = window.GATEWAY_URL_OVERRIDE;
+  console.log('[Gateway] Using runtime override URL:', GATEWAY_URL);
+} else if (typeof window !== 'undefined' && window.RUNTIME_CONFIG && window.RUNTIME_CONFIG.gatewayUrl) {
+  GATEWAY_URL = window.RUNTIME_CONFIG.gatewayUrl;
+  console.log('[Gateway] Using runtime config URL:', GATEWAY_URL);
+} else if (process.env.REACT_APP_GATEWAY_URL) {
+  GATEWAY_URL = process.env.REACT_APP_GATEWAY_URL;
+  console.log('[Gateway] Using env config URL:', GATEWAY_URL);
+}
 
 // Fixed demo subscription ID - all web app instances use this
 const DEMO_SUBSCRIPTION_ID = 'hotel-demo-subscription';

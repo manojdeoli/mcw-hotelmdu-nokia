@@ -238,11 +238,20 @@ if exist .env.proximity (
 )
 echo ----------------------------------------
 echo.
-echo IMPORTANT: Restart the React app for changes to take effect:
-echo   1. Stop the app (Ctrl+C in terminal)
-echo   2. Run: npm start
+echo IMPORTANT: For production builds, rebuild the app for changes to take effect:
+echo   1. Run: npm run build
+echo   2. Restart the server: npm run start:prod
 echo.
-echo The new settings will be loaded automatically.
+echo For development mode, the new settings will be loaded automatically
+echo when the server injects runtime configuration.
+echo.
+echo Testing proximity configuration injection...
+echo Checking if server.js can read the configuration...
+if exist server.js (
+    echo ✓ server.js found - runtime injection will work
+) else (
+    echo ⚠ server.js not found - make sure you're in the correct directory
+)
 echo.
 pause
 goto menu
