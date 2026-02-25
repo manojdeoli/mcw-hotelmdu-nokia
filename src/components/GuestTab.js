@@ -101,8 +101,12 @@ const GuestTab = ({
   // Sync audioEnabledRef and apply mute directly to DOM element (React muted prop doesn't update after mount)
   useEffect(() => {
     audioEnabledRef.current = audioEnabled;
-    if (videoRef.current) videoRef.current.muted = !audioEnabled;
-  }, [audioEnabled]);
+    if (videoRef.current && !isInIframe) {
+      // Only apply direct mute control in standalone mode
+      // In iframe mode, SOUND_TOGGLE handler controls muting with active state check
+      videoRef.current.muted = !audioEnabled;
+    }
+  }, [audioEnabled, isInIframe]);
 
   const toggleAudio = () => setAudioEnabled(prev => !prev);
 
