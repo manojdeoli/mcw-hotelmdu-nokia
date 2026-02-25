@@ -37,7 +37,11 @@ const AttractMode = () => {
     const checkKiosk = async () => {
       const port = getHealthcarePort();
       try {
-        const res = await fetch(`http://localhost:${port}/hospital_logo.png`, { cache: 'no-store' });
+        // Try to fetch the root page or manifest.json instead of hospital_logo.png
+        const res = await fetch(`http://localhost:${port}/`, { 
+          cache: 'no-store',
+          method: 'HEAD' // Use HEAD to avoid downloading content
+        });
         const available = res.ok;
         console.log(`[AttractMode] Healthcare app check: port ${port}, available: ${available}`);
         kioskAvailableRef.current = available;
