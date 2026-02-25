@@ -73,7 +73,8 @@ const GuestTab = ({
       } else if (data.type === 'SOUND_TOGGLE') {
         if (data.target && data.target !== 'hotel') return;
         audioEnabledRef.current = data.enabled;
-        setAudioEnabled(data.enabled);
+        // Don't call setAudioEnabled to avoid triggering the conflicting useEffect
+        // setAudioEnabled(data.enabled);
         // Only unmute if hotel is the currently active view; always allow muting
         video.muted = !data.enabled || !isActiveRef.current;
       } else if (data.type === 'PAUSE_ALL') {
