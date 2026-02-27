@@ -41,45 +41,103 @@ const GuestTab = ({
   const isAttractMode = window.location.hash === '#/attract-mode' || window.location.pathname === '/kiosk' || isInIframe;
   const isActiveRef = useRef(true); // true by default; set to false only when VIEW_CHANGED says hotel is inactive
 
-  // Listen for VIEW_CHANGED and SOUND_TOGGLE from AttractMode parent
+  // Initialize audio state from localStorage on mount
+  useEffect(() => {
+    if (isInIframe) {
+      // Always start with Hotel audio disabled by default
+      console.log('🎵 GuestTab: Setting Hotel audio to disabled by default');
+      audioEnabledRef.current = false;
+      setAudioEnabled(false);
+      localStorage.setItem('hotel_audio_enabled', 'false');
+    }
+  }, [isInIframe]);
+
+  // Save audio state to localStorage whenever it changes
+  useEffect(() => {
+    if (isInIframe) {
+      localStorage.setItem('hotel_audio_enabled', audioEnabledRef.current.toString());
+      console.log('🎵 GuestTab: Saved audio state to localStorage:', audioEnabledRef.current);
+    }
+  }, [audioEnabled, isInIframe]);
+
+  // Listen for VIEW_CHANGED, SOUND_TOGGLE, FREEZE_START/END from AttractMode parent
   useEffect(() => {
     if (!isInIframe) return;
 
     const handleMsg = (data) => {
       const video = videoRef.current;
       if (!video) return;
+      
       if (data.type === 'VIEW_CHANGED') {
         const isHotelActive = data.activeTarget
           ? data.activeTarget === 'hotel'
           : data.activeView === 0;
         isActiveRef.current = isHotelActive;
+        
         if (isHotelActive) {
-          const v = videoRef.current;
-          const videos = ['Hotel_Entrance_Veo_1.mp4', 'Hotel_Entrance_Veo_2.mp4', 'Hotel_Entrance_Veo_3.mp4'];
+          // Use specific video if provided, otherwise random selection
           let newVideo;
-          do {
-            newVideo = videos[Math.floor(Math.random() * videos.length)];
-          } while (newVideo === currentVideoRef.current && videos.length > 1);
+          if (data.specificVideo) {
+            newVideo = data.specificVideo;
+            console.log('[GuestTab] Using specific video:', newVideo);
+          } else {
+            const videos = ['Hotel_Entrance_Veo_1.mp4', 'Hotel_Entrance_Veo_2.mp4', 'Hotel_Entrance_Veo_3.mp4'];
+            do {
+              newVideo = videos[Math.floor(Math.random() * videos.length)];
+            } while (newVideo === currentVideoRef.current && videos.length > 1);
+          }
+          
+          // Preserve current audio state during video change
+          const currentAudioState = audioEnabledRef.current;
+          
           currentVideoRef.current = newVideo;
-          v.muted = !audioEnabledRef.current;
-          const onCanPlay = () => { v.removeEventListener('canplay', onCanPlay); if (isActiveRef.current) v.play().catch(() => {}); };
-          v.addEventListener('canplay', onCanPlay);
-          v.src = `${process.env.PUBLIC_URL}/${newVideo}`;
-          v.load();
+          video.muted = !currentAudioState;
+          video.volume = currentAudioState ? 1.0 : 0;
+          
+          const onCanPlay = () => { 
+            video.removeEventListener('canplay', onCanPlay);
+            // Ensure audio state is maintained after video loads
+            video.muted = !audioEnabledRef.current;
+            video.volume = audioEnabledRef.current ? 1.0 : 0;
+            if (isActiveRef.current) video.play().catch(() => {}); 
+          };
+          video.addEventListener('canplay', onCanPlay);
+          video.src = `${process.env.PUBLIC_URL}/${newVideo}`;
+          video.load();
         } else {
+          console.log('🎵 GuestTab: Muting video because Hotel is not active');
           video.pause();
           video.muted = true;
+          video.volume = 0;
         }
       } else if (data.type === 'SOUND_TOGGLE') {
         if (data.target && data.target !== 'hotel') return;
-        audioEnabledRef.current = data.enabled;
-        // Don't call setAudioEnabled to avoid triggering the conflicting useEffect
-        // setAudioEnabled(data.enabled);
-        // Only unmute if hotel is the currently active view; always allow muting
-        video.muted = !data.enabled || !isActiveRef.current;
+        const newState = data.enabled;
+        console.log('🎵 GuestTab: SOUND_TOGGLE for Hotel - newState:', newState);
+        
+        audioEnabledRef.current = newState;
+        setAudioEnabled(newState);
+        
+        // Immediately save to localStorage
+        localStorage.setItem('hotel_audio_enabled', newState.toString());
+        console.log('🎵 GuestTab: Immediately saved audio state to localStorage:', newState);
+        
+        if (video) {
+          console.log('🎵 GuestTab: Applying audio state to video - muted:', !newState, 'volume:', newState ? 1.0 : 0);
+          video.muted = !newState;
+          video.volume = newState ? 1.0 : 0;
+        }
       } else if (data.type === 'PAUSE_ALL') {
         video.pause();
         video.muted = true;
+      } else if (data.type === 'FREEZE_START') {
+        console.log('❄️ [GuestTab] FREEZE_START received - pausing video');
+        video.pause();
+      } else if (data.type === 'FREEZE_END') {
+        console.log('🔓 [GuestTab] FREEZE_END received - resuming if active');
+        if (isActiveRef.current) {
+          video.play().catch(() => {});
+        }
       }
     };
 
@@ -117,9 +175,14 @@ const GuestTab = ({
     if (!video) return;
     // In iframe mode, VIEW_CHANGED controls all playback — never auto-play here
     if (isInIframe) return;
+    
+    // Preserve current audio state during video change
+    const currentAudioState = audioEnabledRef.current;
+    
     const onCanPlay = () => {
       video.removeEventListener('canplay', onCanPlay);
-      video.muted = !audioEnabledRef.current;
+      video.muted = !currentAudioState;
+      video.volume = currentAudioState ? 1.0 : 0;
       video.play().catch(() => {});
     };
     video.addEventListener('canplay', onCanPlay);
@@ -147,9 +210,11 @@ const GuestTab = ({
   }, []);
 
   const handleVideoEnd = () => {
-    // In iframe mode: just stop (pause) — VIEW_CHANGED will start a fresh video when hotel gets its turn
+    // In iframe mode: notify parent that video ended, then pause
     // In standalone mode: rotate to next video
     if (isInIframe) {
+      console.log('📺 [GuestTab] Video ended, notifying parent');
+      window.parent.postMessage({ type: 'VIDEO_ENDED' }, '*');
       videoRef.current?.pause();
       return;
     }

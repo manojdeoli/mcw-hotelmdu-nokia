@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import App from './App';
 import KioskPage from './KioskPage';
-import AttractMode from './components/AttractMode';
+import AttractMode from './components/AttractMode_new';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
