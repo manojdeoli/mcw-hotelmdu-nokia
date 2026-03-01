@@ -1,5 +1,6 @@
 import axios from 'axios';
 import authService from './auth';
+import { format } from 'date-fns';
 
 const API_BASE_URL = 'https://network-as-code.p-eu.rapidapi.com/passthrough/camara/v1';
 const API_KEY = 'a1dee25b3dmsh933c9f572c08b1cp1e7225jsna6c0a404fd8e';
@@ -86,9 +87,21 @@ export function kycMatch(data, logApiInteraction) {
         email: data.email
     };
 
-    // Test number has a known API provider issue — return all-true mock response
+    // Test number - match against mockKycData
     if (data.phoneNumber === '+99999991000') {
-        const response = { nameMatch: 'true', addressMatch: 'true', birthdateMatch: 'true', emailMatch: 'true' };
+        const phoneKey = data.phoneNumber.replace('+', '');
+        const stored = mockKycData[phoneKey];
+        if (!stored) {
+            const response = { nameMatch: 'false', addressMatch: 'false', birthdateMatch: 'false', emailMatch: 'false' };
+            if (logApiInteraction) logApiInteraction('KYC Match (Mock)', 'POST', '/kyc-match/kyc-match/v0.3/match', requestBody, response);
+            return Promise.resolve(response);
+        }
+        const response = {
+            nameMatch: data.name === stored.name ? 'true' : 'false',
+            addressMatch: data.address === stored.address ? 'true' : 'false',
+            birthdateMatch: data.birthdate === stored.birthdate ? 'true' : 'false',
+            emailMatch: data.email === stored.email ? 'true' : 'false'
+        };
         if (logApiInteraction) logApiInteraction('KYC Match (Mock)', 'POST', '/kyc-match/kyc-match/v0.3/match', requestBody, response);
         return Promise.resolve(response);
     }
@@ -177,7 +190,8 @@ export function deviceSwap(phoneNumber, logApiInteraction) {
 
 
 const mockKycData = {
-    '1234567890': { name: 'Joe Bloggs', address: 'Av. Joan Carles I, 64, 08908 L\'Hospitalet de Llobregat, Barcelona, Spain', birthdate: '1865-08-29', email: 'oldestperson.alive@anemaildomain.com' },
+    '99999991000': {name: 'Federica Sanchez Arjona', address: 'Tokyo-to Chiyoda-ku Iidabashi 3-10', birthdate: '1978-08-22', email: 'abc@example.com' },
+    '1234567890': { name: 'Joe Bloggs', address: 'Av. Joan Carles I, 64, 08908 L\'Hotelet de Llobregat, Barcelona, Spain', birthdate: '1865-08-29', email: 'oldestperson.alive@anemaildomain.com' },
     '1234567891': { name: 'John Smith', address: '2 Tower Center Blvd, East Brunswick, NJ 08816, USA', birthdate: '1970-01-01', email: 'smith3463452@anemaildomain.com' },
     '1234567892': { name: 'Alice Anonymous', address: '425 National Ave # 200, Mountain View, CA 94043, USA', birthdate: '1980-01-01', email: 'alice547345234@anemaildomain.com' },
     '1234567893': { name: 'Patricia Public', address: 'Wipro Limited, Doddakannelli, Sarjapur Road, Bengaluru - 560 035, India', birthdate: '1990-01-01', email: 'patricia.public23562346@anemaildomain.com' },
@@ -349,7 +363,7 @@ export function locationRetrieval(phoneNumber, logApiInteraction, mockCoordinate
                     longitude: 2.2019
                 };
             } else {
-                // Default Hospital Location (Barcelona)
+                // Default Hotel Location (Barcelona)
                 center = {
                     latitude: 41.40104,
                     longitude: 2.1394
@@ -416,6 +430,14 @@ let beaconEventQueue = [];
 let beaconWaiters = [];
 let currentWaitingStage = null; // Track which stage is currently waiting
 let checkInConsentGiven = false; // Track if guest has given consent for check-in
+
+// Store booking information
+let bookingInfo = null;
+
+// Function to get booking info
+export function getBookingInfo() {
+    return bookingInfo;
+}
 
 // Function to clear beacon queue (call at start of sequence)
 export function clearBeaconQueue() {
@@ -526,21 +548,24 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     // Clear any previous beacon events
     clearBeaconQueue();
     
-    addMessage("Journey: Starting to Hospital de Llobregat");
+    addMessage("Journey: Starting to Hotel Barcelona Sol");
     addMessage("Starting Booking and Arrival sequence...");
-    addGuestMessage(`Your journey to Hospital de Llobregat is beginning, ${guestName}...`, 'info');
+    addGuestMessage(`Your journey to Hotel Barcelona Sol is beginning, ${guestName}...`, 'info');
 
     await new Promise(resolve => setTimeout(resolve, 3000));
     addMessage("Pre-populating booking information...");
-    const bookingInfo = {
-        checkIn: "2026-01-16T15:00:00",
-        checkOut: "2026-01-17T11:00:00"
-    };
-    addMessage(`Check-in: ${bookingInfo.checkIn}, Check-out: ${bookingInfo.checkOut}`);
-
-    await new Promise(resolve => setTimeout(resolve, 3000));
     const checkInDate = new Date();
     checkInDate.setHours(15, 0, 0, 0);
+    const checkOutDate = new Date(checkInDate);
+    checkOutDate.setDate(checkInDate.getDate() + 2);
+    checkOutDate.setHours(11, 0, 0, 0);
+    bookingInfo = {
+        checkIn: checkInDate,
+        checkOut: checkOutDate
+    };
+    addMessage(`Check-in: ${format(bookingInfo.checkIn, 'yyyy-MM-dd HH:mm')}, Check-out: ${format(bookingInfo.checkOut, 'yyyy-MM-dd HH:mm')}`);
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
     const startTime = new Date(checkInDate.getTime() - 3 * 60 * 60 * 1000);
     setArtificialTime(startTime);
     addMessage(`Artificial clock set to ${startTime.toLocaleTimeString()}.`);
@@ -577,7 +602,7 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     }
 
     addMessage("User has arrived within the vicinity.");
-    addGuestMessage(`You are approaching Hospital de Llobregat, ${guestName}. Check-in will be available soon!`, 'info');
+    addGuestMessage(`You are approaching Hotel Barcelona Sol, ${guestName}. Check-in will be available soon!`, 'info');
 
     // Verify location before check-in
     addMessage("Calling Location Verification to confirm arrival...");
@@ -591,12 +616,12 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     };
     const verification = await locationVerification(locationVerificationData, logApiInteraction);
     if (verification.verificationResult === "TRUE") {
-        addMessage("Journey: Arrived at Hospital de Llobregat");
-        addMessage("Location verification successful - guest confirmed at hospital!");
+        addMessage("Journey: Arrived at Hotel Barcelona Sol");
+        addMessage("Location verification successful - guest confirmed at hotel!");
         // Set hasReachedHotel based on Location Verification API result
         if (setHasReachedHotel) {
             setHasReachedHotel(true);
-            addMessage("Patient arrival confirmed by Location Verification API - BLE processing enabled");
+            addMessage("Guest arrival confirmed by Location Verification API - BLE processing enabled");
         }
     } else {
         addMessage("Location verification failed.");
@@ -610,19 +635,19 @@ export async function startBookingAndArrivalSequence(phoneNumber, initialUserLoc
     setIsAutoScanning(true);
 
     // STEP 1: Wait for Entry Gate beacon
-    addMessage("Waiting for patient to reach Entry Gate...");
-    addGuestMessage(`Please proceed to the hospital entrance, ${guestName}.`, 'info');
-    await waitForBeacon(['Gate', 'Hospital'], addMessage, 'gate');
-    addGuestMessage(`Welcome to Hospital de Llobregat, ${guestName}! You have arrived at the hospital entrance.`, 'success');
+    addMessage("Waiting for guest to reach Entry Gate...");
+    addGuestMessage(`Please proceed to the hotel entrance, ${guestName}.`, 'info');
+    await waitForBeacon(['Gate', 'Hotel'], addMessage, 'gate');
+    addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the Hotel entrance.`, 'success');
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // STEP 2: Wait for Kiosk beacon
-    addMessage("Waiting for patient to reach Check-in Kiosk...");
+    addMessage("Waiting for guest to reach Check-in Kiosk...");
     addGuestMessage('Please proceed to the check-in kiosk.', 'info');
     await waitForBeacon(['Kiosk', 'Lobby'], addMessage, 'kiosk');
     
-    // Wait for patient consent before proceeding with check-in
-    addMessage("Waiting for patient consent to proceed with check-in...");
+    // Wait for guest consent before proceeding with check-in
+    addMessage("Waiting for guest consent to proceed with check-in...");
     addGuestMessage('Please confirm your check-in on the Guest Information tab.', 'info');
     
     // Wait for consent indefinitely - no timeout to ensure Welcome Overlay is shown
@@ -702,7 +727,7 @@ export async function startCheckOutSequence(phoneNumber, initialUserLocation, ho
     if (verification.verificationResult === "FALSE" || verification.verificationResult === false) {
         addMessage("Location verification confirmed - guest has left the hotel premises.");
     } else {
-        addMessage("Location verification: Guest still within hotel vicinity.");
+        addMessage("Location verification confirmed - guest is outside hotel area");
     }
     await new Promise(resolve => setTimeout(resolve, 2000));
 

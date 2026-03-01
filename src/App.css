@@ -37,6 +37,13 @@ body {
   height: 5rem; /* Reduced header height */
 }
 
+.header-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
 .header h1 {
   margin: 0;
   font-size: 1.75rem;
@@ -855,6 +862,13 @@ body {
   gap: 0.5rem;
   transform: translateZ(20px);
   transition: transform 0.3s ease;
+}
+
+.kiosk-wipro-logo {
+  height: 30px;
+  width: auto;
+  object-fit: contain;
+  margin-left: auto;
 }
 
 .hotel-logo {

@@ -16,7 +16,9 @@ const GuestTab = ({
   onCheckInConsent,
   guestMessages,
   isSequenceRunning,
-  checkInConsent
+  checkInConsent,
+  bookingCheckIn,
+  bookingCheckOut
 }) => {
   
   const mapInitialized = useRef(false);
@@ -33,6 +35,8 @@ const GuestTab = ({
     return videos[Math.floor(Math.random() * videos.length)];
   });
   const videoRef = useRef(null);
+  const videoRef2 = useRef(null);
+  const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const audioEnabledRef = useRef(false);
   const currentVideoRef = useRef(backgroundVideo);
@@ -91,19 +95,36 @@ const GuestTab = ({
           const currentAudioState = audioEnabledRef.current;
           
           currentVideoRef.current = newVideo;
-          video.muted = !currentAudioState;
-          video.volume = currentAudioState ? 1.0 : 0;
+          const nextVideo = activeVideoIndex === 0 ? videoRef2.current : videoRef.current;
+          const currentVideo = video;
+          
+          nextVideo.muted = !currentAudioState;
+          nextVideo.volume = currentAudioState ? 1.0 : 0;
+          nextVideo.style.opacity = '0';
           
           const onCanPlay = () => { 
-            video.removeEventListener('canplay', onCanPlay);
-            // Ensure audio state is maintained after video loads
-            video.muted = !audioEnabledRef.current;
-            video.volume = audioEnabledRef.current ? 1.0 : 0;
-            if (isActiveRef.current) video.play().catch(() => {}); 
+            nextVideo.removeEventListener('canplay', onCanPlay);
+            nextVideo.muted = !audioEnabledRef.current;
+            nextVideo.volume = audioEnabledRef.current ? 1.0 : 0;
+            if (isActiveRef.current) {
+              nextVideo.style.zIndex = '2';
+              currentVideo.style.zIndex = '1';
+              nextVideo.play().catch(() => {});
+              requestAnimationFrame(() => {
+                nextVideo.style.transition = 'opacity 1s ease-in-out';
+                nextVideo.style.opacity = '1';
+              });
+              setTimeout(() => {
+                currentVideo.pause();
+                currentVideo.style.transition = 'none';
+                currentVideo.style.opacity = '0';
+                setActiveVideoIndex(prev => prev === 0 ? 1 : 0);
+              }, 1000);
+            }
           };
-          video.addEventListener('canplay', onCanPlay);
-          video.src = `${process.env.PUBLIC_URL}/${newVideo}`;
-          video.load();
+          nextVideo.addEventListener('canplay', onCanPlay);
+          nextVideo.src = `${process.env.PUBLIC_URL}/${newVideo}`;
+          nextVideo.load();
         } else {
           console.log('🎵 GuestTab: Muting video because Hotel is not active');
           video.pause();
@@ -160,35 +181,42 @@ const GuestTab = ({
   // Sync audioEnabledRef and apply mute directly to DOM element (React muted prop doesn't update after mount)
   useEffect(() => {
     audioEnabledRef.current = audioEnabled;
-    if (videoRef.current && !isInIframe) {
-      // Only apply direct mute control in standalone mode
-      // In iframe mode, SOUND_TOGGLE handler controls muting with active state check
-      videoRef.current.muted = !audioEnabled;
+    const video1 = videoRef.current;
+    const video2 = videoRef2.current;
+    if (!isInIframe) {
+      // Apply audio state to both videos
+      if (video1) {
+        video1.muted = !audioEnabled;
+        video1.volume = audioEnabled ? 1.0 : 0;
+      }
+      if (video2) {
+        video2.muted = !audioEnabled;
+        video2.volume = audioEnabled ? 1.0 : 0;
+      }
     }
   }, [audioEnabled, isInIframe]);
 
   const toggleAudio = () => setAudioEnabled(prev => !prev);
 
-  // On video change, update src directly without remounting the element
+  // Initial video setup only - no auto-transitions
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    // In iframe mode, VIEW_CHANGED controls all playback — never auto-play here
-    if (isInIframe) return;
+    const video1 = videoRef.current;
+    if (!video1 || isInIframe) return;
     
-    // Preserve current audio state during video change
-    const currentAudioState = audioEnabledRef.current;
-    
-    const onCanPlay = () => {
-      video.removeEventListener('canplay', onCanPlay);
-      video.muted = !currentAudioState;
-      video.volume = currentAudioState ? 1.0 : 0;
-      video.play().catch(() => {});
+    // Ensure first video plays on mount with correct audio state
+    const playFirstVideo = () => {
+      video1.muted = !audioEnabledRef.current;
+      video1.volume = audioEnabledRef.current ? 1.0 : 0;
+      video1.play().catch(() => {});
     };
-    video.addEventListener('canplay', onCanPlay);
-    video.src = `${process.env.PUBLIC_URL}/${backgroundVideo}`;
-    video.load();
-  }, [backgroundVideo, isInIframe]);
+    
+    // Try to play immediately
+    playFirstVideo();
+    
+    // Also try after a short delay to ensure audio state is applied
+    const timer = setTimeout(playFirstVideo, 100);
+    return () => clearTimeout(timer);
+  }, [isInIframe]);
 
   // Watchdog: resume video if browser suspends/stalls it while hotel view is active
   useEffect(() => {
@@ -209,22 +237,69 @@ const GuestTab = ({
     };
   }, []);
 
-  const handleVideoEnd = () => {
-    // In iframe mode: notify parent that video ended, then pause
-    // In standalone mode: rotate to next video
-    if (isInIframe) {
-      console.log('📺 [GuestTab] Video ended, notifying parent');
-      window.parent.postMessage({ type: 'VIDEO_ENDED' }, '*');
-      videoRef.current?.pause();
+  const handleVideoEnd = (videoIndex) => {
+    console.log('[VIDEO] handleVideoEnd called - videoIndex:', videoIndex, 'activeVideoIndex:', activeVideoIndex);
+    // Use ref to get current active index to avoid stale closure
+    const currentActiveIndex = videoIndex === 0 ? (videoRef.current?.style.zIndex === '2' ? 0 : 1) : (videoRef2.current?.style.zIndex === '2' ? 1 : 0);
+    if (videoIndex !== currentActiveIndex) {
+      console.log('[VIDEO] Video end ignored - not the active video (zIndex check)');
       return;
     }
+    
+    if (isInIframe) {
+      console.log('[VIDEO] In iframe mode - notifying parent and pausing');
+      window.parent.postMessage({ type: 'VIDEO_ENDED' }, '*');
+      const currentVideo = activeVideoIndex === 0 ? videoRef.current : videoRef2.current;
+      currentVideo?.pause();
+      return;
+    }
+    
+    console.log('[VIDEO] Selecting next video...');
     const videos = ['Hotel_Entrance_Veo_1.mp4', 'Hotel_Entrance_Veo_2.mp4', 'Hotel_Entrance_Veo_3.mp4'];
     let newVideo;
     do {
       newVideo = videos[Math.floor(Math.random() * videos.length)];
     } while (newVideo === currentVideoRef.current && videos.length > 1);
+    console.log('[VIDEO] Next video selected:', newVideo, '(previous was:', currentVideoRef.current, ')');
     currentVideoRef.current = newVideo;
-    setBackgroundVideo(newVideo);
+    
+    // Preload next video into the inactive video element before current ends
+    const inactiveVideo = videoIndex === 0 ? videoRef2.current : videoRef.current;
+    const currentVideo = videoIndex === 0 ? videoRef.current : videoRef2.current;
+    
+    if (inactiveVideo) {
+      console.log('[VIDEO] Preloading next video into inactive element');
+      inactiveVideo.src = `${process.env.PUBLIC_URL}/${newVideo}`;
+      inactiveVideo.load();
+      inactiveVideo.muted = !audioEnabledRef.current;
+      inactiveVideo.volume = audioEnabledRef.current ? 1.0 : 0;
+      inactiveVideo.style.opacity = '1';
+      inactiveVideo.style.transition = 'none';
+      inactiveVideo.style.transform = 'translateX(100%)';
+      
+      // Wait for preload, then trigger slide transition
+      const onCanPlay = () => {
+        inactiveVideo.removeEventListener('canplay', onCanPlay);
+        console.log('[VIDEO] Preloaded video ready, starting slide transition');
+        inactiveVideo.style.zIndex = '2';
+        currentVideo.style.zIndex = '1';
+        inactiveVideo.play().catch(() => {});
+        requestAnimationFrame(() => {
+          inactiveVideo.style.transition = 'transform 1s ease-in-out';
+          inactiveVideo.style.transform = 'translateX(0)';
+          currentVideo.style.transition = 'transform 1s ease-in-out';
+          currentVideo.style.transform = 'translateX(-100%)';
+        });
+        setTimeout(() => {
+          currentVideo.pause();
+          currentVideo.style.transition = 'none';
+          currentVideo.style.transform = 'translateX(0)';
+          currentVideo.currentTime = 0;
+          setActiveVideoIndex(prev => prev === 0 ? 1 : 0);
+        }, 1000);
+      };
+      inactiveVideo.addEventListener('canplay', onCanPlay);
+    }
   };
   
   // Check scroll position to show/hide scroll indicators
@@ -412,8 +487,9 @@ const GuestTab = ({
 
   return (
     <div className="kiosk-container">
-      {/* Background Video - Single video at a time, controlled via ref */}
-      <video ref={videoRef} className="kiosk-background-video" autoPlay muted playsInline src={`${process.env.PUBLIC_URL}/${backgroundVideo}`} onEnded={handleVideoEnd} />
+      {/* Background Videos - Two videos for crossfade */}
+      <video ref={videoRef} className="kiosk-background-video" autoPlay muted playsInline src={`${process.env.PUBLIC_URL}/${backgroundVideo}`} onEnded={() => handleVideoEnd(0)} style={{ opacity: activeVideoIndex === 0 ? 1 : 0, zIndex: activeVideoIndex === 0 ? 2 : 1 }} />
+      <video ref={videoRef2} className="kiosk-background-video" muted playsInline onEnded={() => handleVideoEnd(1)} style={{ opacity: activeVideoIndex === 1 ? 1 : 0, zIndex: activeVideoIndex === 1 ? 2 : 1 }} />
       
       {/* Attribution Button */}
       <button
@@ -434,6 +510,22 @@ const GuestTab = ({
       >
         ℹ️ Video Attribution
       </button>
+
+      {/* Wipro Logo */}
+      <img 
+        src={`${process.env.PUBLIC_URL}/Wipro_Secondary_Logo.png`} 
+        alt="Wipro" 
+        style={{
+          position: 'fixed',
+          top: '-5px',
+          right: '70px',
+          height: '80px',
+          zIndex: 16,
+          mixBlendMode: 'screen',
+          opacity: 0.85,
+          filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
+        }} 
+      />
 
       {/* Attribution Popup */}
       {showAttribution && (
@@ -619,11 +711,11 @@ const GuestTab = ({
               </div>
               <div className="info-row">
                 <span className="info-label">Check-in:</span>
-                <span className="info-value">{format(CHECK_IN_DATE, 'MMM dd, yyyy • HH:mm')}</span>
+                <span className="info-value">{bookingCheckIn ? format(new Date(bookingCheckIn), 'MMM dd, yyyy • HH:mm') : format(CHECK_IN_DATE, 'MMM dd, yyyy • HH:mm')}</span>
               </div>
               <div className="info-row">
                 <span className="info-label">Check-out:</span>
-                <span className="info-value">{format(CHECK_OUT_DATE, 'MMM dd, yyyy • HH:mm')}</span>
+                <span className="info-value">{bookingCheckOut ? format(new Date(bookingCheckOut), 'MMM dd, yyyy • HH:mm') : format(CHECK_OUT_DATE, 'MMM dd, yyyy • HH:mm')}</span>
               </div>
               <div className="info-row">
                 <span className="info-label">Status:</span>

@@ -110,24 +110,49 @@ const AttractMode = () => {
     return () => clearInterval(interval);
   }, [views.length]);
 
-  // Handle TRY_NOW from iframe — exit fullscreen, focus opener, close presentation tab
+  // Handle TRY_NOW and VIDEO_ENDED from iframe
   useEffect(() => {
     const handler = (event) => {
-      if (event.data?.type !== 'TRY_NOW') return;
-      const close = async () => {
-        try { if (document.fullscreenElement) await document.exitFullscreen(); } catch {}
-        if (window.opener) {
-          window.opener.focus();
-          window.close();
-        } else {
-          window.location.hash = '#/';
-        }
-      };
-      close();
+      if (event.data?.type === 'TRY_NOW') {
+        const close = async () => {
+          try { if (document.fullscreenElement) await document.exitFullscreen(); } catch {}
+          if (window.opener) {
+            window.opener.focus();
+            window.close();
+          } else {
+            window.location.hash = '#/';
+          }
+        };
+        close();
+      } else if (event.data?.type === 'VIDEO_ENDED') {
+        // Hotel video ended, immediately switch to next view
+        console.log('[AttractMode] VIDEO_ENDED received, switching view');
+        setCurrentView(prev => {
+          if (!kioskAvailableRef.current) {
+            // Hotel-only: trigger new video
+            channelRef.current?.postMessage({ type: 'VIEW_CHANGED', activeView: 0, activeTarget: 'hotel' });
+            return 0;
+          }
+          // Switch to ER
+          const newView = (prev + 1) % views.length;
+          const activeTarget = newView === 0 ? 'hotel' : 'er';
+          
+          if (activeTarget === 'hotel') {
+            iframeRefs.current[1]?.contentWindow?.postMessage({ type: 'PAUSE_ALL' }, '*');
+          } else {
+            channelRef.current?.postMessage({ type: 'PAUSE_ALL' });
+          }
+          
+          channelRef.current?.postMessage({ type: 'VIEW_CHANGED', activeView: newView, activeTarget });
+          iframeRefs.current[1]?.contentWindow?.postMessage({ type: 'VIEW_CHANGED', activeView: newView, activeTarget }, '*');
+          
+          return newView;
+        });
+      }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [views.length]);
 
   useEffect(() => {
     const handleEscape = (e) => {

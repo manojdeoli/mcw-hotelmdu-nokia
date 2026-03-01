@@ -73,28 +73,11 @@ function KioskPage() {
     console.log('[KioskPage] Check-in consent button clicked');
     console.log('[KioskPage] Current check-in status:', checkInStatus);
     
-    // Set consent and complete check-in immediately
+    // Only set consent - let BLE beacon trigger actual check-in
     setCheckInConsent(true);
-    console.log('[KioskPage] Consent set to true via synced state');
-    addGuestMessage('Processing your check-in...', 'processing');
-    
-    // Complete check-in immediately
-    setCheckInStatus('Checked In');
-    setRfidStatus('Verified');
-    
-    // Skip any waiting beacon in API sequence
-    if (api.getCurrentWaitingStage() === 'kiosk') {
-      api.skipCurrentBeacon();
-    }
-    
-    const guestName = formState.name ? formState.name.split(' ')[0] : 'Guest';
-    setTimeout(() => {
-      setRfidStatus('Unverified');
-      addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
-    }, 3000);
-    
-    console.log('[KioskPage] Check-in completed');
-  }, [checkInStatus, addGuestMessage, setCheckInConsent, setCheckInStatus, setRfidStatus, formState.name]);
+    console.log('[KioskPage] Consent set to true - waiting for BLE beacon to complete check-in');
+    addGuestMessage('Consent received. Please stay near the kiosk to complete check-in...', 'processing');
+  }, [checkInStatus, addGuestMessage, setCheckInConsent]);
 
   return (
     <div className="App" style={{ margin: 0, padding: 0 }}>

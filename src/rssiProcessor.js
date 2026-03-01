@@ -20,13 +20,13 @@ class RSSIProcessor {
     this.beaconData = new Map();
     
     // Log configuration for debugging
-    console.log('[RSSIProcessor] Initialized with config:', {
+    /*console.log('[RSSIProcessor] Initialized with config:', {
       bufferSize: this.bufferSize,
       entryStabilityMs: this.entryStabilityMs,
       exitStabilityMs: this.exitStabilityMs,
       entryThreshold: this.entryThreshold,
       exitThreshold: this.exitThreshold
-    });
+    });*/
   }
   
   // Update configuration at runtime

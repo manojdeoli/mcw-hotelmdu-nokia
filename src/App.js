@@ -29,8 +29,8 @@ const CHECK_IN_DATE = new Date();
 CHECK_IN_DATE.setHours(15, 0, 0, 0); // Today at 3:00 PM
 
 const CHECK_OUT_DATE = new Date(CHECK_IN_DATE);
-CHECK_OUT_DATE.setDate(CHECK_OUT_DATE.getDate() + 1);
-CHECK_OUT_DATE.setHours(11, 0, 0, 0); // Tomorrow at 11:00 AM
+CHECK_OUT_DATE.setDate(CHECK_OUT_DATE.getDate() + 2);
+CHECK_OUT_DATE.setHours(11, 0, 0, 0); // 2 days later at 11:00 AM
 
 const getInitialArtificialTime = (mode) => {
   if (mode === 'arrival') {
@@ -84,7 +84,6 @@ const useSyncedState = (key, initialValue) => {
       mountedRef.current = true;
       if (!channelRef.current) {
         channelRef.current = new BroadcastChannel('hotel_mdu_sync');
-        console.log('[App] BroadcastChannel created for key:', key);
       }
     }
     
@@ -92,7 +91,6 @@ const useSyncedState = (key, initialValue) => {
 
     const handler = (event) => {
       if (event.data.key === key) {
-        console.log('[App] Received broadcast for', key, ':', event.data.value);
         setState(event.data.value);
       }
     };
@@ -108,7 +106,6 @@ const useSyncedState = (key, initialValue) => {
   const setSyncedState = useCallback((newValue) => {
     setState((prev) => {
       const value = newValue instanceof Function ? newValue(prev) : newValue;
-      console.log('[App] Broadcasting', key, ':', value);
       if (channelRef.current) {
         channelRef.current.postMessage({ key, value });
       }
@@ -374,7 +371,6 @@ function App() {
   
   // Function to refresh proximity configuration at runtime
   const refreshProximityConfig = useCallback(async () => {
-    console.log('[App] Refreshing proximity configuration...');
     await proximityConfig.refreshConfig();
     rssiProcessorRef.current.updateConfig();
     addMessage('Proximity configuration updated from runtime settings');
@@ -401,7 +397,6 @@ function App() {
         );
         
         if (configChanged) {
-          console.log('[App] Proximity configuration change detected');
           rssiProcessorRef.current.updateConfig(currentConfig);
           addMessage('Proximity configuration updated from runtime settings');
         }
@@ -414,22 +409,21 @@ function App() {
   // Connect to Gateway Server when phone is verified (but don't start BLE tracking yet)
   useEffect(() => {
     if (verifiedPhoneNumber) {
-      addMessage(`Connected to Gateway Server with demo subscription`);
-      gatewayClient.connect(verifiedPhoneNumber); // Pass phone for logging, but uses fixed demo ID internally
-      setGatewayConnected(true);
-      setBleStatus('Connected');
+      const ws = gatewayClient.connect(verifiedPhoneNumber); // Pass phone for logging, but uses fixed demo ID internally
+      
+      // Only show message when actually connected
+      if (ws) {
+        ws.addEventListener('open', () => {
+          addMessage(`Connected to Gateway Server with demo subscription`);
+          setGatewayConnected(true);
+          setBleStatus('Connected');
+        });
+      }
       
       // Set up BLE subscription that persists across reconnections
       const unsubscribe = gatewayClient.subscribe((data) => {
-        const { beaconName, rssi, zone } = data;
-        console.log('[App.js subscription] BLE Event received:', beaconName, zone, rssi);
-        console.log('[App.js subscription] Full data object:', data);
-        console.log('[App.js subscription] isSequenceRunning:', isSequenceRunning, 'hasReachedHotel:', hasReachedHotel);
-        // Notify api.js waiting system with beaconName
-        console.log('[App.js subscription] Calling api.notifyBeaconDetection with:', beaconName);
+        const { beaconName, rssi } = data;
         api.notifyBeaconDetection(beaconName);
-        // Also call processBeaconDetection for UI updates
-        console.log('[App.js subscription] Calling processBeaconDetection with:', beaconName, rssi);
         if (processBeaconDetectionRef.current) {
           processBeaconDetectionRef.current(beaconName, rssi);
         }
@@ -478,12 +472,14 @@ function App() {
   }, [messages]);
 
   useEffect(() => {
-    if (checkInStatus === 'Checked Out') { // Only show checkout message here
+    if (checkInStatus === 'Checked In' && isSequenceRunning) {
+      addMessage('Check-in completed successfully!');
+    } else if (checkInStatus === 'Checked Out') {
       addMessage('Thank you for staying with us! Your check-out is complete');
       const guestName = formState.name ? formState.name.split(' ')[0] : 'Guest';
       addGuestMessage(`Thank you for staying at Hotel Barcelona Sol, ${guestName}! We hope to see you again soon!`, 'success');
     }
-  }, [verifiedPhoneNumber, checkInStatus, kycMatchResponse, formState.name, addMessage, addGuestMessage]);
+  }, [verifiedPhoneNumber, checkInStatus, kycMatchResponse, formState.name, addMessage, addGuestMessage, isSequenceRunning]);
 
   const handleRegistrationSequence = async () => {
     if (!verifiedPhoneNumber) {
@@ -632,29 +628,17 @@ function App() {
 
   // --- Centralized Beacon Logic with Proximity Detection ---
   const processBeaconDetection = useCallback(async (deviceName, rssi = null) => {
-      console.log('[App.js] processBeaconDetection called with:', deviceName, rssi);
-      console.log('[App.js] isSequenceRunning:', isSequenceRunning, 'hasReachedHotel:', hasReachedHotel);
-      console.log('[App.js] checkInStatus:', checkInStatusRef.current);
-      
       // Only process BLE events if arrival sequence is running AND (guest verified at hotel OR it's a Gate beacon)
-      if (!isSequenceRunning) {
-        console.log('[App.js] Ignoring BLE event - arrival sequence not running yet');
-        return;
-      }
+      if (!isSequenceRunning) return;
       
       // Check if it's a Gate beacon
       const isGateBeacon = deviceName.toLowerCase().includes("entry") || deviceName.toLowerCase().includes("gate");
-      console.log('[App.js] isGateBeacon check:', isGateBeacon, 'deviceName.toLowerCase():', deviceName.toLowerCase());
       
-      if (!hasReachedHotel && !isGateBeacon) {
-        console.log('[App.js] Ignoring non-Gate BLE event - guest location not verified yet');
-        return;
-      }
+      if (!hasReachedHotel && !isGateBeacon) return;
       
       // Notify the api.js waiting system if there's an active waiting stage
       if (api.getCurrentWaitingStage()) {
         api.notifyBeaconDetection(deviceName);
-        console.log('[App.js] Called api.notifyBeaconDetection for waiting stage:', api.getCurrentWaitingStage());
       }
       
       // --- PROXIMITY DETECTION LOGIC ---
@@ -674,36 +658,21 @@ function App() {
             .filter(([name, data]) => data.rssi >= proximityConfig.getDirectThresholds().IMMEDIATE)
             .sort((a, b) => b[1].rssi - a[1].rssi);
           
-          if (validBeacons.length === 0) {
-            console.log('[App.js] DIRECT: No beacons meet threshold');
-            return;
-          }
+          if (validBeacons.length === 0) return;
           
-          const [closestBeacon, closestData] = validBeacons[0];
-          if (closestBeacon !== deviceName) {
-            console.log(`[App.js] DIRECT: ${deviceName} not closest`);
-            return;
-          }
-          
-          console.log(`[App.js] DIRECT: Processing ${deviceName} (RSSI: ${rssi})`);
+          const [closestBeacon] = validBeacons[0];
+          if (closestBeacon !== deviceName) return;
           
         } else {
           // SMOOTHED MODE: Moving average with stability
-          const result = rssiProcessorRef.current.addReading(deviceName, rssi);
+          rssiProcessorRef.current.addReading(deviceName, rssi);
           
-          console.log(`[App.js] SMOOTHED: ${deviceName} - Raw: ${rssi}, Avg: ${result.avgRssi?.toFixed(1)}, State: ${result.state}`);
+          const isDetected = rssiProcessorRef.current.isDetected(deviceName);
+          console.log(`[Proximity] ${deviceName} RSSI: ${rssi}, isDetected: ${isDetected}`);
           
-          if (!rssiProcessorRef.current.isDetected(deviceName)) {
-            console.log('[App.js] SMOOTHED: Beacon not in DETECTED state yet');
-            return;
-          }
-          
-          console.log(`[App.js] SMOOTHED: Processing ${deviceName} (stable detection)`);
+          if (!isDetected) return;
         }
       }
-      
-      // Always process BLE events for UI updates (status changes, messages)
-      console.log('[App.js] Processing BLE event for UI updates');
       
       const currentHotelLoc = hotelLocationRef.current || { lat: 41.40104, lng: 2.1394 };
       const baseLat = currentHotelLoc.lat;
@@ -722,16 +691,14 @@ function App() {
         // Gate welcome only shows at start OR after checkout (workflow state guard)
         if (checkInStatusRef.current === 'Not Checked In' || checkInStatusRef.current === 'Checked Out') {
           addMessage("Arrived at Hospital Entry Gate");
-          addGuestMessage(`Welcome to Hospital de Llobregat, ${guestName}! You have arrived at the hospital entrance.`, 'info');
+          addGuestMessage(`Welcome to Hotel Barcelona Sol, ${guestName}! You have arrived at the Hospital entrance.`, 'info');
           
-          // Only set status to 'At Kiosk' if patient has been verified at hospital location
+          // Only set status to 'At Kiosk' if guest has been verified at Hospital location
           if (checkInStatusRef.current !== 'Checked In' && hasReachedHotel) {
-              console.log('[App.js] Setting checkInStatus to At Kiosk due to Gate beacon (patient verified at hospital)');
               setCheckInStatus('At Kiosk');
               addMessage('Gate Access: Kiosk Available');
           }
         } else {
-          console.log('[App.js] Gate beacon ignored - user already checked in');
           addMessage("At Hospital Entry Gate (already checked in)");
         }
         
@@ -761,12 +728,11 @@ function App() {
               addGuestMessage(`Check-in complete, ${guestName}! Welcome to Room 1337. Enjoy your stay!`, 'success');
             }, 3000);
         } else if (checkInStatusRef.current !== 'Checked In') {
+            console.log('[Check-in] Consent not given. checkInConsent:', checkInConsent, 'checkInStatus:', checkInStatusRef.current);
             addGuestMessage('Please confirm your check-in on the Guest Information tab.', 'info');
         }
 
       } else if (deviceName.toLowerCase().includes("elevator") || deviceName.toLowerCase().includes("lift")) {
-        console.log('[App.js] Detected Elevator beacon:', deviceName);
-        console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'elevatorAccess:', elevatorAccessRef.current);
         locationLabel = "Elevator Lobby";
         newLocation = { lat: baseLat + 0.00008, lng: baseLng + 0.00005 };
         
@@ -777,28 +743,25 @@ function App() {
         
         // BLE-triggered Elevator Access - only after check-in and if not already granted
         if (checkInStatusRef.current === 'Checked In' && elevatorAccessRef.current !== 'Yes, Floor 13') {
-            console.log('[App.js] Triggering elevator access verification');
             addMessage("Elevator Access: Verifying Identity");
             addGuestMessage('Verifying your identity for elevator access...', 'processing');
+			setRfidStatus('Verified');
             const identityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'elevator'); // Only grant elevator access
             if (identityResult) {
                 setElevatorAccess('Yes, Floor 13');
                 addMessage("Elevator Access: Granted to Floor 13");
                 addGuestMessage('Elevator access granted! Proceeding to Floor 13.', 'success');
+				setTimeout(() => setRfidStatus('Unverified'), 5000);
             } else {
                 addMessage("Elevator Access: Denied");
                 addGuestMessage('Elevator access denied. Please contact reception.', 'error');
+				setRfidStatus('Unverified');
             }
         } else if (checkInStatusRef.current !== 'Checked In') {
-            console.log('[App.js] Elevator access denied - not checked in');
             addGuestMessage('Please complete check-in first to access the elevator.', 'info');
-        } else {
-            console.log('[App.js] Elevator access already granted');
         }
 
       } else if (deviceName.toLowerCase().includes("room") || deviceName.toLowerCase().includes("door")) {
-        console.log('[App.js] Detected Room beacon:', deviceName);
-        console.log('[App.js] checkInStatus:', checkInStatusRef.current, 'roomAccess:', roomAccessRef.current, 'elevatorAccess:', elevatorAccessRef.current);
         locationLabel = "Room 1337";
         newLocation = { lat: baseLat + 0.00012, lng: baseLng + 0.00008 };
         
@@ -809,14 +772,13 @@ function App() {
         
         // BLE-triggered Room Access - only after check-in, elevator access granted, and room access not already granted
         if (checkInStatusRef.current === 'Checked In' && elevatorAccessRef.current === 'Yes, Floor 13' && roomAccessRef.current !== 'Granted') {
-             console.log('[App.js] Triggering room access verification');
              addMessage("Room Access: Verifying Identity");
              addGuestMessage('Verifying your identity for room access...', 'processing');
              const identityResult = await checkIdentityIntegrity(false, 'Checked In', true, 'room'); // Only grant room access
              if (identityResult) {
                  setRoomAccess('Granted');
                  setRfidStatus('Verified');
-                 setTimeout(() => setRfidStatus('Unverified'), 3000);
+                 setTimeout(() => setRfidStatus('Unverified'), 5000);
                  addMessage("Room Access: Granted - Door Unlocked");
                  addGuestMessage(`Welcome to your room, ${guestName}! Door unlocked. Enjoy your stay!`, 'success');
              } else {
@@ -824,31 +786,27 @@ function App() {
                  addGuestMessage('Room access denied. Please contact reception.', 'error');
              }
         } else if (checkInStatusRef.current !== 'Checked In') {
-            console.log('[App.js] Room access denied - not checked in');
             addGuestMessage('Please complete check-in first to access your room.', 'info');
         } else if (elevatorAccessRef.current !== 'Yes, Floor 13') {
-            console.log('[App.js] Room access denied - elevator access required first');
             addGuestMessage('Please obtain elevator access first to reach your floor.', 'info');
-        } else {
-            console.log('[App.js] Room access already granted');
         }
       }
       
       if (newLocation) setUserGps(newLocation);
   }, [addMessage, addGuestMessage, formState.name, setHotelLocation, setCheckInStatus, setRfidStatus, setElevatorAccess, setRoomAccess, setUserGps, checkIdentityIntegrity, isSequenceRunning, hasReachedHotel, checkInConsent]);
 
-  // Show manual Gate button after 3 seconds if waiting for gate
+  // Show manual Gate button after 3 seconds when guest reaches hotel
   useEffect(() => {
-    if (isSequenceRunning && hasReachedHotel && currentWaitingStage === 'gate') {
+    if (isSequenceRunning && hasReachedHotel && checkInStatus === 'Not Checked In') {
       const timer = setTimeout(() => {
         setShowManualGateButton(true);
-        addMessage('Manual Gate button available - BLE not detected for 3 seconds');
+        addMessage('Manual Gate button available - 3 seconds elapsed');
       }, 3000);
       return () => clearTimeout(timer);
     } else {
       setShowManualGateButton(false);
     }
-  }, [isSequenceRunning, hasReachedHotel, currentWaitingStage, addMessage]);
+  }, [isSequenceRunning, hasReachedHotel, checkInStatus, addMessage]);
 
   // Update ref whenever processBeaconDetection changes
   useEffect(() => {
@@ -923,12 +881,13 @@ function App() {
       const oneHourInMs = 60 * 60 * 1000;
       const timeSinceCheck = artificialTime.getTime() - lastIntegrityCheckTime.getTime();
 
-      // Don't reset to Bad during checkout - user has already been verified multiple times
-      if (timeSinceCheck > oneHourInMs && checkInStatus !== 'Checked Out') {
+      // Don't reset to Bad during checkout or after checkout - user has already been verified multiple times
+      if (timeSinceCheck > oneHourInMs && checkInStatus !== 'Checked Out' && simulationMode !== 'departure') {
         setIdentityIntegrity('Bad');
       }
     }
-  }, [artificialTime, identityIntegrity, lastIntegrityCheckTime, checkInStatus, setIdentityIntegrity]);
+  }, [artificialTime, identityIntegrity, lastIntegrityCheckTime, checkInStatus, simulationMode, setIdentityIntegrity]);
+
 
 
   useEffect(() => {
@@ -979,7 +938,7 @@ function App() {
         iconAnchor: [16, 32],
         popupAnchor: [0, -32]
       });
-      L.marker([currentHotelLoc.lat, currentHotelLoc.lng], { icon: hotelIcon }).addTo(map).bindPopup('Hospital de Llobregat');
+      L.marker([currentHotelLoc.lat, currentHotelLoc.lng], { icon: hotelIcon }).addTo(map).bindPopup('Hotel Barcelona Sol');
 
       if (hotelLocation && hotelLocation.lat && hotelLocation.lng) {
         L.circle([hotelLocation.lat, hotelLocation.lng], {
@@ -1313,6 +1272,7 @@ function App() {
       }
       <header className="header">
         <h1><a href="/" className="header-link">Hotels/MDUs Use Case Demo</a></h1>
+        <img src={`${process.env.PUBLIC_URL}/Wipro_Secondary_Logo.png`} alt="Wipro" className="header-logo" style={{ mixBlendMode: 'multiply', opacity: 0.9, height: '80px' }} />
       </header>
 
       <main className="main-content">
