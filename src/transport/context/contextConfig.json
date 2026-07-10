@@ -1,0 +1,51 @@
+{
+  "_note": "Context-aware decision layer configuration. All thresholds here — no hardcoding in code.",
+
+  "confidenceThreshold": 60,
+  "staleThresholdMs":    10000,
+
+  "journeyTypeModes": {
+    "transit": ["TRANSIT", "VEHICLE"],
+    "parking": ["CAR", "VEHICLE"],
+    "walking": ["WALKING"]
+  },
+
+  "parkingAssociation": {
+    "requiredMotionWhenParked":    ["STILL", "UNKNOWN"],
+    "requiredMotionWhenExiting":   ["VEHICLE"],
+    "bluetoothDisconnectIsExit":   true,
+    "walkingMotionIsPersonLeft":   true
+  },
+
+  "_noteWeights": "Scoring weights for TransportModeConfidence. Edit here to tune demo behaviour — no code changes required.",
+  "confidenceWeights": {
+    "_note": "Base scores per CAMARA detection method (0.0–1.0)",
+    "GEOFENCE_SUB":    0.75,
+    "LOCATION_VERIFY": 0.70,
+    "TIMEOUT":         0.40,
+    "DEFAULT":         0.65,
+
+    "_noteBoost": "Additive boost components when Android context is reliable",
+    "boostBase":        0.05,
+    "boostSpeed":       0.07,
+    "boostBluetooth":   0.05,
+    "boostMotion":      0.03,
+    "boostMax":         0.20,
+
+    "_noteDampen": "Subtractive dampening for signal conflicts (capped at dampenMax)",
+    "dampenRailRoadAmbiguity":    0.10,
+    "dampenModeMismatch":         0.08,
+    "dampenNoSpeedOnVehicle":     0.05,
+    "dampenRoadCorridorTransit":  0.07,
+    "dampenLowSignalStrength":    0.08,
+    "dampenMax":                  0.25,
+
+    "_noteNetwork": "Network hint dampening — placeholder for future CAMARA signal-strength API",
+    "networkSignalStrengthDampen": {
+      "LOW":    0.08,
+      "MEDIUM": 0.00,
+      "HIGH":   0.00,
+      "UNKNOWN": 0.00
+    }
+  }
+}

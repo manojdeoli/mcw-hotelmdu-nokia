@@ -1,6 +1,13 @@
 import axios from 'axios';
 import authService from './auth';
 import { format } from 'date-fns';
+import mockBookingData from './profiling/config/mockBookingData.json';
+import {
+  mapSpendToInteractionDuration,
+  mapStaysToMembershipTier,
+  mapLoyaltyToTimeOfDay,
+  mapGuestsToGroupPresence,
+} from './profiling/config/featureMapping.js';
 
 const API_BASE_URL = 'https://network-as-code.p-eu.rapidapi.com/passthrough/camara/v1';
 const API_KEY = 'a1dee25b3dmsh933c9f572c08b1cp1e7225jsna6c0a404fd8e';
@@ -385,28 +392,78 @@ export function locationRetrieval(phoneNumber, logApiInteraction, mockCoordinate
     });
 }
 
+// Transport journey position simulation state.
+// scanStationsForEntry() calls locationVerification sequentially and stops at
+// the first TRUE. By tracking which phase we're in, we can return TRUE only
+// for the correct station at each scan phase:
+//   IDLE       → no journey active, always TRUE (safe default for other use cases)
+//   ENTRY      → TRUE only for the entry station (first scan)
+//   IN_TRANSIT → FALSE for all stations (mid-journey scan)
+//   AT_EXIT    → TRUE only for the exit station
+//
+// setTransportScanPhase() is called by the transport hook at each phase change.
+let _transportScanPhase     = 'IDLE';
+let _transportEntryStationId = null;
+let _transportExitStationId  = null;
+
+export function setTransportScanPhase(phase, entryStationId = null, exitStationId = null) {
+  _transportScanPhase      = phase;
+  _transportEntryStationId = entryStationId;
+  _transportExitStationId  = exitStationId;
+}
+
 export function locationVerification(data, logApiInteraction) {
     return new Promise(resolve => {
         setTimeout(() => {
-            const response = {
-                verificationResult: "TRUE"
-            };
+            const requestedLat = data?.area?.center?.latitude;
+            const requestedLng = data?.area?.center?.longitude;
+            let result = 'TRUE'; // default for non-transport use cases
+
+            if (_transportScanPhase !== 'IDLE') {
+                if (_transportScanPhase === 'ENTRY') {
+                    result = _transportEntryStationId ? 'ENTRY_CHECK' : 'TRUE';
+                } else if (_transportScanPhase === 'IN_TRANSIT') {
+                    result = 'FALSE';
+                } else if (_transportScanPhase === 'AT_EXIT') {
+                    result = _transportExitStationId ? 'EXIT_CHECK' : 'TRUE';
+                }
+            }
+
+            if (result === 'ENTRY_CHECK') {
+                result = (_entryCoords &&
+                    Math.abs(requestedLat - _entryCoords.lat) < 0.001 &&
+                    Math.abs(requestedLng - _entryCoords.lng) < 0.001) ? 'TRUE' : 'FALSE';
+            } else if (result === 'EXIT_CHECK') {
+                result = (_exitCoords &&
+                    Math.abs(requestedLat - _exitCoords.lat) < 0.001 &&
+                    Math.abs(requestedLng - _exitCoords.lng) < 0.001) ? 'TRUE' : 'FALSE';
+            }
+
+            const response = { verificationResult: result };
             if (logApiInteraction) {
                 logApiInteraction('Location Verification', 'POST', '/location-verification/verify', data, response);
             }
             resolve(response);
-        }, 500);
+        }, 300);
     });
 }
 
-export function carrierBilling(phoneNumber, logApiInteraction) {
+let _entryCoords = null;
+let _exitCoords  = null;
+
+export function setTransportStationCoords(entryCoords, exitCoords) {
+  _entryCoords = entryCoords;
+  _exitCoords  = exitCoords;
+}
+
+export function carrierBilling(phoneNumber, logApiInteraction, amount = 299.00, currency = 'EUR') {
     const requestPayload = { 
         amountTransaction: {
             phoneNumber: phoneNumber,
             paymentAmount: {
                 chargingInformation: {
-                    amount: 299.00,
-                    currency: "EUR"
+                    amount: amount,
+                    currency: currency
                 }
             }
         }
@@ -508,6 +565,98 @@ export function notifyBeaconDetection(beaconName) {
             waiter.resolve(beaconName);
         }
     });
+}
+
+// =============================================================================
+// MOCK BOOKING LOOKUP API — Hotel PMS Simulation
+//
+// Simulates a hotel Property Management System (PMS) / booking database query.
+// In production, this would be a real API call to the hotel's booking system.
+// Here it reads from mockBookingData.json.
+//
+// The booking data is mapped to SessionContext signals for classification:
+//   guestsInBooking > 1    → groupPresence: true
+//   avgSpendPerNight       → interactionDurationSec proxy (high spend = decisive/fast)
+//   totalPreviousStays     → membershipTier (0-4=STANDARD, 5-9=LOYALTY, 10+=PREMIUM)
+//   loyaltyTier            → timeOfDay hint (PLATINUM/GOLD = business hours pattern)
+// =============================================================================
+
+/**
+ * Mock booking lookup — simulates hotel PMS API response.
+ * Returns booking metadata for a given phone number.
+ *
+ * @param {string} phoneNumber
+ * @param {function} [logApiInteraction]
+ * @returns {Promise<object>} booking data
+ */
+export function bookingLookup(phoneNumber, logApiInteraction) {
+  const requestPayload = { device: { phoneNumber } };
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const normalised = phoneNumber ? phoneNumber.replace(/\s/g, '') : '';
+      const booking = mockBookingData[normalised];
+
+      const response = booking
+        ? { found: true, ...booking }
+        : {
+            found: false,
+            bookingId: null,
+            guestName: null,
+            guestsInBooking: 1,
+            loyaltyTier: 'STANDARD',
+            stayPurpose: 'Leisure',
+            avgSpendPerNight: 100,
+            totalPreviousStays: 0,
+            roomType: 'Standard Double',
+          };
+
+      if (logApiInteraction) {
+        logApiInteraction('Booking Lookup (PMS)', 'POST', '/hotel-pms/booking/lookup', requestPayload, response);
+      }
+      resolve(response);
+    }, 300);
+  });
+}
+
+/**
+ * Maps booking data from PMS to SessionContext profiling signals.
+ * Uses shared featureMapping.js for guaranteed semantic alignment with training.
+ *
+ * @param {object} bookingData — response from bookingLookup()
+ * @returns {{ groupPresence, membershipTier, interactionDurationSec, timeOfDay }}
+ */
+export function mapBookingToSessionSignals(bookingData) {
+  const { guestsInBooking, avgSpendPerNight, totalPreviousStays, loyaltyTier } = bookingData;
+
+  return {
+    groupPresence:          mapGuestsToGroupPresence(guestsInBooking),
+    membershipTier:         mapStaysToMembershipTier(totalPreviousStays),
+    interactionDurationSec: mapSpendToInteractionDuration(avgSpendPerNight),
+    timeOfDay:              mapLoyaltyToTimeOfDay(loyaltyTier),
+  };
+}
+
+/**
+ * Returns profiling session signals for a given phone number.
+ * Performs a synchronous lookup against mock booking data and maps to signals.
+ * Used by App.js to build SessionContext before classification.
+ *
+ * @param {string} phoneNumber — the verified phone number (with + prefix)
+ * @returns {{ groupPresence, membershipTier, interactionDurationSec, timeOfDay }}
+ */
+export function getProfilingHints(phoneNumber) {
+  const DEFAULT_SIGNALS = {
+    groupPresence:          false,
+    membershipTier:         'STANDARD',
+    interactionDurationSec: 45,
+    timeOfDay:              'AFTERNOON',
+  };
+
+  if (!phoneNumber) return DEFAULT_SIGNALS;
+  const normalised = phoneNumber.replace(/\s/g, '');
+  const booking = mockBookingData[normalised];
+  if (!booking || booking._note) return DEFAULT_SIGNALS;
+  return mapBookingToSessionSignals(booking);
 }
 
 // Helper function to wait for specific BLE beacon

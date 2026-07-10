@@ -13,14 +13,23 @@ echo.
 echo Updating configuration with Mobile IP: %MOBILE_IP%
 echo.
 
-REM Create/Update .env file
-echo PORT=4002 > .env
-echo REACT_APP_GATEWAY_URL=http://%MOBILE_IP%:8080 >> .env
-echo DANGEROUSLY_DISABLE_HOST_CHECK=true >> .env
+REM Create/Update .env file — overwrite completely each run to prevent
+REM duplicate REACT_APP_GATEWAY_URL entries from repeated runs.
+REM Using >> (append) would stack lines causing ws://ip:8080:8080:8080 corruption.
+REM REACT_APP_BEACON_CONFIG_URL is written by CONFIGURE_BEACONS.bat — preserved here if exists.
+for /f "tokens=2 delims==" %%a in ('findstr /i "REACT_APP_BEACON_CONFIG_URL" .env 2^>nul') do set EXISTING_BEACON_URL=%%a
 
-REM Replace hardcoded IP in compiled JavaScript
+(
+echo PORT=4002
+echo REACT_APP_GATEWAY_URL=http://%MOBILE_IP%:8080
+if defined EXISTING_BEACON_URL echo REACT_APP_BEACON_CONFIG_URL=%EXISTING_BEACON_URL%
+echo DANGEROUSLY_DISABLE_HOST_CHECK=true
+echo GOOGLE_DIRECTIONS_API_KEY=AIzaSyDg0fNA0VL1kLmdIKBLd-nusu4j6bjZ7sk
+) > .env
+
+REM Replace any IP address pattern in compiled JavaScript with new Gateway IP
 echo Updating compiled JavaScript with new Gateway IP...
-powershell -Command "$files = Get-ChildItem 'static\js\main.*.js'; foreach($file in $files) { (Get-Content $file.FullName -Raw) -replace '10\.247\.130\.116', '%MOBILE_IP%' | Set-Content $file.FullName -NoNewline }"
+powershell -Command "$files = Get-ChildItem 'static\js\main.*.js'; foreach($file in $files) { (Get-Content $file.FullName -Raw) -replace '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:8080', '%MOBILE_IP%:8080' | Set-Content $file.FullName -NoNewline }"
 
 echo Configuration updated successfully!
 echo.

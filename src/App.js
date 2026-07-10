@@ -7,12 +7,17 @@ import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
 import { format } from 'date-fns';
 import * as api from './api';
+import { getProfilingHints } from './api';
 import { formFields } from './formFields';
 import gatewayClient from './gatewayClient';
 import GuestTab from './components/GuestTab';
 import authService from './auth';
 import RSSIProcessor from './rssiProcessor';
 import proximityConfig from './proximityConfig';
+import { assembleSessionContext } from './customerProfiler';
+import { runProfiling, CLASSIFIER_TYPES } from './profiling/index';
+import ClassifierModal from './components/ClassifierModal';
+import { useTransportJourney, TransportDashboard } from './transport/index';
 
 
 // --- Fix for Leaflet's default icon ---
@@ -128,6 +133,34 @@ function getDistance(coords1, coords2) {
   return R * c;
 }
 
+// =============================================================================
+// Customer Profiling Configuration
+//
+// Classifier is selected at runtime via one of two paths:
+//   1. START_APP.bat  — prompts at terminal, injects window.DEFAULT_CLASSIFIER_OVERRIDE
+//   2. npm start      — ClassifierModal shown in browser on first load
+//
+// Profiling signals (groupPresence, membershipTier, interactionDurationSec) are
+// driven by the verified phone number via getProfilingHints() in api.js:
+//   +99999991000  → BUSINESS_TRAVELER
+//   +1234567890   → FAMILY_GROUP
+//   any other     → LEISURE_GUEST
+// =============================================================================
+
+// Resolve the classifier to use on mount:
+//   1. window.DEFAULT_CLASSIFIER_OVERRIDE  — set by START_APP.bat via server injection
+//   2. sessionStorage.classifierChoice     — set by modal, survives OAuth redirect
+//   3. null                                — show modal
+// sessionStorage is used (not localStorage) so the choice is tab-scoped and
+// never persists across separate demo sessions.
+function resolveInitialClassifier() {
+  if (typeof window === 'undefined') return null;
+  if (window.DEFAULT_CLASSIFIER_OVERRIDE) return window.DEFAULT_CLASSIFIER_OVERRIDE;
+  const stored = sessionStorage.getItem('classifierChoice');
+  if (stored && ['RULE_BASED', 'TREE_BASED'].includes(stored)) return stored;
+  return null;
+}
+
 function App() {
   const mapUpdateThrottle = useRef(null);
   const authCheckExecuted = useRef(false);
@@ -166,12 +199,28 @@ function App() {
     formFields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {})
   );
   const [checkInConsent, setCheckInConsent] = useSyncedState('checkInConsent', false);
+  const [customerProfile, setCustomerProfile] = useSyncedState('customerProfile', null);
 
   // --- Local State (Specific to this window/monitor) ---
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [map, setMap] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  // Classifier selection — resolved from window override, sessionStorage, or modal
+  const [selectedClassifier, setSelectedClassifier] = useState(
+    resolveInitialClassifier
+  );
+  const [showClassifierModal, setShowClassifierModal] = useState(
+    () => resolveInitialClassifier() === null
+  );
+
+  const handleClassifierConfirm = (classifierType) => {
+    sessionStorage.setItem('classifierChoice', classifierType);
+    setSelectedClassifier(classifierType);
+    setShowClassifierModal(false);
+    addMessage(`Customer Profiling: Classifier set to ${classifierType}`);
+  };
   
   // Save activeTab to localStorage whenever it changes
   useEffect(() => {
@@ -180,6 +229,7 @@ function App() {
     }
   }, [activeTab]);
   const [isSequenceRunning, setIsSequenceRunning] = useSyncedState('isSequenceRunning', false);
+  const sequenceStartTimeRef = useRef(null);
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -189,6 +239,112 @@ function App() {
   const [processedBeacons, setProcessedBeacons] = useSyncedState('processedBeacons', []);
   const [showManualGateButton, setShowManualGateButton] = useState(false);
   const [currentWaitingStage, setCurrentWaitingStage] = useState(null);
+
+  // --- Customer Profiling: record sequence start time ---
+  useEffect(() => {
+    if (isSequenceRunning && !sequenceStartTimeRef.current) {
+      sequenceStartTimeRef.current = Date.now();
+    } else if (!isSequenceRunning) {
+      sequenceStartTimeRef.current = null;
+    }
+  }, [isSequenceRunning]);
+
+  // Refs so the profiling effect always reads current values without stale closures
+  const kycMatchResponseRef = useRef(kycMatchResponse);
+  const customerProfileRef = useRef(customerProfile);
+  const identityIntegrityRef = useRef(identityIntegrity);
+  const checkInStatusRef2 = useRef(checkInStatus);
+  const elevatorAccessRef2 = useRef(elevatorAccess);
+  const roomAccessRef2 = useRef(roomAccess);
+  const secondUserGpsRef = useRef(secondUserGps);
+  const verifiedPhoneNumberProfilingRef = useRef(verifiedPhoneNumber);
+
+  useEffect(() => { kycMatchResponseRef.current = kycMatchResponse; }, [kycMatchResponse]);
+  useEffect(() => { customerProfileRef.current = customerProfile; }, [customerProfile]);
+  useEffect(() => { identityIntegrityRef.current = identityIntegrity; }, [identityIntegrity]);
+  useEffect(() => { checkInStatusRef2.current = checkInStatus; }, [checkInStatus]);
+  useEffect(() => { elevatorAccessRef2.current = elevatorAccess; }, [elevatorAccess]);
+  useEffect(() => { roomAccessRef2.current = roomAccess; }, [roomAccess]);
+  useEffect(() => { secondUserGpsRef.current = secondUserGps; }, [secondUserGps]);
+  useEffect(() => { verifiedPhoneNumberProfilingRef.current = verifiedPhoneNumber; }, [verifiedPhoneNumber]);
+
+  // --- Customer Profiling: classify when guest reaches hotel (reads all state via refs) ---
+  useEffect(() => {
+    if (!hasReachedHotel) return;
+
+    // Already profiled this session — do not re-run
+    if (customerProfileRef.current) return;
+
+    // Resolve profiling signals from phone number via demoCustomers.json.
+    // Features are mapped to session signals; the classifier determines persona.
+    const hints = getProfilingHints(verifiedPhoneNumberProfilingRef.current);
+
+    const sessionContext = assembleSessionContext({
+      sessionId:             `session-${Date.now()}`,
+      verifiedPhoneNumber:   verifiedPhoneNumberProfilingRef.current,
+      kycMatchResponse:      kycMatchResponseRef.current,
+      identityIntegrity:     identityIntegrityRef.current,
+      hasReachedHotel:       true,
+      checkInStatus:         checkInStatusRef2.current,
+      elevatorAccess:        elevatorAccessRef2.current,
+      roomAccess:            roomAccessRef2.current,
+      secondUserGps:         hints.groupPresence ? { lat: 0, lng: 0 } : null,
+      sequenceStartTime:     hints.interactionDurationSec
+                               ? Date.now() - (hints.interactionDurationSec * 1000)
+                               : sequenceStartTimeRef.current,
+      membershipTier:        hints.membershipTier,
+      timeOfDayOverride:     hints.timeOfDay,
+    });
+
+    const profileResult = runProfiling(sessionContext, {
+      classifier: selectedClassifier || CLASSIFIER_TYPES.RULE_BASED,
+    });
+
+    setCustomerProfile(profileResult);
+
+    logApiInteraction(
+      'Customer Profiling',
+      'INTERNAL',
+      '/profiling/classify',
+      { sessionContext, classifierType: profileResult.layer1.classifierType },
+      profileResult
+    );
+
+    addMessage(
+      `Customer Profiling [${profileResult.layer1.classifierType}]: ` +
+      `${profileResult.layer1.demographic} × ${profileResult.persona.demographic} → ${profileResult.layer2.domainProfile} ` +
+      `(confidence: ${profileResult.layer2.finalConfidence})` +
+      (profileResult.layer1.membershipInfluenced ? ' ★ membership influenced' : '') +
+      ` | Fusion: ${profileResult.layer2.explainability?.fusion?.ruleApplied || 'N/A'}`
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasReachedHotel]);
+
+  // Re-broadcast all current state when a new window (e.g. Kiosk) opens late
+  // and sends REQUEST_SYNC — solves the BroadcastChannel missed-message problem.
+  useEffect(() => {
+    const channel = new BroadcastChannel('hotel_mdu_sync');
+    const handler = (event) => {
+      if (event.data?.type !== 'REQUEST_SYNC') return;
+      const snapshot = {
+        verifiedPhoneNumber, kycMatchResponse, simulationMode,
+        registrationStatus, identityIntegrity, checkInStatus,
+        paymentStatus, rfidStatus, elevatorAccess, roomAccess,
+        hotelLocation, userGps, initialUserLocation, bleStatus,
+        secondUserGps, hasReachedHotel, isSequenceRunning,
+        checkInConsent, customerProfile, guestMessages, messages, apiLogs,
+      };
+      Object.entries(snapshot).forEach(([key, value]) => {
+        channel.postMessage({ key, value });
+      });
+    };
+    channel.addEventListener('message', handler);
+    return () => { channel.removeEventListener('message', handler); channel.close(); };
+  }, [verifiedPhoneNumber, kycMatchResponse, simulationMode, registrationStatus,
+      identityIntegrity, checkInStatus, paymentStatus, rfidStatus, elevatorAccess,
+      roomAccess, hotelLocation, userGps, initialUserLocation, bleStatus,
+      secondUserGps, hasReachedHotel, isSequenceRunning, checkInConsent,
+      customerProfile, guestMessages, messages, apiLogs]);
 
   // Track current waiting stage from API
   useEffect(() => {
@@ -334,6 +490,14 @@ function App() {
       return [...prevMessages, newMessage];
     });
   }, [setMessages]);
+
+  // --- Transport Journey — placed here so addMessage and logApiInteraction are defined ---
+  const transport = useTransportJourney({
+    phoneNumber:       verifiedPhoneNumber,
+    logApiInteraction: (title, method, url, req, res) => logApiInteraction(title, method, url, req, res),
+    addMessage,
+    onWaypointUpdate:  (coords) => setUserGps(coords),
+  });
 
   const addGuestMessage = useCallback((message, type = 'info') => {
     setGuestMessages(prev => [
@@ -1018,6 +1182,7 @@ function App() {
     setFormState(formFields.reduce((acc, field) => ({ ...acc, [field.name]: '' }), {}));
     setKycMatchResponse(null);
     setHasReachedHotel(false); // Reset hotel arrival status
+    setCustomerProfile(null); // Reset customer profile — no cross-session persistence
     // Don't reset identity integrity if user is checked out - they were already verified
     if (checkInStatus !== 'Checked Out') {
       setIdentityIntegrity('Bad'); // Reset identity integrity status
@@ -1233,6 +1398,7 @@ function App() {
           setSuccess('');
           setIsSequenceRunning(false);
           setHasReachedHotel(false);
+          setCustomerProfile(null);
         }, 15000);
       }
     } catch (error) { // eslint-disable-line no-empty
@@ -1247,6 +1413,9 @@ function App() {
 
   return (
     <div className="App">
+      {showClassifierModal && (
+        <ClassifierModal onConfirm={handleClassifierConfirm} />
+      )}
       {isAuthenticating && (
         <div className="loader-overlay">
           <div className="d-flex justify-content-center align-items-center h-100">
@@ -1290,6 +1459,9 @@ function App() {
               <button className={`nav-link ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')}>Management Dashboard (Detailed Version)</button>
             </li>
             <li className="nav-item">
+              <button className={`nav-link ${activeTab === 'transport' ? 'active' : ''}`} onClick={() => setActiveTab('transport')}>Mobility &amp; Payments</button>
+            </li>
+            <li className="nav-item">
               <button className="nav-link" onClick={() => window.open(window.location.origin + '/attract-mode', '_blank')}>Open Presentation View</button>
             </li>
           </ul>
@@ -1297,6 +1469,16 @@ function App() {
           {/* Main Content Area */}
           <div className="dashboard-main" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
             
+            {/* Tab: Mobility & Payments */}
+            <div className={`dashboard-column ${activeTab === 'transport' ? '' : 'd-none'}`} style={{ width: '100%' }}>
+              <TransportDashboard
+                {...transport}
+                phoneNumber={verifiedPhoneNumber}
+                logApiInteraction={logApiInteraction}
+                addMessage={addMessage}
+              />
+            </div>
+
             {/* Tab 1: API Interaction (Full Width) */}
             <div className={`dashboard-column ${activeTab === 'api' ? '' : 'd-none'}`} style={{ width: '100%' }}>
               <div id="apiLogs" className="card">

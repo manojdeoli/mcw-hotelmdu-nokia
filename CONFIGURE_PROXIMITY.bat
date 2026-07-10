@@ -238,12 +238,9 @@ if exist .env.proximity (
 )
 echo ----------------------------------------
 echo.
-echo IMPORTANT: For production builds, rebuild the app for changes to take effect:
-echo   1. Run: npm run build
-echo   2. Restart the server: npm run start:prod
-echo.
-echo For development mode, the new settings will be loaded automatically
-echo when the server injects runtime configuration.
+echo IMPORTANT: Configuration will be applied at runtime:
+echo   - Production mode: Restart the server for changes to take effect
+echo   - Development mode: Changes are loaded automatically via API
 echo.
 echo Testing proximity configuration injection...
 echo Checking if server.js can read the configuration...

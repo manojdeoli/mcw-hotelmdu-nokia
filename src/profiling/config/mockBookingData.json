@@ -1,0 +1,44 @@
+{
+  "_note": "Mock Hotel Property Management System (PMS) booking database. Simulates what a real hotel booking/loyalty system would return when queried by phone number. Used by the mock bookingLookup API in api.js.",
+  "_source": "Demo configuration — not connected to any real PMS or loyalty platform.",
+  "_fields": {
+    "guestsInBooking": "Number of guests in the reservation (maps to groupPresence)",
+    "loyaltyTier": "Hotel loyalty program tier (maps to membershipTier)",
+    "stayPurpose": "Declared purpose at booking time (informational, not used for classification)",
+    "avgSpendPerNight": "Historical average spend per night in EUR (maps to spendingScore proxy)",
+    "totalPreviousStays": "Number of previous stays at this hotel chain (maps to workExperience proxy)"
+  },
+
+  "+99999991000": {
+    "bookingId": "BK-2026-00451",
+    "guestName": "Federica Sanchez Arjona",
+    "guestsInBooking": 1,
+    "loyaltyTier": "PLATINUM",
+    "stayPurpose": "Business",
+    "avgSpendPerNight": 285,
+    "totalPreviousStays": 12,
+    "roomType": "Executive Suite"
+  },
+
+  "+1234567890": {
+    "bookingId": "BK-2026-00452",
+    "guestName": "Joe Bloggs",
+    "guestsInBooking": 4,
+    "loyaltyTier": "STANDARD",
+    "stayPurpose": "Leisure",
+    "avgSpendPerNight": 95,
+    "totalPreviousStays": 3,
+    "roomType": "Family Room"
+  },
+
+  "+61412345678": {
+    "bookingId": "BK-2026-00453",
+    "guestName": "Chen Wei",
+    "guestsInBooking": 1,
+    "loyaltyTier": "STANDARD",
+    "stayPurpose": "Leisure",
+    "avgSpendPerNight": 120,
+    "totalPreviousStays": 4,
+    "roomType": "Standard Double"
+  }
+}

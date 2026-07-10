@@ -1,0 +1,132 @@
+{
+  "_note": "Station and zone configuration. detectionMode: LOCATION_VERIFY | GEOFENCE. mode per-station: transit | parking | trip. dwellConfirmMs: ms a device must remain in zone before exit is confirmed (pass-through detection). trajectoryHint: RAIL_CORRIDOR | ROAD_CORRIDOR | UNKNOWN — used by confidence layer to resolve rail/road ambiguity.",
+  "stations": [
+    {
+      "id": "STN_CENTRAL",
+      "name": "Barcelona Sants",
+      "shortName": "Sants",
+      "coordinates": { "lat": 41.37944, "lng": 2.14028 },
+      "zoneId": "ZONE_1",
+      "geofenceRadius": 150,
+      "color": "#1E90FF",
+      "mode": "transit",
+      "dwellConfirmMs": 20000,
+      "trajectoryHint": "RAIL_CORRIDOR"
+    },
+    {
+      "id": "STN_GRACIA",
+      "name": "Bellvitge (Gr\u00e0cia zone)",
+      "shortName": "Bellvitge",
+      "coordinates": { "lat": 41.35800, "lng": 2.10500 },
+      "zoneId": "ZONE_2",
+      "geofenceRadius": 150,
+      "color": "#FF8C00",
+      "mode": "transit",
+      "dwellConfirmMs": 20000,
+      "trajectoryHint": "RAIL_CORRIDOR"
+    },
+    {
+      "id": "STN_AIRPORT",
+      "name": "Barcelona Airport (El Prat)",
+      "shortName": "Airport",
+      "coordinates": { "lat": 41.29740, "lng": 2.08330 },
+      "zoneId": "ZONE_3",
+      "geofenceRadius": 300,
+      "color": "#28a745",
+      "mode": "transit",
+      "dwellConfirmMs": 25000,
+      "trajectoryHint": "RAIL_CORRIDOR"
+    },
+    {
+      "id": "PKG_ENTRY",
+      "name": "Car Park \u2014 Entry Gate",
+      "shortName": "Entry",
+      "coordinates": { "lat": 41.38500, "lng": 2.17340 },
+      "zoneId": "PKG_ZONE",
+      "geofenceRadius": 30,
+      "color": "#1E90FF",
+      "mode": "parking",
+      "trajectoryHint": "ROAD_CORRIDOR"
+    },
+    {
+      "id": "PKG_EXIT",
+      "name": "Car Park \u2014 Exit Gate",
+      "shortName": "Exit",
+      "coordinates": { "lat": 41.38480, "lng": 2.17400 },
+      "zoneId": "PKG_ZONE",
+      "geofenceRadius": 30,
+      "color": "#28a745",
+      "mode": "parking",
+      "trajectoryHint": "ROAD_CORRIDOR"
+    },
+    {
+      "id": "TRIP_STN_A",
+      "name": "Barcelona Sants",
+      "shortName": "Sants",
+      "coordinates": { "lat": 41.37944, "lng": 2.14028 },
+      "zoneId": "ZONE_1",
+      "geofenceRadius": 150,
+      "color": "#1E90FF",
+      "mode": "trip",
+      "dwellConfirmMs": 20000,
+      "trajectoryHint": "RAIL_CORRIDOR"
+    },
+    {
+      "id": "TRIP_STN_B",
+      "name": "Bellvitge (Gr\u00e0cia zone)",
+      "shortName": "Bellvitge",
+      "coordinates": { "lat": 41.35800, "lng": 2.10500 },
+      "zoneId": "ZONE_2",
+      "geofenceRadius": 150,
+      "color": "#FF8C00",
+      "mode": "trip",
+      "dwellConfirmMs": 20000,
+      "trajectoryHint": "RAIL_CORRIDOR"
+    },
+    {
+      "id": "TRIP_STN_C",
+      "name": "Barcelona Airport (El Prat)",
+      "shortName": "Airport",
+      "coordinates": { "lat": 41.29740, "lng": 2.08330 },
+      "zoneId": "ZONE_3",
+      "geofenceRadius": 300,
+      "color": "#28a745",
+      "mode": "trip",
+      "dwellConfirmMs": 25000,
+      "trajectoryHint": "RAIL_CORRIDOR"
+    },
+    {
+      "id": "TRIP_PKG_PAID",
+      "name": "City Car Park",
+      "shortName": "City Park",
+      "coordinates": { "lat": 41.38500, "lng": 2.17340 },
+      "zoneId": "PKG_ZONE",
+      "geofenceRadius": 30,
+      "color": "#6f42c1",
+      "mode": "trip",
+      "trajectoryHint": "ROAD_CORRIDOR"
+    },
+    {
+      "id": "TRIP_PKG_FREE",
+      "name": "Hotel Premises (Free)",
+      "shortName": "Hotel Park",
+      "coordinates": { "lat": 41.40000, "lng": 2.18000 },
+      "zoneId": "FREE_ZONE",
+      "geofenceRadius": 50,
+      "color": "#17a2b8",
+      "mode": "trip",
+      "trajectoryHint": "ROAD_CORRIDOR"
+    }
+  ],
+  "defaultRoute": {
+    "entryStationId": "STN_CENTRAL",
+    "exitStationId": "STN_AIRPORT"
+  },
+  "defaultParkingRoute": {
+    "entryStationId": "PKG_ENTRY",
+    "exitStationId": "PKG_EXIT"
+  },
+  "exitTimeoutMs": 60000,
+  "detectionMode": "LOCATION_VERIFY",
+  "demoDwellConfirmMs": 4000
+}

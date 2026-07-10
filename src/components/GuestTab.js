@@ -5,6 +5,55 @@ import { format } from 'date-fns';
 const CHECK_IN_DATE = new Date('2026-03-02T14:00:00');
 const CHECK_OUT_DATE = new Date('2026-03-06T11:00:00');
 
+// =============================================================================
+// Amenity catalogue — full set of hotel amenities keyed by amenityPriority keys
+// from domainMappingRules.js. All 4 original cards are preserved exactly.
+// New cards (kids_club, business_centre, express_checkout, concierge) are added.
+// Rendering always shows exactly 4 cards, ordered by the profile's amenityPriority.
+// GENERIC_GUEST fallback order matches the original hardcoded order.
+// =============================================================================
+const AMENITY_CATALOGUE = {
+  restaurant:       { icon: '🍽️', name: 'La Cocina del Sol',      offer: 'Free starter with main course',          location: 'Ground Floor' },
+  spa:              { icon: '💆', name: 'Sol Wellness Spa',        offer: '20% off all treatments',                 location: 'Level 6'      },
+  fitness:          { icon: '💪', name: 'Fitness Center',          offer: 'Free 24/7 access',                       location: 'Level 4'      },
+  pool:             { icon: '🏊', name: 'Rooftop Pool & Bar',      offer: 'Free welcome cocktail',                  location: 'Level 5'      },
+  kids_club:        { icon: '🧒', name: 'Kids Club & Play Zone',   offer: 'Free supervised activities daily',       location: 'Level 2'      },
+  business_centre:  { icon: '💼', name: 'Business Centre',         offer: 'Free printing & meeting rooms',          location: 'Level 1'      },
+  express_checkout: { icon: '⚡', name: 'Express Checkout',        offer: 'Skip the queue — checkout via app',      location: 'Reception'    },
+  concierge:        { icon: '🛎️', name: 'Concierge Service',       offer: 'Personalised city tours & bookings',     location: 'Lobby'        },
+  local_attractions: { icon: '🗺️', name: 'Local Attractions',        offer: 'Exclusive discounts on top Barcelona sights', location: 'Concierge'  },
+};
+
+// Profile badge config — maps Layer 2 domainProfile to a display label + colour
+const PROFILE_BADGE = {
+  BUSINESS_TRAVELER: { label: '🧳 Business Traveler', color: '#1a73e8' },
+  FAMILY_GROUP:      { label: '👨‍👩‍👧 Family Group',      color: '#e8710a' },
+  LEISURE_GUEST:     { label: '🌴 Leisure Guest',      color: '#1e8e3e' },
+  SENIOR_GUEST:      { label: '🛎️ Senior Guest',       color: '#9334e6' },
+  GENERIC_GUEST:     { label: '🏨 Hotel Guest',         color: '#5f6368' },
+  // Fused profiles (behaviour × persona)
+  FAST_LEISURE:      { label: '⚡ Fast Leisure',       color: '#0d904f' },
+  EFFICIENT_FAMILY:  { label: '⚡👨‍👩‍👧 Efficient Family', color: '#c5221f' },
+  GROUP_LEISURE:     { label: '🌴👥 Group Leisure',    color: '#e8710a' },
+  RELAXED_GUEST:     { label: '🧘 Relaxed Guest',      color: '#7b1fa2' },
+  EXTENDED_BUSINESS: { label: '🧳🕐 Extended Business', color: '#1565c0' },
+  SOLO_BUSINESS:     { label: '💼 Solo Business',      color: '#0277bd' },
+};
+
+// Returns the 4 amenity objects to render, ordered by profile priority.
+// Falls back gracefully if customerProfile is null or a key is missing.
+function getOrderedAmenities(customerProfile) {
+  const defaultOrder = ['restaurant', 'spa', 'fitness', 'pool'];
+  const priority = customerProfile?.layer2?.contentHints?.amenityPriority || defaultOrder;
+  // Take the first 4 valid keys from priority, then pad with defaults if needed
+  const ordered = priority
+    .filter(key => AMENITY_CATALOGUE[key])
+    .slice(0, 4);
+  const padKeys = defaultOrder.filter(k => !ordered.includes(k));
+  const final = [...ordered, ...padKeys].slice(0, 4);
+  return final.map(key => ({ key, ...AMENITY_CATALOGUE[key] }));
+}
+
 const GuestTab = ({ 
   checkInStatus, 
   formState, 
@@ -18,7 +67,8 @@ const GuestTab = ({
   isSequenceRunning,
   checkInConsent,
   bookingCheckIn,
-  bookingCheckOut
+  bookingCheckOut,
+  customerProfile,
 }) => {
   
   const mapInitialized = useRef(false);
@@ -786,32 +836,40 @@ const GuestTab = ({
             </div>
 
             <div className="kiosk-amenities">
-              <h3>🏨 Hotel Amenities</h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <h3 style={{ margin: 0 }}>🏨 Hotel Amenities</h3>
+                {customerProfile?.layer2 && (() => {
+                  const badge = PROFILE_BADGE[customerProfile.layer2.domainProfile] || PROFILE_BADGE.GENERIC_GUEST;
+                  return (
+                    <span style={{
+                      background: badge.color,
+                      color: 'white',
+                      borderRadius: '12px',
+                      padding: '3px 10px',
+                      fontSize: '0.72rem',
+                      fontWeight: 'bold',
+                      letterSpacing: '0.02em',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {badge.label}{customerProfile.layer2.finalConfidence ? ` (${Math.round(customerProfile.layer2.finalConfidence * 100)}%)` : ''}
+                    </span>
+                  );
+                })()}
+              </div>
+              {customerProfile?.layer2?.explainability?.fusion && (
+                <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)', margin: '0 0 10px 0', fontStyle: 'italic' }}>
+                  {customerProfile.layer2.explainability.fusion.ruleApplied}
+                </p>
+              )}
               <div className="amenity-grid">
-                <div className="amenity-card">
-                  <div className="amenity-icon">🍽️</div>
-                  <h4>La Cocina del Sol</h4>
-                  <p>Free starter with main course</p>
-                  <span className="amenity-location">Ground Floor</span>
-                </div>
-                <div className="amenity-card">
-                  <div className="amenity-icon">💆</div>
-                  <h4>Sol Wellness Spa</h4>
-                  <p>20% off all treatments</p>
-                  <span className="amenity-location">Level 6</span>
-                </div>
-                <div className="amenity-card">
-                  <div className="amenity-icon">💪</div>
-                  <h4>Fitness Center</h4>
-                  <p>Free 24/7 access</p>
-                  <span className="amenity-location">Level 4</span>
-                </div>
-                <div className="amenity-card">
-                  <div className="amenity-icon">🏊</div>
-                  <h4>Rooftop Pool & Bar</h4>
-                  <p>Free welcome cocktail</p>
-                  <span className="amenity-location">Level 5</span>
-                </div>
+                {getOrderedAmenities(customerProfile).map(amenity => (
+                  <div className="amenity-card" key={amenity.key}>
+                    <div className="amenity-icon">{amenity.icon}</div>
+                    <h4>{amenity.name}</h4>
+                    <p>{amenity.offer}</p>
+                    <span className="amenity-location">{amenity.location}</span>
+                  </div>
+                ))}
               </div>
             </div>
 

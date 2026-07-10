@@ -55,7 +55,16 @@ function KioskPage() {
   const [rfidStatus, setRfidStatus] = useSyncedState('rfidStatus', 'Unverified');
   const [isSequenceRunning] = useSyncedState('isSequenceRunning', false);
   const [checkInConsent, setCheckInConsent] = useSyncedState('checkInConsent', false);
+  const [customerProfile] = useSyncedState('customerProfile', null);
   const [museumMap, setMuseumMap] = useState(null);
+
+  // On mount, request a full state sync from the main window in case
+  // this window opened after BroadcastChannel messages were already sent.
+  useEffect(() => {
+    const channel = new BroadcastChannel('hotel_mdu_sync');
+    channel.postMessage({ type: 'REQUEST_SYNC' });
+    channel.close();
+  }, []);
 
   const addGuestMessage = useCallback((message, type = 'info') => {
     setGuestMessages(prev => [
@@ -93,6 +102,7 @@ function KioskPage() {
         onCheckInConsent={handleCheckInConsent}
         isSequenceRunning={isSequenceRunning}
         checkInConsent={checkInConsent}
+        customerProfile={customerProfile}
       />
     </div>
   );

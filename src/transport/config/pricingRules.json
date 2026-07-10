@@ -1,0 +1,18 @@
+{
+  "_note": "Zone-based pricing rules. ruleType: ZONE_PAIR | SAME_ZONE | DURATION_BASED. Add new rules here — no code changes required.",
+  "currency": "EUR",
+  "fallbackFare": 2.00,
+  "rules": [
+    { "fromZone": "ZONE_1", "toZone": "ZONE_1", "fare": 1.00, "ruleType": "SAME_ZONE",      "label": "Zone 1 → Zone 1" },
+    { "fromZone": "ZONE_1", "toZone": "ZONE_2", "fare": 2.50, "ruleType": "ZONE_PAIR",      "label": "Zone 1 → Zone 2" },
+    { "fromZone": "ZONE_1", "toZone": "ZONE_3", "fare": 4.00, "ruleType": "ZONE_PAIR",      "label": "Zone 1 → Zone 3" },
+    { "fromZone": "ZONE_2", "toZone": "ZONE_1", "fare": 2.50, "ruleType": "ZONE_PAIR",      "label": "Zone 2 → Zone 1" },
+    { "fromZone": "ZONE_2", "toZone": "ZONE_2", "fare": 1.00, "ruleType": "SAME_ZONE",      "label": "Zone 2 → Zone 2" },
+    { "fromZone": "ZONE_2", "toZone": "ZONE_3", "fare": 2.50, "ruleType": "ZONE_PAIR",      "label": "Zone 2 → Zone 3" },
+    { "fromZone": "ZONE_3", "toZone": "ZONE_1", "fare": 4.00, "ruleType": "ZONE_PAIR",      "label": "Zone 3 → Zone 1" },
+    { "fromZone": "ZONE_3", "toZone": "ZONE_2", "fare": 2.50, "ruleType": "ZONE_PAIR",      "label": "Zone 3 → Zone 2" },
+    { "fromZone": "ZONE_3", "toZone": "ZONE_3", "fare": 1.00, "ruleType": "SAME_ZONE",      "label": "Zone 3 → Zone 3" },
+    { "fromZone": "PKG_ZONE",  "toZone": "PKG_ZONE",  "ratePerHour": 2.50, "minimumFare": 1.00, "ruleType": "DURATION_BASED", "label": "Car Park — €2.50/hr" },
+    { "fromZone": "FREE_ZONE", "toZone": "FREE_ZONE", "ratePerHour": 0,    "minimumFare": 0,    "ruleType": "DURATION_BASED", "label": "Free Parking" }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "_note": "Decision engine configuration for Phase 2. All decision rules are config-driven — no hardcoding in code.",
+
+  "decisionEnabled": true,
+
+  "rules": {
+    "_note": "Core decision rules. ambiguityRequiresValidation is the primary demo-visible toggle.",
+    "ambiguityRequiresValidation":        true,
+    "busAlwaysRequiresValidation":         true,
+    "lowCorrelationConfidenceAction":      "AUTO_PROCESS",
+    "_noteLowConfidence":                  "AUTO_PROCESS | REQUIRE_VALIDATION — applied when correlationConfidence=LOW",
+    "unknownModeAction":                   "REQUIRE_VALIDATION",
+    "_noteUnknown":                        "AUTO_PROCESS | REQUIRE_VALIDATION — applied when inferredMode=UNKNOWN",
+    "contextBoostCanOverride":             false,
+    "_noteContextOverride":                "If true and Approach 1 confidence >= contextOverrideMinScore, REQUIRE_VALIDATION is downgraded to AUTO_PROCESS",
+    "contextOverrideMinScore":             0.85
+  },
+
+  "validation": {
+    "_note": "Demo validation settings. demoAutoResolveMs controls how long before mock validation auto-resolves.",
+    "demoAutoResolveMs":          8000,
+    "demoAutoResolveMethod":      "MOCK",
+    "holdEntireTripOnAmbiguousLeg": true,
+    "_noteHold":                  "If true, any REQUIRE_VALIDATION leg holds the entire trip bill until all validations resolve"
+  },
+
+  "thresholds": {
+    "highCorrelationMinScore":  0.75,
+    "autoProcessBelowScore":    0.50
+  }
+}

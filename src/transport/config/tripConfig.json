@@ -1,0 +1,9 @@
+{
+  "_note": "Trip Planner configuration. inactivityTimeoutMs applies in production, demoInactivityTimeoutMs in demo mode.",
+  "inactivityTimeoutMs":     86400000,
+  "demoInactivityTimeoutMs": 120000,
+  "_noteDemoTimeout": "120 seconds between legs in demo mode. Enough time to explain the leg result and start the next leg during a presentation. Production uses 24hr.",
+  "maxLegsPerTrip":          20,
+  "currency":                "EUR",
+  "billingMode":             "END_OF_TRIP"
+}

@@ -440,8 +440,8 @@ const runCorrelationForJourney = useCallback(async (
               const result = await resp.json();
               if (result.validationStatus === 'SUCCESS' &&
                   validationHandlerRef.current?.getStatus() === VALIDATION_STATUS.PENDING) {
-                addMessage(`Transport: [VALIDATION] Recovered NFC result after reconnect — method=${result.method}`);
                 const method = result.method === 'NFC' ? 'NFC' : 'BIOMETRIC';
+                addMessage(`Transport: [VALIDATION] Recovered ${method} result after reconnect`);
                 validationHandlerRef.current.resolve(method);
                 unsubValidation();
                 unsubReconnect();

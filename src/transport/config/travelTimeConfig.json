@@ -1,0 +1,183 @@
+{
+  "_note": "Travel time provider configuration for TransportCorrelationEngine. All route timings here — no hardcoded values in code.",
+
+  "_operatingModes": {
+    "_note": "Three operating modes, all using Google for ranges:",
+    "DEMO_CLEAR_RAIL": {
+      "description": "Demo — synthetic duration 76 min injected. Google called live. 76 min falls inside Google rail range (74-81), outside road (26-36). Outcome: RAIL, AUTO_PROCESS.",
+      "settings": { "demoScenario": "CLEAR_RAIL", "dataSourcePriority": ["GOOGLE", "MOCK"] }
+    },
+    "DEMO_CLEAR_ROAD": {
+      "description": "Demo — synthetic duration 30 min injected. Google called live. 30 min falls inside Google road range (26-36), outside rail (74-81). Outcome: CAR, AUTO_PROCESS.",
+      "settings": { "demoScenario": "CLEAR_ROAD", "dataSourcePriority": ["GOOGLE", "MOCK"] }
+    },
+    "DEMO_AMBIGUOUS_MOCK": {
+      "description": "Demo — true ambiguity scenario. Google ranges for this route are too far apart to overlap. Use MOCK provider where rail (20-30) and road (25-55) genuinely overlap.",
+      "settings": { "demoScenario": "AMBIGUOUS", "dataSourcePriority": ["MOCK"] }
+    },
+    "LIVE_PRODUCTION": {
+      "description": "Fully live — real elapsed simulator duration vs real Google ranges. Outcome genuinely determined by data.",
+      "settings": { "demoScenario": null, "dataSourcePriority": ["TFL", "GOOGLE", "MAPBOX", "MOCK"] }
+    }
+  },
+
+  "featureEnabled": true,
+
+  "_currentMode": "DEMO_CONTROLLED with live Google ranges — demoScenario injects a synthetic duration calibrated against real Google values. Set demoScenario=null for fully live mode.",
+
+  "demoScenario": "AMBIGUOUS",
+  "_noteDemoScenario": "null = fully live (real elapsed duration vs real Google ranges). CLEAR_RAIL | CLEAR_ROAD | AMBIGUOUS = synthetic duration injected, but Google is still called for ranges. demoScenarioTimings MUST be calibrated against real Google values for the active route.",
+
+  "toleranceMarginMinutes": 2,
+  "_noteTolerance": "Buffer added to each range boundary before comparison. Prevents false mismatches from minor timing noise.",
+
+  "ambiguityOverlapThresholdMinutes": 5,
+  "_noteAmbiguityThreshold": "Gap 3.2: Overlap >= this value = true ambiguity (triggers validation). Overlap < this = resolvable by tiebreak (MEDIUM confidence, no validation).",
+
+  "dataSourcePriority": ["MOCK"],
+  "_noteDataSourcePriority": "Gap 3.7: First available provider in this list is used. Remove or reorder to change priority.",
+
+  "supportedModes": ["rail", "road", "bus"],
+
+  "mockData": {
+    "_note": "Resolution order: exact station pair key → zone pair fallback → null (no data). Key format: {fromStationId}_{toStationId}",
+
+    "routePairs": [
+      {
+        "key":   "STN_CENTRAL_STN_AIRPORT",
+        "label": "Barcelona Sants → Airport",
+        "rail":  { "optimistic": 20, "pessimistic": 30, "best": 24 },
+        "road":  { "optimistic": 25, "pessimistic": 55, "best": 35 },
+        "bus":   { "optimistic": 35, "pessimistic": 65, "best": 48 }
+      },
+      {
+        "key":   "STN_AIRPORT_STN_CENTRAL",
+        "label": "Airport → Barcelona Sants",
+        "rail":  { "optimistic": 20, "pessimistic": 30, "best": 24 },
+        "road":  { "optimistic": 28, "pessimistic": 60, "best": 38 },
+        "bus":   { "optimistic": 38, "pessimistic": 68, "best": 52 }
+      },
+      {
+        "key":   "STN_CENTRAL_STN_GRACIA",
+        "label": "Barcelona Sants → Bellvitge",
+        "rail":  { "optimistic": 8,  "pessimistic": 15, "best": 11 },
+        "road":  { "optimistic": 10, "pessimistic": 25, "best": 15 },
+        "bus":   { "optimistic": 15, "pessimistic": 30, "best": 20 }
+      },
+      {
+        "key":   "STN_GRACIA_STN_CENTRAL",
+        "label": "Bellvitge → Barcelona Sants",
+        "rail":  { "optimistic": 8,  "pessimistic": 15, "best": 11 },
+        "road":  { "optimistic": 10, "pessimistic": 25, "best": 15 },
+        "bus":   { "optimistic": 15, "pessimistic": 30, "best": 20 }
+      },
+      {
+        "key":   "STN_GRACIA_STN_AIRPORT",
+        "label": "Bellvitge → Airport",
+        "rail":  { "optimistic": 5,  "pessimistic": 10, "best": 7 },
+        "road":  { "optimistic": 8,  "pessimistic": 18, "best": 12 },
+        "bus":   { "optimistic": 15, "pessimistic": 28, "best": 20 }
+      },
+      {
+        "key":   "STN_AIRPORT_STN_GRACIA",
+        "label": "Airport → Bellvitge",
+        "rail":  { "optimistic": 5,  "pessimistic": 10, "best": 7 },
+        "road":  { "optimistic": 8,  "pessimistic": 18, "best": 12 },
+        "bus":   { "optimistic": 15, "pessimistic": 28, "best": 20 }
+      },
+      {
+        "key":   "TRIP_STN_A_TRIP_STN_C",
+        "label": "Trip: Sants → Airport",
+        "rail":  { "optimistic": 20, "pessimistic": 30, "best": 24 },
+        "road":  { "optimistic": 25, "pessimistic": 55, "best": 35 },
+        "bus":   { "optimistic": 35, "pessimistic": 65, "best": 48 }
+      },
+      {
+        "key":   "TRIP_STN_A_TRIP_STN_B",
+        "label": "Trip: Sants → Bellvitge",
+        "rail":  { "optimistic": 8,  "pessimistic": 15, "best": 11 },
+        "road":  { "optimistic": 10, "pessimistic": 25, "best": 15 },
+        "bus":   { "optimistic": 15, "pessimistic": 30, "best": 20 }
+      },
+      {
+        "key":   "TRIP_STN_B_TRIP_STN_C",
+        "label": "Trip: Bellvitge → Airport",
+        "rail":  { "optimistic": 5,  "pessimistic": 10, "best": 7 },
+        "road":  { "optimistic": 8,  "pessimistic": 18, "best": 12 },
+        "bus":   { "optimistic": 15, "pessimistic": 28, "best": 20 }
+      }
+    ],
+
+    "zonePairFallbacks": [
+      {
+        "fromZone": "ZONE_1", "toZone": "ZONE_3",
+        "rail":  { "optimistic": 18, "pessimistic": 32, "best": 24 },
+        "road":  { "optimistic": 22, "pessimistic": 50, "best": 33 },
+        "bus":   { "optimistic": 32, "pessimistic": 62, "best": 46 }
+      },
+      {
+        "fromZone": "ZONE_3", "toZone": "ZONE_1",
+        "rail":  { "optimistic": 18, "pessimistic": 32, "best": 24 },
+        "road":  { "optimistic": 24, "pessimistic": 55, "best": 36 },
+        "bus":   { "optimistic": 35, "pessimistic": 65, "best": 50 }
+      },
+      {
+        "fromZone": "ZONE_1", "toZone": "ZONE_2",
+        "rail":  { "optimistic": 7,  "pessimistic": 16, "best": 11 },
+        "road":  { "optimistic": 9,  "pessimistic": 24, "best": 14 },
+        "bus":   { "optimistic": 14, "pessimistic": 28, "best": 19 }
+      },
+      {
+        "fromZone": "ZONE_2", "toZone": "ZONE_1",
+        "rail":  { "optimistic": 7,  "pessimistic": 16, "best": 11 },
+        "road":  { "optimistic": 9,  "pessimistic": 24, "best": 14 },
+        "bus":   { "optimistic": 14, "pessimistic": 28, "best": 19 }
+      },
+      {
+        "fromZone": "ZONE_2", "toZone": "ZONE_3",
+        "rail":  { "optimistic": 12, "pessimistic": 20, "best": 15 },
+        "road":  { "optimistic": 15, "pessimistic": 35, "best": 22 },
+        "bus":   { "optimistic": 25, "pessimistic": 48, "best": 34 }
+      },
+      {
+        "fromZone": "ZONE_3", "toZone": "ZONE_2",
+        "rail":  { "optimistic": 12, "pessimistic": 20, "best": 15 },
+        "road":  { "optimistic": 17, "pessimistic": 38, "best": 24 },
+        "bus":   { "optimistic": 27, "pessimistic": 52, "best": 36 }
+      }
+    ],
+
+    "_noteDemoScenarioTimings": "Synthetic durations calibrated against REAL Google Directions API values for STN_CENTRAL_STN_AIRPORT. Google observed values vary by time of day: rail ~68-74 min, road ~26-30 min, bus ~76-97 min. CLEAR_RAIL=71 sits safely inside the rail range centre (away from bus boundary at 76). CLEAR_ROAD=30 sits inside road 26-36 and far outside rail 68+. AMBIGUOUS requires MOCK provider (dataSourcePriority=[MOCK]) because real Google rail/road ranges on this route are 38+ min apart and cannot genuinely overlap.",
+    "demoScenarioTimings": {
+      "CLEAR_RAIL":  71,
+      "CLEAR_ROAD":  30,
+      "AMBIGUOUS":   26
+    }
+  },
+
+  "providers": {
+    "_note": "Phase 4 stubs — set enabled=true and supply credentials when ready. Falls back to MOCK if provider unavailable.",
+    "google": {
+      "enabled":  true,
+      "_noteApiKey": "API key is configured server-side in .env as GOOGLE_DIRECTIONS_API_KEY. The server proxy at /api/transport/directions handles all Google calls.",
+      "modes":    ["driving", "transit"],
+      "pessimisticMultiplier": 1.4,
+      "_notePessimistic": "road pessimistic = best estimate x this multiplier. 1.4 = 40% worse than traffic estimate."
+    },
+    "mapbox": {
+      "enabled":  false,
+      "token":    "",
+      "endpoint": "https://api.mapbox.com/directions/v5/mapbox"
+    },
+    "tfl": {
+      "enabled":  false,
+      "appKey":   "",
+      "endpoint": "https://api.tfl.gov.uk/Journey/JourneyResults",
+      "londonBoundingBox": {
+        "latMin": 51.28, "latMax": 51.69,
+        "lngMin": -0.51, "lngMax":  0.33
+      },
+      "_note": "Only applicable for London-area routes. Auto-disabled outside bounding box."
+    }
+  }
+}

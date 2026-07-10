@@ -1,0 +1,37 @@
+{
+  "trainedOn": "customer_segmentation_sample.json",
+  "targetLabel": "customerPersona",
+  "createdAt": "2026-05-08T06:00:30.786Z",
+  "algorithm": "CART_DECISION_TREE",
+  "maxDepth": 5,
+  "minSamples": 2,
+  "featuresUsed": [
+    "groupPresence",
+    "interactionDurationSec",
+    "membershipTier",
+    "timeOfDay"
+  ],
+  "trainingMode": "rule-derived-supervised-learning",
+  "trainingDisclaimer": "Model replicates rule-based labelling; enables transition to real data later.",
+  "dataType": "synthetic-labelled-proxy-dataset",
+  "generalizationNote": "Works for demo. Replaceable with real hotel/PMS data when available. Dataset does not contain real domain labels — we mimic them, then later adapt to real data.",
+  "datasetHash": "sha256:e59437c1b0e9aac6",
+  "recordCount": 30,
+  "labelDistribution": {
+    "BUSINESS_TRAVELLER": 9,
+    "LEISURE_TRAVELLER": 12,
+    "FAMILY_CUSTOMER": 9
+  },
+  "totalRecords": 30,
+  "validation": {
+    "branchCount": 3,
+    "maxDepth": 3,
+    "reachablePersonas": [
+      "FAMILY_CUSTOMER",
+      "BUSINESS_TRAVELLER",
+      "LEISURE_TRAVELLER"
+    ]
+  },
+  "featureMappingSource": "src/profiling/config/featureMapping.js",
+  "featureMappingGuarantee": "Same mapping functions used in training (offline) and inference (runtime)."
+}

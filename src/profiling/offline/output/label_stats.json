@@ -1,0 +1,20 @@
+{
+  "total": 30,
+  "distribution": {
+    "BUSINESS_TRAVELLER": {
+      "count": 9,
+      "avgConfidence": 0.92,
+      "percentage": "30.0%"
+    },
+    "LEISURE_TRAVELLER": {
+      "count": 12,
+      "avgConfidence": 0.73,
+      "percentage": "40.0%"
+    },
+    "FAMILY_CUSTOMER": {
+      "count": 9,
+      "avgConfidence": 0.95,
+      "percentage": "30.0%"
+    }
+  }
+}

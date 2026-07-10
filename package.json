@@ -21,7 +21,8 @@
     "react-dom": "^19.2.0",
     "react-scripts": "5.0.1",
     "socket.io-client": "^4.8.3",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "ws": "^8.18.0"
   },
   "scripts": {
     "start": "set PORT=4001&& set WATCHPACK_POLLING=true&& react-scripts start",
